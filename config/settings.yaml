@@ -1,0 +1,6 @@
+# User specific settings for JD
+Machine:
+    deadworld_mod_installed: True
+
+Display:
+    left_players_score_justify: 'right'

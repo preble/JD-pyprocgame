@@ -33,7 +33,8 @@ pygame.display.set_caption('JDTEST - Press CTRL-C to exit')
 
 locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 
-config_path = "../shared/config/JD.yaml"
+machine_config_path = "../shared/config/JD.yaml"
+settings_path = "./games/jd/config/settings.yaml"
 fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
@@ -50,14 +51,13 @@ class Attract(game.Mode):
 		self.layer.opaque = True
 
 	def mode_topmost(self):
+		pass
+
+	def mode_started(self):
 		self.game.lamps.startButton.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=False)
 		self.game.lamps.gi01.pulse(0)
 		self.game.lamps.gi02.disable()
 
-	def mode_started(self):
-		#self.game.lamps.startButton.schedule(schedule=0x00000fff, cycle_seconds=0, now=False)
-		#self.game.lamps.gi01.pulse(0)
-		#self.game.lamps.gi02.disable()
 		for name in ['popperL', 'popperR']:
 			if self.game.switches[name].is_open():
 				self.game.coils[name].pulse()
@@ -143,7 +143,7 @@ class StartOfBall(game.Mode):
 		#	search.perform_search()
 			#search.pop_coil()
 		#self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=8, prefix='dropTarget', letters='JUDGE')
-		self.multiball = Multiball(self.game, 8, self.game.deadworld_mod_installed, font_jazz18)
+		self.multiball = Multiball(self.game, 8, self.game.settings['Machine']['deadworld_mod_installed'], font_jazz18)
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7)
 		self.jd_modes.popperR_launch = self.popperR_eject
 		self.jd_modes.main_launch = self.main_eject
@@ -555,7 +555,8 @@ class TestGame(game.GameController):
 		
 	def setup(self):
 		"""docstring for setup"""
-		self.load_config(config_path)
+		self.load_config(machine_config_path)
+		self.load_settings(settings_path)
 		print("Initial switch states:")
 		for sw in self.switches:
 			print("  %s:\t%s" % (sw.name, sw.state_str()))
@@ -563,9 +564,11 @@ class TestGame(game.GameController):
                 self.setup_ball_search()
 
 		self.score_display = scoredisplay.ScoreDisplay(self, 1)
+		self.score_display.set_left_players_justify(self.settings['Display']['left_players_score_justify'])
+
 		self.start_of_ball_mode = StartOfBall(self)
 		self.attract_mode = Attract(self)
-		self.deadworld = Deadworld(self, 20, self.deadworld_mod_installed)
+		self.deadworld = Deadworld(self, 20, self.settings['Machine']['deadworld_mod_installed'])
 
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
 		self.sound.register_sound('service_exit', sound_path+"menu_out.wav")
