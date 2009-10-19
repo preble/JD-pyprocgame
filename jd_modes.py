@@ -311,13 +311,10 @@ class JD_Modes(Scoring_Mode):
 
 	def sw_fireR_active(self, sw):
 		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterR.is_inactive():
-			self.game.set_status("hi")
 			self.rotate_modes(1)
 		else:
-			print "hello"
 			print self.state
 			print self.multiball_active
-			self.game.set_status("hello")
 
 	def sw_fireL_active(self, sw):
 		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():

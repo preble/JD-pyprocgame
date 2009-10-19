@@ -1,8 +1,8 @@
-Display:
-  left_players_score_justify:
-    options: [left, right]
-    value: right
 Machine:
   deadworld_mod_installed:
     options: [true, false]
-    value: false
+    default: true
+Display:
+  left_players_score_justify:
+    # This example has no default.  The first option (left) will be used as the default.
+    options: [left, right]
