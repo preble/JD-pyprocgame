@@ -35,6 +35,7 @@ locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 
 machine_config_path = "../shared/config/JD.yaml"
 settings_path = "./games/jd/config/settings.yaml"
+new_settings_path = "./games/jd/config/settings_new.yaml"
 fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
@@ -143,7 +144,7 @@ class StartOfBall(game.Mode):
 		#	search.perform_search()
 			#search.pop_coil()
 		#self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=8, prefix='dropTarget', letters='JUDGE')
-		self.multiball = Multiball(self.game, 8, self.game.settings['Machine']['deadworld_mod_installed'], font_jazz18)
+		self.multiball = Multiball(self.game, 8, self.game.settings['Machine']['deadworld_mod_installed']['value'], font_jazz18)
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7)
 		self.jd_modes.popperR_launch = self.popperR_eject
 		self.jd_modes.main_launch = self.main_eject
@@ -552,6 +553,9 @@ class TestGame(game.GameController):
 		self.dmd = dmd.DisplayController(self.proc, width=128, height=32, message_font=font_tiny7)
 		self.exit_mode = ExitMode(self, 1)
 		self.modes.add(self.exit_mode)
+
+	def save_settings(self):
+		self.write_settings(settings_path)
 		
 	def setup(self):
 		"""docstring for setup"""
@@ -564,11 +568,11 @@ class TestGame(game.GameController):
                 self.setup_ball_search()
 
 		self.score_display = scoredisplay.ScoreDisplay(self, 1)
-		self.score_display.set_left_players_justify(self.settings['Display']['left_players_score_justify'])
+		self.score_display.set_left_players_justify(self.settings['Display']['left_players_score_justify']['value'])
 
 		self.start_of_ball_mode = StartOfBall(self)
 		self.attract_mode = Attract(self)
-		self.deadworld = Deadworld(self, 20, self.settings['Machine']['deadworld_mod_installed'])
+		self.deadworld = Deadworld(self, 20, self.settings['Machine']['deadworld_mod_installed']['value'])
 
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
 		self.sound.register_sound('service_exit', sound_path+"menu_out.wav")
