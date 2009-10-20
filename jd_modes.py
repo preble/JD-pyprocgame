@@ -36,7 +36,6 @@ class Bonus(game.Mode):
 		self.delay(name='bonus_computer', event_type=None, delay=self.delay_time, handler=self.bonus_computer)
 		self.title_layer.set_text('BONUS:',self.delay_time)
 		self.total_base = 0
-		self.game.dmd.layers.append(self.layer)
 
 	def bonus_computer(self):
 		self.title_layer.set_text('')
@@ -67,7 +66,6 @@ class Bonus(game.Mode):
 			self.game.score(total_bonus)
 			self.delay(name='bonus_finish', event_type=None, delay=self.delay_time, handler=self.bonus_finish)
 		else:
-			self.game.dmd.layers.remove(self.layer)
 			self.exit_function()
 		self.timer += 1
 
@@ -1158,7 +1156,6 @@ class PlayIntro(game.Mode):
 		self.frame_counter = 5
 		self.delay(name='intro', event_type=None, delay=1, handler=self.next_frame)
 		self.banner_layer.set_text(str(self.mode) + ' intro')
-		self.game.dmd.layers.append(self.layer)
 		self.update_gi(False, 'all')
 
 	def mode_stopped(self):
@@ -1176,13 +1173,11 @@ class PlayIntro(game.Mode):
 
 	def sw_flipperLwL_active(self, sw):
 		if self.game.switches.flipperLwR.is_active():
-			self.game.dmd.layers.remove(self.layer)
 			self.exit_function(self.exit_function_param)	
 			self.abort = 1
 
 	def sw_flipperLwR_active(self, sw):
 		if self.game.switches.flipperLwL.is_active():
-			self.game.dmd.layers.remove(self.layer)
 			self.exit_function(self.exit_function_param)	
 			self.abort = 1
 
@@ -1192,7 +1187,6 @@ class PlayIntro(game.Mode):
 			self.countdown_layer.set_text(str(self.frame_counter))
 			self.frame_counter -= 1
 		else:
-			self.game.dmd.layers.remove(self.layer)
 			self.exit_function(self.exit_function_param)	
 
 
@@ -1208,7 +1202,6 @@ class Multiball(Scoring_Mode):
 		self.banner_layer = dmd.TextLayer(128/2, 7, font, "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer])
 		self.state = 'load'
-		self.displaying_text = 0
 		self.enable_ball_save_after_launch=False
 		self.paused = 0
 		self.num_locks_lit = 0
@@ -1236,9 +1229,6 @@ class Multiball(Scoring_Mode):
 	def mode_stopped(self):
 		self.game.coils.flasherGlobe.disable()
 		self.game.modes.remove(self.drops)
-		#if self.displaying_text:
-		#	self.game.dmd.layers.remove(self.layer)
-		#	self.cancel_delayed(['remove_dmd_layer'])
 
 	def on_drops_advance(self, mode):
 		pass
@@ -1281,18 +1271,7 @@ class Multiball(Scoring_Mode):
 			self.num_left_ramp_shots_hit = 0
 
 	def display_text(self, text):
-		# use a varable to protect against adding the layer twice
-		#if self.displaying_text:
-		#	self.game.dmd.layers.remove(self.layer)
-		#	self.cancel_delayed(['remove_dmd_layer'])
-		#self.displaying_text = 1
-		self.banner_layer.set_text(text,3)
-		self.game.dmd.layers.append(self.layer)
-		self.delay(name='remove_dmd_layer', event_type=None, delay=2.5, handler=self.remove_dmd_layer)
-
-	def remove_dmd_layer(self):
-		self.game.dmd.layers.remove(self.layer)
-		self.displaying_text = 0
+		self.banner_layer.set_text(text, 3)
 
 	def update_info_record(self, info_record):
 		if len(info_record) > 0:

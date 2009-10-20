@@ -66,11 +66,8 @@ class Attract(game.Mode):
 			if self.game.switches[name].is_closed():
 				self.game.coils[name].pulse()
 
-		self.game.dmd.layers.insert(0, self.layer)
-
-
 	def mode_stopped(self):
-		self.game.dmd.layers.remove(self.layer)
+		pass
 		
 	def mode_tick(self):
 		#self.layer.layers[0].enabled = (int(1.5 * time.time()) % 2) == 0
@@ -125,7 +122,7 @@ class StartOfBall(game.Mode):
 		super(StartOfBall, self).__init__(game, 2)
 		self.ball_save = procgame.ballsave.BallSave(self.game, self.game.lamps.drainShield)
 		self.tilt_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("TILT!")
-		self.layer = dmd.GroupedLayer(128, 32, [self.tilt_layer])
+		self.layer = None # Presently used for tilt layer
 
 	def mode_started(self):
 		self.game.coils.flasherPursuitL.schedule(0x00001010, cycle_seconds=1, now=False)
@@ -237,8 +234,8 @@ class StartOfBall(game.Mode):
 					if self.jd_modes.multiball_active:
 						self.multiball.end_multiball()
 			elif self.game.is_trough_full(self.game.num_balls_total-self.game.deadworld.get_num_balls_locked()):
-				if self.tilt_status:
-					self.game.dmd.layers.remove(self.layer)
+				if self.tilt_status and self.layer == self.tilt_layer:
+					self.layer = None
 				mb_info_record = self.multiball.get_info_record()
 				self.game.update_player_record('MB', mb_info_record)
 				jd_modes_info_record = self.jd_modes.get_info_record()
@@ -351,7 +348,7 @@ class StartOfBall(game.Mode):
 
 	def tilt(self):
 		if self.tilt_status == 0:
-			self.game.dmd.layers.append(self.layer)
+			self.layer = self.tilt_layer
 			#self.game.modes.remove(self.drops)
 			#self.game.modes.remove(self.drop_targets_completed_hurryup)
 			self.ball_save.disable()
@@ -387,14 +384,12 @@ class DropTargetsCompletedHurryup(game.Mode):
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
 	
 	def mode_started(self):
-		self.game.dmd.layers.append(self.layer)
 		self.banner_layer.set_text("HURRY-UP!", 3)
 		self.seconds_remaining = 13
 		self.update_and_delay()
 		self.game.lamps.multiballJackpot.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
 
 	def mode_stopped(self):
-		self.game.dmd.layers.remove(self.layer)
 		self.drop_target_mode.animated_reset(1.0)
 		self.game.lamps.multiballJackpot.disable()
 		self.game.disable_popperL = 0
@@ -550,7 +545,7 @@ class TestGame(game.GameController):
 	def __init__(self, machineType):
 		super(TestGame, self).__init__(machineType)
 		self.sound = SoundController(self)
-		self.dmd = dmd.DisplayController(self.proc, width=128, height=32, message_font=font_tiny7)
+		self.dmd = dmd.DisplayController(self, width=128, height=32, message_font=font_tiny7)
 		self.exit_mode = ExitMode(self, 1)
 		self.modes.add(self.exit_mode)
 
@@ -567,7 +562,7 @@ class TestGame(game.GameController):
 
                 self.setup_ball_search()
 
-		self.score_display = scoredisplay.ScoreDisplay(self, 1)
+		self.score_display = scoredisplay.ScoreDisplay(self, 0)
 		self.score_display.set_left_players_justify(self.user_settings['Display']['left_players_score_justify'])
 
 		self.start_of_ball_mode = StartOfBall(self)
