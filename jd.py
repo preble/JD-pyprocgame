@@ -547,7 +547,6 @@ class TestGame(game.GameController):
 		self.sound = SoundController(self)
 		self.dmd = dmd.DisplayController(self, width=128, height=32, message_font=font_tiny7)
 		self.exit_mode = ExitMode(self, 1)
-		self.modes.add(self.exit_mode)
 
 	def save_settings(self):
 		self.write_settings(user_settings_path)
