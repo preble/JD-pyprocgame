@@ -3,7 +3,7 @@ from procgame import *
 from random import *
 
 class Scoring_Mode(game.Mode):
-	"""docstring for AttractMode"""
+	"""docstring for Scoring_mode base class"""
 	def __init__(self, game, priority):
 		super(Scoring_Mode, self).__init__(game, priority)
 		self.bonus_base_elements = {}
@@ -11,7 +11,7 @@ class Scoring_Mode(game.Mode):
 		self.bonus_x = 0
 
 class Bonus(game.Mode):
-	"""docstring for AttractMode"""
+	"""docstring for Bonus"""
 	def __init__(self, game, priority, font_big, font_small):
 		super(Bonus, self).__init__(game, priority)
 		self.font_big = font_big
@@ -78,7 +78,7 @@ class Bonus(game.Mode):
 			self.delay_time = 0.250
 
 class JD_Modes(Scoring_Mode):
-	"""docstring for AttractMode"""
+	"""docstring for JD_Modes"""
 	def __init__(self, game, priority, font):
 		super(JD_Modes, self).__init__(game, priority)
 		self.reset()
@@ -353,7 +353,7 @@ class JD_Modes(Scoring_Mode):
 			self.modes_just_attempted.append(self.mode)
 			self.state = 'mode'
 			self.game.modes.add(self.mode_list[self.mode])
-			self.mode_timer.start(25)
+			self.mode_timer.start(5)
 			self.mode_active = True
 			self.drive_mode_lamp('mystery', 'on')
 			self.mystery_lit = True
@@ -370,7 +370,9 @@ class JD_Modes(Scoring_Mode):
 				self.drive_mode_lamp(mode, 'off')
 			for mode in self.modes_just_attempted:
 				self.drive_mode_lamp(mode, 'slow')
-			self.modes_just_attempted = []
+				self.mode_list[mode].judge_battle = True
+				self.game.modes.add(self.mode_list[mode])	
+	
 			# Start 2-ball multiball
 			self.main_launch()
 			self.game.start_of_ball_mode.ball_save.start(num_balls_to_save=2, time=10, now=False, allow_multiple_saves=True)
@@ -487,6 +489,10 @@ class JD_Modes(Scoring_Mode):
 			self.setup_next_mode()
 
 	def judge_battle_complete(self):
+		for mode in self.modes_just_attempted:
+			self.mode_list[mode].judge_battle = False
+			self.game.modes.remove(self.mode_list[mode])	
+		self.modes_just_attempted = []
 		print "judges attempted"
 		print self.judges_attempted
 		for judge in self.judges_attempted:
@@ -774,10 +780,10 @@ class ChainFeature(Scoring_Mode):
 	def __init__(self, game, priority):
 		super(ChainFeature, self).__init__(game, priority)
 		self.completed = False
+		self.judge_battle = False
 
 	def register_callback_function(self, function):
 		self.callback = function
-
 
 class Pursuit(ChainFeature):
 	"""docstring for AttractMode"""
@@ -795,13 +801,15 @@ class Pursuit(ChainFeature):
 
 	def sw_leftRampExit_active(self, sw):
 		self.shots += 1
-		self.check_for_completion()
 		self.game.score(10000)
+		if not self.judge_battle:
+			self.check_for_completion()
 
 	def sw_rightRampExit_active(self, sw):
 		self.shots += 1
-		self.check_for_completion()
 		self.game.score(10000)
+		if not self.judge_battle:
+			self.check_for_completion()
 
 	def check_for_completion(self):
 		if self.shots == 5:
@@ -835,8 +843,9 @@ class Blackout(ChainFeature):
 		self.completed = True
 		self.game.coils.flasherBlackout.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots += 1
-		self.check_for_completion()
 		self.game.score(10000)
+		if not self.judge_battle:
+			self.check_for_completion()
 
 	def check_for_completion(self):
 		if self.shots == 2:
@@ -858,8 +867,9 @@ class Sniper(ChainFeature):
 
 	def sw_popperR_active_for_300ms(self, sw):
 		self.shots += 1
-		self.check_for_completion()
 		self.game.score(10000)
+		if not self.judge_battle:
+			self.check_for_completion()
 
 	def check_for_completion(self):
 		if self.shots == 2:
@@ -887,23 +897,26 @@ class BattleTank(ChainFeature):
 	def sw_topRightOpto_active(self, sw):
 		if not self.shots['left']:
 			if self.game.switches.leftRollover.time_since_change() < 1:
-				self.game.lamps.tankLeft.disable()
-				self.shots['left'] = True
-				self.check_for_completion()
+				if not self.judge_battle:
+					self.game.lamps.tankLeft.disable()
+					self.shots['left'] = True
+					self.check_for_completion()
 				self.game.score(10000)
 
 	def sw_centerRampExit_active(self, sw):
 		if not self.shots['center']:
-			self.game.lamps.tankCenter.disable()
-			self.shots['center'] = True
-			self.check_for_completion()
+			if not self.judge_battle:
+				self.game.lamps.tankCenter.disable()
+				self.shots['center'] = True
+				self.check_for_completion()
 			self.game.score(10000)
 
 	def sw_threeBankTargets_active(self, sw):
 		if not self.shots['right']:
-			self.game.lamps.tankRight.disable()
-			self.shots['right'] = True
-			self.check_for_completion()
+			if not self.judge_battle:
+				self.game.lamps.tankRight.disable()
+				self.shots['right'] = True
+				self.check_for_completion()
 			self.game.score(10000)
 
 	def check_for_completion(self):
@@ -941,7 +954,7 @@ class Meltdown(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if self.shots >= 3:
+		if self.shots >= 3 and not self.judge_battle:
 			self.completed = True
 			self.game.set_status('Mode completed!')
 			self.game.score(50000)
@@ -970,7 +983,7 @@ class Impersonator(ChainFeature):
 		self.cancel_delayed('moving_target')
 
 	def check_for_completion(self):
-		if self.shots == 5:
+		if not self.judge_battle and self.shots == 5:
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
@@ -1055,7 +1068,7 @@ class Safecracker(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if self.shots == 3:
+		if not self.judge_battle and self.shots == 3:
 			self.completed = True
 			self.game.set_status('Mode completed!')
 			self.game.score(50000)
@@ -1083,7 +1096,7 @@ class ManhuntMillions(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if self.shots == 5:
+		if not self.judge_battle and self.shots == 5:
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
@@ -1107,7 +1120,7 @@ class Stakeout(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if self.shots == 3:
+		if not self.judge_battle and self.shots == 3:
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
