@@ -353,7 +353,7 @@ class JD_Modes(Scoring_Mode):
 			self.modes_just_attempted.append(self.mode)
 			self.state = 'mode'
 			self.game.modes.add(self.mode_list[self.mode])
-			self.mode_timer.start(5)
+			self.mode_timer.start(25)
 			self.mode_active = True
 			self.drive_mode_lamp('mystery', 'on')
 			self.mystery_lit = True
