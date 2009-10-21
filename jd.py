@@ -241,6 +241,7 @@ class StartOfBall(game.Mode):
 				jd_modes_info_record = self.jd_modes.get_info_record()
 				self.game.update_player_record('JD_MODES', jd_modes_info_record)
 				self.game.modes.add(self.bonus)
+				self.game.coils.globeMotor.disable()
 				if not self.tilt_status:
 					self.bonus.compute(self.jd_modes.get_bonus_base(), self.jd_modes.get_bonus_x(), self.end_ball)
 				else:
