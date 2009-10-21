@@ -196,12 +196,7 @@ class JD_Modes(Scoring_Mode):
 
 	def get_bonus_base(self):
 		bonus_base_elements = self.bonus_base_elements.copy()
-		print self.bonus_base_elements 
-		print self.crimescenes.bonus_base_elements
 		bonus_base_elements.update(self.crimescenes.bonus_base_elements)
-		print "bonus_base_elements"
-		print bonus_base_elements
-		print "hi"
 		return bonus_base_elements
 
 	def get_bonus_x(self):
@@ -399,6 +394,8 @@ class JD_Modes(Scoring_Mode):
 		if not self.multiball_active:
 			self.game.coils['flasher' + self.judges_not_attempted[0]].schedule(schedule=0x00030003, cycle_seconds=0, now=True)
 			self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+			for mode in self.modes_just_attempted:
+				self.drive_mode_lamp(mode, 'slow')
 
 	def setup_ultimate_challenge(self):
 		self.state = 'pre_ultimate_challenge'
