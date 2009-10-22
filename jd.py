@@ -66,6 +66,23 @@ class Attract(game.Mode):
 			if self.game.switches[name].is_closed():
 				self.game.coils[name].pulse()
 
+		lamp_schedules = []
+		for i in range(0,32):
+			print i
+			lamp_schedules.append(0xffff0000 >> i)
+			if i > 16:
+				lamp_schedules[i] = (lamp_schedules[i] | (0xffff << (32-(i-16)))) & 0xffffffff
+			print("schedule %08x" % (lamp_schedules[i]))
+
+		shuffle(lamp_schedules)
+		i = 0
+		for lamp in self.game.lamps:
+			if lamp.name.find('gi0', 0) == -1 and \
+                           lamp.name != 'startButton' and lamp.name != 'buyIn' and \
+                           lamp.name != 'superGame':
+				lamp.schedule(schedule=lamp_schedules[i%32], cycle_seconds=0, now=False)
+				i += 1
+
 	def mode_stopped(self):
 		pass
 		
@@ -125,6 +142,8 @@ class StartOfBall(game.Mode):
 		self.layer = None # Presently used for tilt layer
 
 	def mode_started(self):
+		for lamp in self.game.lamps:
+			lamp.disable()
 		self.game.coils.flasherPursuitL.schedule(0x00001010, cycle_seconds=1, now=False)
 		self.game.coils.flasherPursuitR.schedule(0x00000101, cycle_seconds=1, now=False)
 		self.game.enable_flippers(enable=True)

@@ -7,7 +7,8 @@ class Scoring_Mode(game.Mode):
 	def __init__(self, game, priority):
 		super(Scoring_Mode, self).__init__(game, priority)
 		self.bonus_base_elements = {}
-		self.bonus_base_elements['modes_attempted'] = 0
+		self.bonus_base_elements['Modes attempted'] = 0
+		self.bonus_base_elements['Modes completed'] = 0
 		self.bonus_x = 0
 
 class Bonus(game.Mode):
@@ -162,6 +163,7 @@ class JD_Modes(Scoring_Mode):
 		info_record['missile_award_lit'] = self.missile_award_lit
 		info_record['num_modes_completed'] = self.num_modes_completed
 		info_record['crimescenes'] = self.crimescenes.get_info_record()
+		info_record['modes_bonus_base_elements'] = self.bonus_base_elements
 		return info_record
 
 	def update_info_record(self, info_record):
@@ -180,8 +182,7 @@ class JD_Modes(Scoring_Mode):
 			self.missile_award_lit = info_record['missile_award_lit']
 			self.num_modes_completed = info_record['num_modes_completed']
 			self.crimescenes.update_info_record(info_record['crimescenes'])
-			print "modes attempted"
-			print self.modes_attempted
+			self.bonus_base_elements = info_record['modes_bonus_base_elements']
 		else:	
 			self.crimescenes.update_info_record({})
 		
@@ -312,6 +313,14 @@ class JD_Modes(Scoring_Mode):
 	def sw_fireL_active(self, sw):
 		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():
 			self.rotate_modes(-1)
+
+	def sw_slingL_active(self, sw):
+		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():
+			self.rotate_modes(-1)
+
+	def sw_slingR_active(self, sw):
+		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():
+			self.rotate_modes(1)
 
 	def sw_popperR_active_for_500ms(self, sw):
 		if not self.multiball_active:
@@ -452,17 +461,17 @@ class JD_Modes(Scoring_Mode):
 	def mode_complete(self, successful=False):
 		self.game.start_of_ball_mode.multiball.drops.paused = False
 		# Add bonus info: 5000 bonus for attempting
-		if 'modes_attempted' in self.bonus_base_elements:
-			self.bonus_base_elements['modes_attempted'] += 5000
+		if 'Modes attempted' in self.bonus_base_elements:
+			self.bonus_base_elements['Modes attempted'] += 5000
 		else:
-			self.bonus_base_elements['modes_attempted'] = 5000
+			self.bonus_base_elements['Modes attempted'] = 5000
 
 		# Add bonus info: additional 10000 bonus for completing
 		if successful:
-			if 'modes_completed' in self.bonus_base_elements:
-				self.bonus_base_elements['modes_completed'] += 10000
+			if 'Modes completed' in self.bonus_base_elements:
+				self.bonus_base_elements['Modes completed'] += 10000
 			else:
-				self.bonus_base_elements['modes_completed'] = 10000
+				self.bonus_base_elements['Modes completed'] = 10000
 
 		# See about lighting extra ball
 		if successful:
@@ -532,7 +541,7 @@ class Crimescenes(Scoring_Mode):
 		self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
 		self.bonus_num = 1
 		self.extra_ball_levels = 2
-		self.bonus_base_elements['crimescene_levels'] = 0
+		self.bonus_base_elements['Crimescene levels'] = 0
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
@@ -550,6 +559,7 @@ class Crimescenes(Scoring_Mode):
 		info_record['level'] = self.level
 		info_record['mode'] = self.mode
 		info_record['targets'] = self.targets
+		info_record['crime_bonus_base'] = self.bonus_base_elements
 		return info_record
 
 	def update_info_record(self, info_record):
@@ -557,6 +567,7 @@ class Crimescenes(Scoring_Mode):
 			self.level = info_record['level']
 			self.mode = info_record['mode']
 			self.targets = info_record['targets']
+		        self.bonus_base_elements = info_record['crime_bonus_base']
 
 		if self.mode == 'bonus':
 			self.mode = 'complete'
@@ -674,10 +685,10 @@ class Crimescenes(Scoring_Mode):
 
 	def level_complete(self):
 		# Add bonus
-		if 'crimescene_levels' in self.bonus_base_elements:
-			self.bonus_base_elements['crimescene_levels'] += 2000
+		if 'Crimescene levels' in self.bonus_base_elements:
+			self.bonus_base_elements['Crimescene levels'] += 2000
 		else:
-			self.bonus_base_elements['crimescene_levels'] = 2000
+			self.bonus_base_elements['Crimescene levels'] = 2000
 			
 		self.game.score(10000)
 		if self.level == self.extra_ball_levels:
