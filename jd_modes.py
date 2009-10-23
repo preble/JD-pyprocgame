@@ -7,9 +7,7 @@ class Scoring_Mode(game.Mode):
 	def __init__(self, game, priority):
 		super(Scoring_Mode, self).__init__(game, priority)
 		self.bonus_base_elements = {}
-		self.bonus_base_elements['Modes attempted'] = 0
-		self.bonus_base_elements['Modes completed'] = 0
-		self.bonus_x = 0
+		self.bonus_x = 1
 
 class Bonus(game.Mode):
 	"""docstring for Bonus"""
@@ -116,6 +114,8 @@ class JD_Modes(Scoring_Mode):
 		self.mystery_lit = False
 		self.missile_award_lit = False
 		self.num_modes_completed = 0
+		self.modes_completed = []
+		self.hold_bonus_x = 0
 		for mode in self.modes_not_attempted:
 			self.drive_mode_lamp(mode, 'off')
 		self.drive_mode_lamp('mystery', 'off')
@@ -154,6 +154,7 @@ class JD_Modes(Scoring_Mode):
 		info_record['judges_not_attempted'] = self.judges_not_attempted
 		info_record['mode'] = self.mode
 		info_record['modes_attempted'] = self.modes_attempted
+		info_record['modes_completed'] = self.modes_completed
 		info_record['modes_just_attempted'] = self.modes_just_attempted
 		info_record['modes_not_attempted'] = self.modes_not_attempted
 		info_record['modes_not_attempted_ptr'] = self.modes_not_attempted_ptr
@@ -163,7 +164,10 @@ class JD_Modes(Scoring_Mode):
 		info_record['missile_award_lit'] = self.missile_award_lit
 		info_record['num_modes_completed'] = self.num_modes_completed
 		info_record['crimescenes'] = self.crimescenes.get_info_record()
-		info_record['modes_bonus_base_elements'] = self.bonus_base_elements
+		if self.hold_bonus_x:
+			info_record['bonus_x'] = self.bonus_x
+		else:
+			info_record['bonus_x'] = 1
 		return info_record
 
 	def update_info_record(self, info_record):
@@ -171,6 +175,7 @@ class JD_Modes(Scoring_Mode):
 			self.state = info_record['state']
 			self.mode= info_record['mode']
 			self.modes_attempted = info_record['modes_attempted']
+			self.modes_completed = info_record['modes_completed']
 			self.modes_just_attempted = info_record['modes_just_attempted']
 			self.modes_not_attempted = info_record['modes_not_attempted']
 			self.modes_not_attempted_ptr = info_record['modes_not_attempted_ptr']
@@ -182,7 +187,7 @@ class JD_Modes(Scoring_Mode):
 			self.missile_award_lit = info_record['missile_award_lit']
 			self.num_modes_completed = info_record['num_modes_completed']
 			self.crimescenes.update_info_record(info_record['crimescenes'])
-			self.bonus_base_elements = info_record['modes_bonus_base_elements']
+			self.bonus_x = info_record['bonus_x']
 		else:	
 			self.crimescenes.update_info_record({})
 		
@@ -196,12 +201,17 @@ class JD_Modes(Scoring_Mode):
 		self.drive_mode_lamp('extraBall2','on')
 
 	def get_bonus_base(self):
-		bonus_base_elements = self.bonus_base_elements.copy()
-		bonus_base_elements.update(self.crimescenes.bonus_base_elements)
+		# Add bonus info: 5000 bonus for attempting
+		num_modes_completed_str = 'Modes Completed: ' + str(len(self.modes_completed))
+		num_modes_attempted_str = 'Modes Attempted: ' + str(len(self.modes_attempted))
+		bonus_base_elements = {}
+		bonus_base_elements[num_modes_attempted_str] = len(self.modes_attempted)*4000
+		bonus_base_elements[num_modes_completed_str] = len(self.modes_completed)*12000
+		bonus_base_elements.update(self.crimescenes.get_bonus_base())
 		return bonus_base_elements
 
 	def get_bonus_x(self):
-		return 1
+		return self.bonus_x
 
 	def begin_processing(self):
 		for judge in self.judges_attempted:
@@ -234,7 +244,7 @@ class JD_Modes(Scoring_Mode):
 		self.modes_not_attempted_ptr = self.active_mode_pointer % len(self.modes_not_attempted)
 		print "mode_ptr"
 		print self.modes_not_attempted_ptr
-		if not self.mode_active:
+		if self.state == 'idle':
 			self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
 
 	def disable_not_attempted_mode_lamps(self):
@@ -253,6 +263,10 @@ class JD_Modes(Scoring_Mode):
 		elif style == 'off':
 			self.game.lamps[lamp_name].disable()
 
+	def sw_captiveBall3_active(self, sw):
+		self.bonus_x += 1
+		self.game.set_status("Bonus Multiplier at " + str(self.bonus_x))
+
 	def sw_leftScorePost_active(self, sw):
 		if self.extra_balls_lit > 0:
 			self.award_extra_ball()
@@ -263,8 +277,8 @@ class JD_Modes(Scoring_Mode):
 
 	def sw_mystery_active(self, sw):
 		if self.mystery_lit:
+			self.mystery_lit = False
 			if self.multiball_active or self.two_ball_active:
-				self.mystery_lit = False
 				self.drive_mode_lamp('mystery', 'off')
 				if self.game.start_of_ball_mode.ball_save.timer > 0:
 					self.game.set_status('+10 second ball saver')
@@ -278,7 +292,6 @@ class JD_Modes(Scoring_Mode):
 			elif self.state == 'mode':
 				self.mode_timer.add(10)
 				self.game.set_status('Adding 10 seconds')
-				self.mystery_lit = False
 				self.drive_mode_lamp('mystery', 'off')
 			else:
 				self.game.set_status('Missile Launch enabled')
@@ -304,25 +317,20 @@ class JD_Modes(Scoring_Mode):
 			self.game.coils.shooterL.pulse()
 
 	def sw_fireR_active(self, sw):
-		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterR.is_inactive():
+		if self.game.switches.shooterR.is_inactive():
 			self.rotate_modes(1)
-		else:
-			print self.state
-			print self.multiball_active
 
 	def sw_fireL_active(self, sw):
-		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():
+		if self.game.switches.shooterL.is_inactive():
 			self.rotate_modes(-1)
 
 	def sw_slingL_active(self, sw):
-		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():
-			self.rotate_modes(-1)
+		self.rotate_modes(-1)
 
 	def sw_slingR_active(self, sw):
-		if not self.multiball_active and self.state == 'idle' and self.game.switches.shooterL.is_inactive():
-			self.rotate_modes(1)
+		self.rotate_modes(1)
 
-	def sw_popperR_active_for_500ms(self, sw):
+	def sw_popperR_active_for_200ms(self, sw):
 		if not self.multiball_active:
 			if self.state == 'idle':
 				self.game.lamps.rightStartFeature.disable()
@@ -460,21 +468,10 @@ class JD_Modes(Scoring_Mode):
 
 	def mode_complete(self, successful=False):
 		self.game.start_of_ball_mode.multiball.drops.paused = False
-		# Add bonus info: 5000 bonus for attempting
-		if 'Modes attempted' in self.bonus_base_elements:
-			self.bonus_base_elements['Modes attempted'] += 5000
-		else:
-			self.bonus_base_elements['Modes attempted'] = 5000
 
-		# Add bonus info: additional 10000 bonus for completing
+		# Success: Add to succuss list and see about lighting extra ball
 		if successful:
-			if 'Modes completed' in self.bonus_base_elements:
-				self.bonus_base_elements['Modes completed'] += 10000
-			else:
-				self.bonus_base_elements['Modes completed'] = 10000
-
-		# See about lighting extra ball
-		if successful:
+			self.modes_completed.append(self.mode)
 			self.num_modes_completed += 1
 			if self.num_modes_completed in self.num_modes_for_extra_ball:
 				self.light_extra_ball()
@@ -526,6 +523,7 @@ class Crimescenes(Scoring_Mode):
 	def __init__(self, game, priority):
 		super(Crimescenes, self).__init__(game, priority)
 		self.level = 0
+		self.total_levels = 0
 		self.mode = 'idle'
 		self.targets = [1,0,0,0,0]
 		self.target_award_order = [1,3,0,2,4]
@@ -541,7 +539,6 @@ class Crimescenes(Scoring_Mode):
 		self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
 		self.bonus_num = 1
 		self.extra_ball_levels = 2
-		self.bonus_base_elements['Crimescene levels'] = 0
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
@@ -557,22 +554,30 @@ class Crimescenes(Scoring_Mode):
 	def get_info_record(self):
 		info_record = {}
 		info_record['level'] = self.level
+		info_record['total_levels'] = self.total_levels
 		info_record['mode'] = self.mode
 		info_record['targets'] = self.targets
-		info_record['crime_bonus_base'] = self.bonus_base_elements
 		return info_record
 
 	def update_info_record(self, info_record):
 		if len(info_record) > 0:
+			self.total_levels = info_record['total_levels']
 			self.level = info_record['level']
 			self.mode = info_record['mode']
 			self.targets = info_record['targets']
-		        self.bonus_base_elements = info_record['crime_bonus_base']
 
 		if self.mode == 'bonus':
 			self.mode = 'complete'
 		self.num_advance_hits = 0
 		self.update_lamps()
+
+	def get_bonus_base(self):
+		# Add bonus info: 5000 bonus for attempting
+		num_levels_str = 'Crimescene Levels: ' + str(self.total_levels)
+		bonus_base_elements = {}
+		bonus_base_elements[num_levels_str] = self.total_levels*2000
+		return bonus_base_elements
+
 
 	def update_lamps(self):
 		if self.mode == 'idle':
@@ -678,37 +683,39 @@ class Crimescenes(Scoring_Mode):
 				self.update_lamps()
 		elif self.mode == 'bonus':
 			if num+1 == self.bonus_num:
+				self.cancel_delayed('bonus_target')
 				self.drive_bonus_lamp(self.bonus_num, 'off')
-				self.mode = 'complete'
 				self.game.score(500000)
+				self.level_complete()
 				#Play sound, lamp show, etc
 
 	def level_complete(self):
-		# Add bonus
-		if 'Crimescene levels' in self.bonus_base_elements:
-			self.bonus_base_elements['Crimescene levels'] += 2000
-		else:
-			self.bonus_base_elements['Crimescene levels'] = 2000
-			
 		self.game.score(10000)
-		if self.level == self.extra_ball_levels:
-			self.light_extra_ball_function()
-		if self.level == 15:
-			self.mode = 'bonus'
-			self.update_lamps()
-			#Play sound, lamp show, etc
-			self.bonus_num = 1
-			self.bonus_dir = 'up'
-			self.delay(name='bonus_target', event_type=None, delay=3, handler=self.bonus_target)
-			self.drive_bonus_lamp(self.bonus_num, 'on')
-			for i in range(1,5):
-				lampname = 'crimeLevel' + str(i)
-				self.drive_mode_lamp(lampname, 'slow')
-			
-		else:
-			self.level += 1
+		if self.mode == 'bonus':
+			self.level = 0
+			self.mode = 'levels'
+			self.num_advance_hits == 0
 			self.init_level(self.level)
-			#Play sound, lamp show, etc
+		else:
+			if self.level == self.extra_ball_levels:
+				self.light_extra_ball_function()
+			if self.level == 15:
+				self.mode = 'bonus'
+				self.update_lamps()
+				#Play sound, lamp show, etc
+				self.bonus_num = 1
+				self.bonus_dir = 'up'
+				self.delay(name='bonus_target', event_type=None, delay=3, handler=self.bonus_target)
+				self.drive_bonus_lamp(self.bonus_num, 'on')
+				for i in range(1,5):
+					lampname = 'crimeLevel' + str(i)
+					self.drive_mode_lamp(lampname, 'slow')
+				
+			else:
+				self.level += 1
+				self.total_levels += 1
+				self.init_level(self.level)
+				#Play sound, lamp show, etc
 
 	def bonus_target(self):
 		self.drive_bonus_lamp(self.bonus_num, 'off')
@@ -716,7 +723,10 @@ class Crimescenes(Scoring_Mode):
 			self.bonus_dir = 'down'
 
 		if self.bonus_dir == 'down' and self.bonus_num == 1:
-			self.mode = 'complete'
+			self.level = 0
+			self.mode = 'levels'
+			self.num_advance_hits == 0
+			self.init_level(self.level)
 			for i in range(1,5):
 				lampname = 'crimeLevel' + str(i)
 				self.drive_mode_lamp(lampname, 'off')
@@ -956,7 +966,7 @@ class Meltdown(ChainFeature):
 		self.check_for_completion()
 		self.game.score(10000)
 
-	def sw_captiveBall2_active(self, sw):
+	def sw_captiveBall3_active(self, sw):
 		self.shots += 3
 		self.check_for_completion()
 		self.game.score(10000)

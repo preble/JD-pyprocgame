@@ -68,11 +68,10 @@ class Attract(game.Mode):
 
 		lamp_schedules = []
 		for i in range(0,32):
-			print i
 			lamp_schedules.append(0xffff0000 >> i)
 			if i > 16:
 				lamp_schedules[i] = (lamp_schedules[i] | (0xffff << (32-(i-16)))) & 0xffffffff
-			print("schedule %08x" % (lamp_schedules[i]))
+			#print("schedule %08x" % (lamp_schedules[i]))
 
 		shuffle(lamp_schedules)
 		i = 0
@@ -104,6 +103,8 @@ class Attract(game.Mode):
 
 	def sw_enter_closed(self, sw):
 		self.game.modes.add(self.game.service_mode)
+		for lamp in self.game.lamps:
+			lamp.disable()
 		return True
 
 	def sw_exit_closed(self, sw):
@@ -190,8 +191,6 @@ class StartOfBall(game.Mode):
 	def mode_stopped(self):
 		self.game.enable_flippers(enable=False)
 		#self.game.modes.remove(self.drops)
-		self.game.modes.remove(self.multiball)
-		self.game.modes.remove(self.jd_modes)
 		#self.game.modes.remove(self.drop_targets_completed_hurryup) # TODO: Should track parent/child relationship for modes and remove children when parent goes away..?
 		self.game.modes.remove(self.ball_save)
 		self.game.ball_search.disable()
@@ -236,10 +235,6 @@ class StartOfBall(game.Mode):
 	def trough_check(self):
 		if (self.ball_save.is_active()):
 			num_balls_out = self.game.deadworld.get_num_balls_locked() + (self.ball_save.num_balls_to_save - 1)
-			print "checking is trough full"
-			print self.game.deadworld.num_balls_locked
-			print self.ball_save.num_balls_to_save
-			print self.game.num_balls_total-num_balls_out
 			if self.game.is_trough_full(self.game.num_balls_total-num_balls_out):
 				self.ball_save.saving_ball()
 				self.game.coils.trough.pulse(20)	
@@ -261,6 +256,8 @@ class StartOfBall(game.Mode):
 				self.game.update_player_record('JD_MODES', jd_modes_info_record)
 				self.game.modes.add(self.bonus)
 				self.game.coils.globeMotor.disable()
+				self.game.modes.remove(self.multiball)
+				self.game.modes.remove(self.jd_modes)
 				if not self.tilt_status:
 					self.bonus.compute(self.jd_modes.get_bonus_base(), self.jd_modes.get_bonus_x(), self.end_ball)
 				else:
