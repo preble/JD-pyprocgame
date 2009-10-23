@@ -116,6 +116,7 @@ class JD_Modes(Scoring_Mode):
 		self.num_modes_completed = 0
 		self.modes_completed = []
 		self.hold_bonus_x = 0
+		self.missile_award_lit_save = False
 		for mode in self.modes_not_attempted:
 			self.drive_mode_lamp(mode, 'off')
 		self.drive_mode_lamp('mystery', 'off')
@@ -161,7 +162,7 @@ class JD_Modes(Scoring_Mode):
 		info_record['multiball_jackpot_collected'] = self.multiball_jackpot_collected
 		info_record['extra_balls_lit'] = self.extra_balls_lit
 		info_record['mystery_lit'] = self.mystery_lit
-		info_record['missile_award_lit'] = self.missile_award_lit
+		info_record['missile_award_lit'] = self.missile_award_lit or self.missile_award_lit_save
 		info_record['num_modes_completed'] = self.num_modes_completed
 		info_record['crimescenes'] = self.crimescenes.get_info_record()
 		if self.hold_bonus_x:
@@ -278,23 +279,23 @@ class JD_Modes(Scoring_Mode):
 	def sw_mystery_active(self, sw):
 		if self.mystery_lit:
 			self.mystery_lit = False
+			self.drive_mode_lamp('mystery', 'off')
 			if self.multiball_active or self.two_ball_active:
-				self.drive_mode_lamp('mystery', 'off')
 				if self.game.start_of_ball_mode.ball_save.timer > 0:
 					self.game.set_status('+10 second ball saver')
 					self.game.start_of_ball_mode.ball_save.add(10)
 				else:
 					if self.multiball_active:
-						self.game.start_of_ball_mode.ball_save.start(num_balls_to_save=3, time=10, now=True, allow_multiple_saves=True)
+						self.game.start_of_ball_mode.ball_save.start(num_balls_to_save=4, time=10, now=True, allow_multiple_saves=True)
 					else:
 						self.game.start_of_ball_mode.ball_save.start(num_balls_to_save=2, time=10, now=True, allow_multiple_saves=True)
 				
 			elif self.state == 'mode':
 				self.mode_timer.add(10)
 				self.game.set_status('Adding 10 seconds')
-				self.drive_mode_lamp('mystery', 'off')
 			else:
-				self.game.set_status('Missile Launch enabled')
+				self.game.start_of_ball_mode.ball_save.start(num_balls_to_save=1, time=10, now=True, allow_multiple_saves=True)
+				self.game.set_status('+10 second ball saver')
 				self.missile_award_lit = True
 				self.drive_mode_lamp('airRade', 'medium')
 
@@ -308,13 +309,17 @@ class JD_Modes(Scoring_Mode):
 		self.game.set_status('Extra Ball!')
 
 	def sw_shooterL_active_for_200ms(self, sw):
-		if self.two_ball_active or self.multiball_active:
+		if self.two_ball_active or self.multiball_active or not self.missile_award_lit:
 			self.game.coils.shooterL.pulse()
 		elif self.missile_award_lit:
 			self.game.set_status("Missile Award")
 			self.drive_mode_lamp('airRade', 'off')
+			self.missile_award_lit = False
 		else:
-			self.game.coils.shooterL.pulse()
+			if self.state == 'idle':
+				self.game.coils.shooterL.pulse()
+				self.missile_award_lit = True
+				self.drive_mode_lamp('airRade', 'medium')
 
 	def sw_fireR_active(self, sw):
 		if self.game.switches.shooterR.is_inactive():
@@ -352,6 +357,11 @@ class JD_Modes(Scoring_Mode):
 	def activate_mode(self, mode):
 		self.game.modes.remove(self.play_intro)
 		self.popperR_launch()
+
+		if self.missile_award_lit:
+			self.missile_award_lit_save = True
+			self.missile_award_lit = False
+			self.drive_mode_lamp('airRade', 'off')
 		
 		if self.state == 'idle':
 			self.game.lamps[self.modes_not_attempted[self.modes_not_attempted_ptr]].schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
@@ -391,8 +401,6 @@ class JD_Modes(Scoring_Mode):
 			self.two_ball_active = True
 			self.drive_mode_lamp('mystery', 'on')
 			self.mystery_lit = True
-			if self.missile_award_lit:
-				self.drive_mode_lamp('airRade', 'off')
 			
 			
 		elif self.state == 'pre_ultimate_challenge':
@@ -427,6 +435,7 @@ class JD_Modes(Scoring_Mode):
 		self.mystery_lit = True
 		if self.missile_award_lit:
 			self.drive_mode_lamp('airRade', 'off')
+			self.missile_award_lit_save = True
 
 	def jackpot_collected(self):
 		self.multiball_jackpot_collected = True
@@ -441,7 +450,8 @@ class JD_Modes(Scoring_Mode):
 			self.setup_judge_battle()
 		elif self.state == 'judge_battle':
 			self.judge_battle_complete()
-		if self.missile_award_lit:
+		if self.missile_award_lit_save:
+			self.missile_award_lit = True
 			self.drive_mode_lamp('airRade', 'medium')
 
 	def end_two_ball(self):
@@ -449,6 +459,9 @@ class JD_Modes(Scoring_Mode):
 		self.game.start_of_ball_mode.multiball.drops.paused = False
 		if not self.multiball_active:
 			self.judge_battle_complete()
+		if self.missile_award_lit_save:
+			self.missile_award_lit = True
+			self.drive_mode_lamp('airRade', 'medium')
 
 	def mode_over(self):
 		if self.mode_timer.timer > 0:
@@ -465,6 +478,9 @@ class JD_Modes(Scoring_Mode):
 			self.ultimate_challenge_complete()	
 
 		self.mode_complete()
+		if self.missile_award_lit_save:
+			self.missile_award_lit = True
+			self.drive_mode_lamp('airRade', 'medium')
 
 	def mode_complete(self, successful=False):
 		self.game.start_of_ball_mode.multiball.drops.paused = False
@@ -512,8 +528,6 @@ class JD_Modes(Scoring_Mode):
 		else:
 			self.state = 'modes_completed'
 		self.game.start_of_ball_mode.multiball.drops.animated_reset(.1)
-		if self.missile_award_lit:
-			self.drive_mode_lamp('airRade', 'medium')
 
 	def ultimate_challenge_complete(self):
 		self.reset()
@@ -1241,6 +1255,7 @@ class Multiball(Scoring_Mode):
 		self.num_left_ramp_shots_hit = 0
 		self.num_left_ramp_shots_needed = 1
 		self.jackpot_lit = False
+		self.lock_level = 1
 		self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=priority+1, prefix='dropTarget', letters='JUDGE')
 	
 	def mode_started(self):
@@ -1276,6 +1291,7 @@ class Multiball(Scoring_Mode):
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active(): 
 			self.game.coils.resetDropTarget.pulse(40)
 		self.num_locks_lit = 0
+		self.lock_level += 1
 		self.lock_lamps()
 
 	def start_multiball(self):
@@ -1310,6 +1326,7 @@ class Multiball(Scoring_Mode):
 			self.num_balls_locked = info_record['num_balls_locked']
 			self.num_locks_lit = info_record['num_locks_lit']
 			self.num_times_played = info_record['num_times_played']
+			self.lock_level = info_record['lock_level']
 
 		# Virtual locks are needed when there are more balls physically locked 
 		# than the player has locked through play.  This happens when
@@ -1341,6 +1358,7 @@ class Multiball(Scoring_Mode):
 		info_record['num_balls_locked'] = self.num_balls_locked
 		info_record['num_locks_lit'] = self.num_locks_lit
 		info_record['num_times_played'] = self.num_times_played
+		info_record['lock_level'] = self.lock_level
 		return info_record
 
 	def pause(self):
@@ -1406,7 +1424,10 @@ class Multiball(Scoring_Mode):
 					self.targets[target] = 'up'
 					self.game.lamps['dropTarget' + target].pulse(0)
 					
-				self.num_locks_lit += 1
+				if self.lock_level == 1:
+					self.num_locks_lit = 3
+				else:
+					self.num_locks_lit += 1
 				# Don't enable locks if doing virtual locks.
 				if self.virtual_locks_needed == 0:
 					self.enable_lock()
