@@ -591,6 +591,8 @@ class TestGame(game.GameController):
 		self.sound.register_sound('service_next', sound_path+"next_item.wav")
 		self.sound.register_sound('service_previous', sound_path+"previous_item.wav")
 		self.sound.register_sound('service_switch_edge', sound_path+"switch_edge.wav")
+		self.sound.register_sound('service_save', sound_path+"save.wav")
+		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
 		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7)
 		self.reset()
 		self.disable_popperL = 0
