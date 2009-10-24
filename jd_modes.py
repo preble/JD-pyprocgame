@@ -200,15 +200,17 @@ class JD_Modes(Scoring_Mode):
 		self.begin_processing()
 
 	def award_missile_award(self, award):
-		if award == 'extra_ball':
+		if award.find('Points', 0) != -1:
+			award_words = award.rsplit(' ')
+			self.game.score(int(award_words[0]))
+			self.game.set_status(award)
+		elif award == 'Light Extra Ball':
 			self.light_extra_ball()
-		elif award == 'adv_crime':
+		elif award == 'Advance Crimescenes':
 			self.crimescenes.level_complete()
-		elif award == 'points':
-			self.game.score(20000)
-		elif award == 'bonus_x':
+		elif award == 'Bonus X+1':
 			self.inc_bonus_x()
-		elif award == 'hold_bonus_x':
+		elif award == 'Hold Bonus X':
 			self.hold_bonus_x = True
 
 	def light_extra_ball(self):
@@ -336,8 +338,8 @@ class JD_Modes(Scoring_Mode):
 			self.missile_award_lit = False
 			self.game.modes.add(self.missile_award_mode)
 		else:
+			self.game.coils.shooterL.pulse()
 			if self.state == 'idle':
-				self.game.coils.shooterL.pulse()
 				self.missile_award_lit = True
 				self.drive_mode_lamp('airRade', 'medium')
 
@@ -1213,8 +1215,9 @@ class Missile_Award_Mode(game.Mode):
 		self.element_layer = dmd.TextLayer(128/2, 15, font, "center")
 		self.value_layer = dmd.TextLayer(128/2, 22, font, "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.title_layer,self.element_layer, self.value_layer])
-		self.awards = ['extra_ball', 'adv_crime', 'points', 'bonus_x', 'hold_bonus_x']
-		self.awards_remaining = ['extra_ball', 'adv_crime', 'points', 'bonus_x', 'hold_bonus_x']
+		self.awards = ['Light Extra Ball', 'Advance Crimescenes', '30000 Points', 'Bonus X+1', 'Hold Bonus X']
+		self.awards_allow_repeat = [False, True, True, True, False]
+		self.awards_remaining = self.awards[:]
 		self.delay_time = 0.200
 		self.award_ptr = 0
 		self.award_ptr_adj = 0
@@ -1222,9 +1225,9 @@ class Missile_Award_Mode(game.Mode):
 		self.element_layer.set_text("Left Fire btn collects:")
 
 	def mode_started(self):
-		self.current_award = self.awards_remaining[0]
-		self.timer = 100
+		self.rotate_awards()
 		self.delay(name='update', event_type=None, delay=self.delay_time, handler=self.update)
+		self.timer = 70
 		
 
 	def update_info_record(self, info_record):
@@ -1246,6 +1249,7 @@ class Missile_Award_Mode(game.Mode):
 		if self.timer == 0:
 			self.game.modes.remove(self)
 		elif self.timer == 3:
+			self.game.coils.shooterL.pulse()
 			self.award()
 			self.delay(name='update', event_type=None, delay=self.delay_time, handler=self.update)
 			self.timer -= 1
@@ -1257,10 +1261,11 @@ class Missile_Award_Mode(game.Mode):
 
 	def award(self):
 		self.callback(self.current_award)
-		self.awards_remaining[self.award_ptr_adj] = 'points'
+		if not self.awards_allow_repeat[self.award_ptr_adj]:
+			self.awards_remaining[self.award_ptr_adj] = str(10000*(self.award_ptr_adj + 1)) + ' Points'
 		
 	def rotate_awards(self):
-		self.award_ptr += 1
+		self.award_ptr += randint(0,4)
 		self.award_ptr_adj = self.award_ptr% len(self.awards_remaining)
 		self.current_award = self.awards_remaining[self.award_ptr_adj]
 		self.value_layer.set_text(self.current_award)
