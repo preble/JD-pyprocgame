@@ -148,6 +148,7 @@ class StartOfBall(game.Mode):
 		self.game.coils.flasherPursuitL.schedule(0x00001010, cycle_seconds=1, now=False)
 		self.game.coils.flasherPursuitR.schedule(0x00000101, cycle_seconds=1, now=False)
 		self.game.enable_flippers(enable=True)
+		self.game.lamps.gi01.pulse(0)
 		self.game.lamps.gi02.pulse(0)
 		self.game.lamps.gi03.pulse(0)
 		self.game.lamps.gi04.pulse(0)

@@ -115,10 +115,10 @@ class JD_Modes(Scoring_Mode):
 		self.two_ball_active = False
 		self.mystery_lit = False
 		self.missile_award_lit = False
+		self.missile_award_lit_save = False
 		self.num_modes_completed = 0
 		self.modes_completed = []
 		self.hold_bonus_x = 0
-		self.missile_award_lit_save = False
 		for mode in self.modes_not_attempted:
 			self.drive_mode_lamp(mode, 'off')
 		self.drive_mode_lamp('mystery', 'off')
@@ -212,6 +212,8 @@ class JD_Modes(Scoring_Mode):
 			self.inc_bonus_x()
 		elif award == 'Hold Bonus X':
 			self.hold_bonus_x = True
+		if self.state == 'mode':
+			self.mode_timer.pause(False)
 
 	def light_extra_ball(self):
 		self.extra_balls_lit += 1
@@ -331,17 +333,19 @@ class JD_Modes(Scoring_Mode):
 		self.game.set_status('Extra Ball!')
 
 	def sw_shooterL_active_for_200ms(self, sw):
-		if self.two_ball_active or self.multiball_active or self.state == 'mode':
+		if self.two_ball_active or self.multiball_active:
 			self.game.coils.shooterL.pulse()
 		elif self.missile_award_lit:
 			self.drive_mode_lamp('airRade', 'off')
 			self.missile_award_lit = False
 			self.game.modes.add(self.missile_award_mode)
+			if self.state == 'mode':
+				self.mode_timer.pause(True)
 		else:
 			self.game.coils.shooterL.pulse()
-			if self.state == 'idle':
-				self.missile_award_lit = True
-				self.drive_mode_lamp('airRade', 'medium')
+			self.missile_award_lit = True
+			self.drive_mode_lamp('airRade', 'medium')
+			
 
 	def sw_fireR_active(self, sw):
 		if self.game.switches.shooterR.is_inactive():
@@ -380,11 +384,6 @@ class JD_Modes(Scoring_Mode):
 		self.game.modes.remove(self.play_intro)
 		self.popperR_launch()
 
-		if self.missile_award_lit:
-			self.missile_award_lit_save = True
-			self.missile_award_lit = False
-			self.drive_mode_lamp('airRade', 'off')
-		
 		if self.state == 'idle':
 			self.game.lamps[self.modes_not_attempted[self.modes_not_attempted_ptr]].schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 			self.mode = self.modes_not_attempted[self.modes_not_attempted_ptr]
@@ -403,6 +402,11 @@ class JD_Modes(Scoring_Mode):
 			self.mystery_lit = True
 			
 		elif self.state == 'pre_judge_battle':
+			if self.missile_award_lit:
+				self.missile_award_lit_save = True
+				self.missile_award_lit = False
+				self.drive_mode_lamp('airRade', 'off')
+		
 			self.game.start_of_ball_mode.multiball.drops.paused = True
                         # Start modes from self.modes_just_attempted
 			judge = self.judges_not_attempted[0]
@@ -426,6 +430,11 @@ class JD_Modes(Scoring_Mode):
 			
 			
 		elif self.state == 'pre_ultimate_challenge':
+			if self.missile_award_lit:
+				self.missile_award_lit_save = True
+				self.missile_award_lit = False
+				self.drive_mode_lamp('airRade', 'off')
+		
 			self.game.set_status('challenge in progress')
 			self.state = 'ultimate_challenge'
 			self.drive_mode_lamp('mystery', 'on')
@@ -500,9 +509,6 @@ class JD_Modes(Scoring_Mode):
 			self.ultimate_challenge_complete()	
 
 		self.mode_complete()
-		if self.missile_award_lit_save:
-			self.missile_award_lit = True
-			self.drive_mode_lamp('airRade', 'medium')
 
 	def mode_complete(self, successful=False):
 		self.game.start_of_ball_mode.multiball.drops.paused = False
@@ -1191,17 +1197,23 @@ class ModeTimer(game.Mode):
 
 	def start(self, time):
 		self.timer = time
-		self.delay(name='intro', event_type=None, delay=1, handler=self.decrement_timer)
+		self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
 	def stop(self):
 		self.timer = 0
 
 	def add(self,adder):
 		self.timer += adder 
 
+	def pause(self, pause_unpause=True):
+		if pause_unpause:
+			self.cancel_delayed('decrement timer')
+		else:
+			self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
+
 	def decrement_timer(self):
 		if self.timer > 0:
 			self.timer -= 1
-			self.delay(name='intro', event_type=None, delay=1, handler=self.decrement_timer)
+			self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
 			self.game.set_status('Mode Timer: ' + str(self.timer))
 		else:
 			self.callback()
