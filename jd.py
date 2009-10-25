@@ -13,24 +13,6 @@ import locale
 import math
 import copy
 import yaml
-import pygame
-from pygame.locals import *
-
-pygame.init()
-screen = pygame.display.set_mode((300, 20))
-pygame.display.set_caption('JDTEST - Press CTRL-C to exit')
-#font = pygame.font.Font('./freesansbold.ttf', 17)
-#text = font.render('Press ESC to exit', True, (15, 255, 105))
-#pygame.mouse.set_visible(0)
-# Create a rectangle
-#textRect = text.get_rect()
-
-# Center the rectangle
-#textRect.centerx = screen.get_rect().centerx
-#textRect.centery = screen.get_rect().centery
-# Blit the text
-#screen.blit(text, textRect)
-
 
 locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 
@@ -472,28 +454,6 @@ class DeadworldReleaseBall(game.Mode):
 		# Ignore start button while this mode is active
 		return True
 
-class ExitMode(game.Mode):
-	"""docstring for AttractMode"""
-	def __init__(self, game, priority):
-		super(ExitMode, self).__init__(game, priority)
-		self.delay(name='keyboard_events', event_type=None, delay=.250, handler=self.keyboard_events)
-		self.ctrl = 0
-
-	def keyboard_events(self):
-		self.delay(name='keyboard_events', event_type=None, delay=.250, handler=self.keyboard_events)
-		for event in pygame.event.get():
-			if event.type == KEYDOWN:
-				if event.key == K_RCTRL or event.key == K_LCTRL:
-					self.ctrl = 1
-				if event.key == K_c:
-					if self.ctrl == 1:
-						self.game.end_run_loop()
-				if (event.key == K_ESCAPE):
-					self.game.end_run_loop()
-			if event.type == KEYUP:
-				if event.key == K_RCTRL or event.key == K_LCTRL:
-					self.ctrl = 0
-
 print("Initializing sound...")
 from pygame import mixer # This call takes a while.
 
@@ -565,7 +525,9 @@ class TestGame(game.GameController):
 		super(TestGame, self).__init__(machineType)
 		self.sound = SoundController(self)
 		self.dmd = dmd.DisplayController(self, width=128, height=32, message_font=font_tiny7)
-		self.exit_mode = ExitMode(self, 1)
+		self.keyboard_handler = procgame.keyboard.KeyboardHandler()
+		self.keyboard_events_enabled = True
+		self.get_keyboard_events = self.keyboard_handler.get_keyboard_events
 
 	def save_settings(self):
 		self.write_settings(user_settings_path)
@@ -603,7 +565,6 @@ class TestGame(game.GameController):
 		self.modes.add(self.score_display)
 		self.modes.add(self.attract_mode)
 		self.modes.add(self.ball_search)
-		self.modes.add(self.exit_mode)
 		self.modes.add(self.deadworld)
 		# Make sure flippers are off, especially for user initiated resets.
 		self.enable_flippers(enable=False)
