@@ -12,6 +12,7 @@ import time
 import locale
 import math
 import copy
+import yaml
 import pygame
 from pygame.locals import *
 
@@ -665,7 +666,9 @@ class TestGame(game.GameController):
 		self.ball_search = procgame.ballsearch.BallSearch(self, priority=100, countdown_time=10, coils=self.ballsearch_coils, reset_switches=self.ballsearch_resetSwitches, stop_switches=self.ballsearch_stopSwitches,special_handler_modes=special_handler_modes)
 		
 def main():
-	machineType = 'wpc'
+	config = yaml.load(open(machine_config_path, 'r'))
+	machineType = config['PRGame']['machineType']
+	config = 0
 	game = None
 	try:
 	 	game = TestGame(machineType)
