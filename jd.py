@@ -540,7 +540,7 @@ class TestGame(game.GameController):
 		for sw in self.switches:
 			print("  %s:\t%s" % (sw.name, sw.state_str()))
 
-                self.setup_ball_search()
+		self.setup_ball_search()
 
 		self.score_display = scoredisplay.ScoreDisplay(self, 0)
 		self.score_display.set_left_players_justify(self.user_settings['Display']['left_players_score_justify'])
