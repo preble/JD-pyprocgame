@@ -148,11 +148,11 @@ class StartOfBall(game.Mode):
 		self.multiball = Multiball(self.game, 8, self.game.user_settings['Machine']['deadworld_mod_installed'], font_jazz18)
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7)
 		self.jd_modes.popperR_launch = self.popperR_eject
-		self.jd_modes.main_launch = self.main_eject
+		self.jd_modes.launch_balls = self.launch_balls
 
 		self.multiball.start_callback = self.jd_modes.multiball_started
 		self.multiball.end_callback = self.jd_modes.multiball_ended
-		self.multiball.jackpot_callback = self.jd_modes.jackpot_collected
+		#self.multiball.jackpot_callback = self.jd_modes.jackpot_collected
 		#self.drops = procgame.modes.ProgressiveDropTargetBank(self.game, priority=8, prefix='dropTarget', letters='JUDGE', advance_switch='subwayEnter1')
 		#self.drops.on_advance = self.on_drops_advance
 		#self.drops.on_completed = self.on_drops_completed
@@ -200,6 +200,24 @@ class StartOfBall(game.Mode):
 			self.game.sound.beep()
 			self.game.score(10000)
 			self.game.modes.add(self.drop_targets_completed_hurryup)
+
+# Just playin' around... playing pinball with keyboard.
+#	def sw_flipperLwL_active(self, sw):
+#		self.game.coils.flipperLwLMain.pulse(30)
+#		self.game.coils.flipperLwLHold.schedule(schedule=0xFFFFFFFF, cycle_seconds=0, now=True)
+#
+#	def sw_flipperLwL_inactive(self, sw):
+#		self.game.coils.flipperLwLMain.disable()
+#		self.game.coils.flipperLwLHold.disable()
+#
+#	def sw_flipperLwR_active(self, sw):
+#		self.game.coils.flipperLwRMain.pulse(30)
+#		self.game.coils.flipperLwRHold.schedule(schedule=0xFFFFFFFF, cycle_seconds=0, now=True)
+#
+#	def sw_flipperLwR_inactive(self, sw):
+#		self.game.coils.flipperLwRMain.disable()
+#		self.game.coils.flipperLwRHold.disable()
+
 	
 	def sw_trough1_open_for_500ms(self, sw):
 		self.trough_check();
@@ -225,10 +243,8 @@ class StartOfBall(game.Mode):
 				self.game.set_status("Ball Saved!")
 		else:
 			#in_play = self.game.is_ball_in_play()
-			if self.jd_modes.multiball_active or self.jd_modes.two_ball_active:
+			if self.jd_modes.multiball_active:
 				if self.game.is_trough_full(self.game.num_balls_total-(self.game.deadworld.get_num_balls_locked()+1)):
-					if self.jd_modes.two_ball_active:
-						self.jd_modes.end_two_ball()
 					if self.jd_modes.multiball_active:
 						self.multiball.end_multiball()
 			elif self.game.is_trough_full(self.game.num_balls_total-self.game.deadworld.get_num_balls_locked()):
@@ -277,6 +293,14 @@ class StartOfBall(game.Mode):
 
 	def main_eject(self):
 		self.game.coils.trough.pulse(40)
+
+	def launch_balls(self, num, save = False):
+		if self.game.is_trough_full(1):
+			self.game.coils.trough.pulse(40)
+		num -= 1
+		if num > 0:
+			self.delay(name='launch_balls', event_type=None, delay=2.0, handler=self.launch_balls, param=num)
+			
 
 	def popperR_eject(self):
 		self.flash_then_pop('flashersRtRamp', 'popperR', 20)
@@ -375,53 +399,6 @@ class StartOfBall(game.Mode):
 		self.game.coils[coil_pulse[0]].pulse(coil_pulse[1])	
 
 
-class DropTargetsCompletedHurryup(game.Mode):
-	"""docstring for AttractMode"""
-	def __init__(self, game, priority, drop_target_mode):
-		super(DropTargetsCompletedHurryup, self).__init__(game, priority)
-		self.drop_target_mode = drop_target_mode
-		self.countdown_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center")
-		self.banner_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center")
-		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
-	
-	def mode_started(self):
-		self.banner_layer.set_text("HURRY-UP!", 3)
-		self.seconds_remaining = 13
-		self.update_and_delay()
-		self.game.lamps.multiballJackpot.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
-
-	def mode_stopped(self):
-		self.drop_target_mode.animated_reset(1.0)
-		self.game.lamps.multiballJackpot.disable()
-		self.game.disable_popperL = 0
-		if self.game.switches.popperL.is_open():
-			self.game.coils.popperL.pulse(40)
-	
-	def sw_subwayEnter1_closed(self, sw):
-		self.game.score(1000*1000)
-		# Set award message.  Keep it on the DMD long enough to reset the mode (to avoid seeing the countdown layer now that it's irrelevant.
-		self.banner_layer.set_text("1 MILLION!", 5)
-		self.game.coils.flasherGlobe.pulse(50)
-		self.cancel_delayed(['grace', 'countdown'])
-		self.delay(name='end_of_mode', event_type=None, delay=3.0, handler=self.delayed_removal)
-		#Don't allow the popper to kick the ball back out until the mode is reset.
-		self.game.disable_popperL = 1
-	
-	def update_and_delay(self):
-		self.countdown_layer.set_text("%d seconds" % (self.seconds_remaining))
-		self.delay(name='countdown', event_type=None, delay=1, handler=self.one_less_second)
-		
-	def one_less_second(self):
-		self.seconds_remaining -= 1
-		if self.seconds_remaining >= 0:
-			self.update_and_delay()
-		else:
-			self.delay(name='grace', event_type=None, delay=0.5, handler=self.delayed_removal)
-			
-	def delayed_removal(self):
-		self.game.modes.remove(self)
-
-		
 class DeadworldReleaseBall(game.Mode):
 	"""Deadworld Mode."""
 	def __init__(self, game, priority):

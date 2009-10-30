@@ -93,9 +93,12 @@ class JD_Modes(Scoring_Mode):
 		self.mode_stakeout = Stakeout(game, priority+1)
 		self.font = font
 		self.crimescenes = Crimescenes(game, priority+1)
-		self.num_modes_for_extra_ball = [3,7]
+		self.crimescenes.crimescenes_completed = self.crimescenes_completed
 		self.missile_award_mode = Missile_Award_Mode(game, priority+1, font)
 		self.missile_award_mode.callback = self.award_missile_award
+		self.mode_completed_hurryup = ModeCompletedHurryup(game, priority+1, font)
+		self.mode_completed_hurryup.collected = self.hurryup_collected
+		self.mode_completed_hurryup.expired = self.hurryup_expired
 
 	def reset(self):
 		self.state = 'idle'
@@ -106,24 +109,30 @@ class JD_Modes(Scoring_Mode):
 		self.modes_just_attempted = []
 		self.active_mode_pointer = 0
 		self.multiball_active = False
-		self.multiball_jackpot_collected = False
 		self.modes_not_attempted_ptr = 0
 		self.mode_active = False
 		self.mode_list = {}
 		self.mode = 0
 		self.extra_balls_lit = 0
-		self.two_ball_active = False
 		self.mystery_lit = False
 		self.missile_award_lit = False
 		self.missile_award_lit_save = False
 		self.num_modes_completed = 0
 		self.modes_completed = []
 		self.hold_bonus_x = 0
+		self.num_hurryups_collected = 0
+		self.num_extra_mode_balls = 0
 		for mode in self.modes_not_attempted:
 			self.drive_mode_lamp(mode, 'off')
 		self.drive_mode_lamp('mystery', 'off')
 		for judge in self.judges_not_attempted:
 			self.game.coils['flasher' + judge].disable()
+
+	def reset_modes(self):
+		self.modes_attempted = []
+		self.modes_not_attempted = ['pursuit', 'blackout', 'sniper', 'battleTank', 'impersonator', 'meltdown', 'safecracker', 'manhunt', 'stakeout']
+		self.modes_just_attempted = []
+		self.active_mode_pointer = 0
 
 	def mode_started(self):
 		self.mode_timer.callback = self.mode_over
@@ -148,6 +157,9 @@ class JD_Modes(Scoring_Mode):
 		if self.mode_active:
 			this_mode = self.mode_list[self.mode]
 			self.game.modes.remove(self.mode_list[self.mode])
+		for coil in self.game.coils:
+			if coil.name.find('flasher', 0) != -1:
+				coil.disable()
 			
 
 	def get_info_record(self):
@@ -161,13 +173,14 @@ class JD_Modes(Scoring_Mode):
 		info_record['modes_just_attempted'] = self.modes_just_attempted
 		info_record['modes_not_attempted'] = self.modes_not_attempted
 		info_record['modes_not_attempted_ptr'] = self.modes_not_attempted_ptr
-		info_record['multiball_jackpot_collected'] = self.multiball_jackpot_collected
 		info_record['extra_balls_lit'] = self.extra_balls_lit
 		info_record['mystery_lit'] = self.mystery_lit
 		info_record['missile_award_lit'] = self.missile_award_lit or self.missile_award_lit_save
 		info_record['num_modes_completed'] = self.num_modes_completed
 		info_record['crimescenes'] = self.crimescenes.get_info_record()
 		info_record['missile_award_mode'] = self.missile_award_mode.get_info_record()
+		info_record['num_hurryups_collected'] = self.num_hurryups_collected
+		info_record['num_extra_mode_balls'] = self.num_extra_mode_balls
 		if self.hold_bonus_x:
 			info_record['bonus_x'] = self.bonus_x
 		else:
@@ -183,7 +196,6 @@ class JD_Modes(Scoring_Mode):
 			self.modes_just_attempted = info_record['modes_just_attempted']
 			self.modes_not_attempted = info_record['modes_not_attempted']
 			self.modes_not_attempted_ptr = info_record['modes_not_attempted_ptr']
-			self.multiball_jackpot_collected = info_record['multiball_jackpot_collected']
 			self.judges_attempted = info_record['judges_attempted']
 			self.judges_not_attempted = info_record['judges_not_attempted']
 			self.extra_balls_lit = info_record['extra_balls_lit']
@@ -193,6 +205,8 @@ class JD_Modes(Scoring_Mode):
 			self.crimescenes.update_info_record(info_record['crimescenes'])
 			self.missile_award_mode.update_info_record(info_record['missile_award_mode'])
 			self.bonus_x = info_record['bonus_x']
+			self.num_hurryups_collected = info_record['num_hurryups_collected']
+			self.num_extra_mode_balls = info_record['num_extra_mode_balls']
 		else:	
 			self.crimescenes.update_info_record({})
 			self.missile_award_mode.update_info_record({})
@@ -236,22 +250,16 @@ class JD_Modes(Scoring_Mode):
 		return self.bonus_x
 
 	def begin_processing(self):
-		for judge in self.judges_attempted:
-			self.game.coils['flasher' + judge].disable()
 		for mode in self.modes_attempted:
 			self.drive_mode_lamp(mode, 'on')
-		if self.state == 'idle':
-			self.setup_next_mode()
-		elif self.state == 'pre_ultimate_challenge':
+		if self.is_ultimate_challenge_ready():
 			self.setup_ultimate_challenge()
-		elif self.state == 'pre_judge_battle':
-			self.setup_judge_battle()
+		elif self.state == 'idle':
+			self.setup_next_mode()
 		elif self.state == 'mode':
 			self.mode_complete()
-		elif self.state == 'judge_battle':
-			self.judge_battle_complete()
-		elif self.state == 'ultimate_battle':
-			self.ultimate_battle_complete()
+		elif self.state == 'ultimate_challenge':
+			self.ultimate_challenge_complete()
 		if self.extra_balls_lit > 0:
 			self.enable_extra_ball()
 		if self.mystery_lit:
@@ -263,7 +271,10 @@ class JD_Modes(Scoring_Mode):
 	def rotate_modes(self, adder):
 		self.disable_not_attempted_mode_lamps()
 		self.active_mode_pointer += adder
-		self.modes_not_attempted_ptr = self.active_mode_pointer % len(self.modes_not_attempted)
+		if len(self.modes_not_attempted) == 0:
+			self.modes_not_attempted_ptr = 0
+		else:
+			self.modes_not_attempted_ptr = self.active_mode_pointer % len(self.modes_not_attempted)
 		print "mode_ptr"
 		print self.modes_not_attempted_ptr
 		if self.state == 'idle':
@@ -304,7 +315,7 @@ class JD_Modes(Scoring_Mode):
 		if self.mystery_lit:
 			self.mystery_lit = False
 			self.drive_mode_lamp('mystery', 'off')
-			if self.multiball_active or self.two_ball_active:
+			if self.multiball_active:
 				if self.game.start_of_ball_mode.ball_save.timer > 0:
 					self.game.set_status('+10 second ball saver')
 					self.game.start_of_ball_mode.ball_save.add(10)
@@ -333,7 +344,7 @@ class JD_Modes(Scoring_Mode):
 		self.game.set_status('Extra Ball!')
 
 	def sw_shooterL_active_for_200ms(self, sw):
-		if self.two_ball_active or self.multiball_active:
+		if self.multiball_active:
 			self.game.coils.shooterL.pulse()
 		elif self.missile_award_lit:
 			self.drive_mode_lamp('airRade', 'off')
@@ -367,10 +378,6 @@ class JD_Modes(Scoring_Mode):
 				self.game.lamps.rightStartFeature.disable()
 				self.play_intro = PlayIntro(self.game, self.priority+1, self.modes_not_attempted[self.modes_not_attempted_ptr], self.activate_mode, self.modes_not_attempted[0], self.font)
 				self.game.modes.add(self.play_intro)
-			elif self.state == 'pre_judge_battle':
-				self.game.lamps.rightStartFeature.disable()
-				self.play_intro = PlayIntro(self.game, self.priority+1, self.judges_not_attempted[0], self.activate_mode, self.judges_not_attempted[0], self.font)
-				self.game.modes.add(self.play_intro)
 			elif self.state == 'pre_ultimate_challenge':
 				self.game.lamps.rightStartFeature.disable()
 				self.play_intro = PlayIntro(self.game, self.priority+1, 'ultimate_challenge', self.activate_mode, 'ultimate_challenge', self.font)
@@ -400,34 +407,9 @@ class JD_Modes(Scoring_Mode):
 			self.mode_active = True
 			self.drive_mode_lamp('mystery', 'on')
 			self.mystery_lit = True
-			
-		elif self.state == 'pre_judge_battle':
-			if self.missile_award_lit:
-				self.missile_award_lit_save = True
-				self.missile_award_lit = False
-				self.drive_mode_lamp('airRade', 'off')
-		
-			self.game.start_of_ball_mode.multiball.drops.paused = True
-                        # Start modes from self.modes_just_attempted
-			judge = self.judges_not_attempted[0]
-			self.judges_not_attempted.remove(judge)
-			self.judges_attempted.append(judge)
-			self.game.set_status('battle in progress')
-			self.state = 'judge_battle'
-			for mode in self.modes_attempted:
-				self.drive_mode_lamp(mode, 'off')
-			for mode in self.modes_just_attempted:
-				self.drive_mode_lamp(mode, 'slow')
-				self.mode_list[mode].judge_battle = True
-				self.game.modes.add(self.mode_list[mode])	
-	
-			# Start 2-ball multiball
-			self.main_launch()
-			self.game.start_of_ball_mode.ball_save.start(num_balls_to_save=2, time=10, now=False, allow_multiple_saves=True)
-			self.two_ball_active = True
-			self.drive_mode_lamp('mystery', 'on')
-			self.mystery_lit = True
-			
+			if self.num_extra_mode_balls > 0:
+				self.launch_balls(self.num_extra_mode_balls)
+				self.num_extra_mode_balls = 0
 			
 		elif self.state == 'pre_ultimate_challenge':
 			if self.missile_award_lit:
@@ -441,17 +423,10 @@ class JD_Modes(Scoring_Mode):
 			self.mystery_lit = True
 
 	def setup_next_mode(self):
+		print "setup_next_mode"
 		if not self.multiball_active:
 			self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
 			self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-
-	def setup_judge_battle(self):
-		self.state = 'pre_judge_battle'
-		if not self.multiball_active:
-			self.game.coils['flasher' + self.judges_not_attempted[0]].schedule(schedule=0x00030003, cycle_seconds=0, now=True)
-			self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			for mode in self.modes_just_attempted:
-				self.drive_mode_lamp(mode, 'slow')
 
 	def setup_ultimate_challenge(self):
 		self.state = 'pre_ultimate_challenge'
@@ -468,57 +443,86 @@ class JD_Modes(Scoring_Mode):
 			self.drive_mode_lamp('airRade', 'off')
 			self.missile_award_lit_save = True
 
-	def jackpot_collected(self):
-		self.multiball_jackpot_collected = True
-
 	def multiball_ended(self):
 		self.multiball_active = False
-		if self.state == 'idle':
-			self.setup_next_mode()
-		elif self.state == 'pre_ultimate_challenge':
+		if self.is_ultimate_challenge_ready():
 			self.setup_ultimate_challenge()
-		elif self.state == 'pre_judge_battle':
-			self.setup_judge_battle()
-		elif self.state == 'judge_battle':
-			self.judge_battle_complete()
-		if self.missile_award_lit_save:
-			self.missile_award_lit = True
-			self.drive_mode_lamp('airRade', 'medium')
-
-	def end_two_ball(self):
-		self.two_ball_active = False
-		self.game.start_of_ball_mode.multiball.drops.paused = False
-		if not self.multiball_active:
-			self.judge_battle_complete()
+		elif self.state == 'idle':
+			self.setup_next_mode()
 		if self.missile_award_lit_save:
 			self.missile_award_lit = True
 			self.drive_mode_lamp('airRade', 'medium')
 
 	def mode_over(self):
+		self.game.modes.remove(self.mode_list[self.mode])
 		if self.mode_timer.timer > 0:
 			self.mode_timer.stop()
 		self.mode_active = False
 		this_mode = self.mode_list[self.mode]
 		success = this_mode.completed
-		self.game.modes.remove(self.mode_list[self.mode])
 		if self.state == 'mode':
 			self.mode_complete(success)	
-		elif self.state == 'judge_battle':
-			self.judge_battle_complete()	
 		elif self.state == 'ultimate_challenge':
 			self.ultimate_challenge_complete()	
 
-		self.mode_complete()
+	def hurryup_collected(self):
+		print "hurryup_collected"
+		print self.num_hurryups_collected
+		if self.num_hurryups_collected == 0:
+			self.crimescenes.level_complete(3)
+		elif self.num_hurryups_collected == 1:
+			self.light_extra_ball()
+		elif self.num_hurryups_collected == 2:
+			self.num_extra_mode_balls = 1
+		elif self.num_hurryups_collected == 3:
+			self.num_extra_mode_balls = 2
+		elif self.num_hurryups_collected == 4:
+			self.num_extra_mode_balls = 3
+		elif self.num_hurryups_collected == 5:
+			self.light_extra_ball()
+		elif self.num_hurryups_collected == 6:
+			self.crimescenes.level_complete(3)
+		elif self.num_hurryups_collected == 7:
+			self.crimescenes.level_complete(3)
+		elif self.num_hurryups_collected == 8:
+			self.game.score(1000000)
+		self.hurryup_expired()
+		self.num_hurryups_collected += 1
+
+	def hurryup_expired(self):
+		self.game.modes.remove(self.mode_completed_hurryup)
+		if not self.multiball_active:
+			self.game.start_of_ball_mode.multiball.drops.animated_reset(.1)
+			if self.is_ultimate_challenge_ready():
+				self.setup_ultimate_challenge()
+			if len(self.modes_not_attempted) > 0:
+				self.rotate_modes(1)
+				self.state = 'idle'
+				self.setup_next_mode()
+
+	def crimescenes_completed(self):
+		if self.is_ultimate_challenge_ready():
+			self.setup_ultimate_challenge()
+		
+
+	def is_ultimate_challenge_ready(self):
+		return self.game.start_of_ball_mode.multiball.jackpot_collected and self.crimescenes.complete and len(self.modes_not_attempted) == 0
 
 	def mode_complete(self, successful=False):
 		self.game.start_of_ball_mode.multiball.drops.paused = False
 
-		# Success: Add to succuss list and see about lighting extra ball
+		# Success: Add to success list and start hurryup
 		if successful:
+			self.game.modes.add(self.mode_completed_hurryup)
 			self.modes_completed.append(self.mode)
 			self.num_modes_completed += 1
-			if self.num_modes_completed in self.num_modes_for_extra_ball:
-				self.light_extra_ball()
+		else:
+			if self.is_ultimate_challenge_ready():
+				self.setup_ultimate_challenge()
+			if len(self.modes_not_attempted) > 0:
+				self.rotate_modes(1)
+				self.state = 'idle'
+				self.setup_next_mode()
 
 		# Turn on mode lamp to show it has been attempted
 		self.drive_mode_lamp(self.mode, 'on')
@@ -526,46 +530,17 @@ class JD_Modes(Scoring_Mode):
 		if self.mode == 'impersonator' or self.mode == 'safecracker':
 			self.game.start_of_ball_mode.multiball.drops.animated_reset(.1)
 
-		# See if it's time for a judge battle
-		if len(self.modes_not_attempted) == 7 or len(self.modes_not_attempted) == 5 or len(self.modes_not_attempted) == 3 or len(self.modes_not_attempted) == 0:
-			self.setup_judge_battle()
-		# Otherwise prepare the next mode
-		else:
-			self.rotate_modes(1)
-			self.state = 'idle'
-			self.setup_next_mode()
-
-	def judge_battle_complete(self):
-		for mode in self.modes_just_attempted:
-			self.mode_list[mode].judge_battle = False
-			self.game.modes.remove(self.mode_list[mode])	
-		self.modes_just_attempted = []
-		print "judges attempted"
-		print self.judges_attempted
-		for judge in self.judges_attempted:
-			print judge
-			self.game.coils['flasher' + judge].disable()
-		for mode in self.modes_attempted:
-			self.drive_mode_lamp(mode, 'on')
-		if len(self.modes_not_attempted) > 0:
-			self.rotate_modes(1)
-			self.setup_next_mode()
-			self.state = 'idle'
-		elif self.multiball_jackpot_collected and self.crimescenes.complete():
-			self.setup_ultimate_challenge()
-		else:
-			self.state = 'modes_completed'
-		self.game.start_of_ball_mode.multiball.drops.animated_reset(.1)
-
 	def ultimate_challenge_complete(self):
-		self.reset()
+		self.reset_modes()
+		self.crimescenes.reset_complete()
+		self.game.start_of_ball_mode.multiball.reset_jackpot_collected()
 
 class Crimescenes(Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Crimescenes, self).__init__(game, priority)
-		self.level = 0
 		self.total_levels = 0
+		self.level = 0
 		self.mode = 'idle'
 		self.targets = [1,0,0,0,0]
 		self.target_award_order = [1,3,0,2,4]
@@ -581,6 +556,7 @@ class Crimescenes(Scoring_Mode):
 		self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
 		self.bonus_num = 1
 		self.extra_ball_levels = 2
+		self.complete = False
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
@@ -599,6 +575,7 @@ class Crimescenes(Scoring_Mode):
 		info_record['total_levels'] = self.total_levels
 		info_record['mode'] = self.mode
 		info_record['targets'] = self.targets
+		info_record['complete'] = self.complete
 		return info_record
 
 	def update_info_record(self, info_record):
@@ -607,6 +584,7 @@ class Crimescenes(Scoring_Mode):
 			self.level = info_record['level']
 			self.mode = info_record['mode']
 			self.targets = info_record['targets']
+			self.complete = info_record['complete']
 
 		if self.mode == 'bonus':
 			self.mode = 'complete'
@@ -731,17 +709,20 @@ class Crimescenes(Scoring_Mode):
 				self.level_complete()
 				#Play sound, lamp show, etc
 
-	def level_complete(self):
+	def level_complete(self, num_levels = 1):
 		self.game.score(10000)
 		if self.mode == 'bonus':
+			self.complete = True
+			self.crimescenes_completed()
 			self.level = 0
-			self.mode = 'levels'
-			self.num_advance_hits == 0
+			self.mode = 'idle'
 			self.init_level(self.level)
 		else:
-			if self.level == self.extra_ball_levels:
-				self.light_extra_ball_function()
-			if self.level == 15:
+			for number in range(0,num_levels):
+				if self.level + number == self.extra_ball_levels:
+					self.light_extra_ball_function()
+					break
+			if (self.level + num_levels) > 15 :
 				self.mode = 'bonus'
 				self.update_lamps()
 				#Play sound, lamp show, etc
@@ -754,8 +735,8 @@ class Crimescenes(Scoring_Mode):
 					self.drive_mode_lamp(lampname, 'slow')
 				
 			else:
-				self.level += 1
-				self.total_levels += 1
+				self.level += num_levels
+				self.total_levels += num_levels
 				self.init_level(self.level)
 				#Play sound, lamp show, etc
 
@@ -765,10 +746,7 @@ class Crimescenes(Scoring_Mode):
 			self.bonus_dir = 'down'
 
 		if self.bonus_dir == 'down' and self.bonus_num == 1:
-			self.level = 0
-			self.mode = 'levels'
-			self.num_advance_hits == 0
-			self.init_level(self.level)
+			self.level_complete()
 			for i in range(1,5):
 				lampname = 'crimeLevel' + str(i)
 				self.drive_mode_lamp(lampname, 'off')
@@ -833,14 +811,65 @@ class Crimescenes(Scoring_Mode):
 		self.update_lamps()
 
 	def complete(self):
-		return self.mode == 'complete'
+		return self.complete
+
+	def reset_complete(self):
+		self.complete = False
+
+class ModeCompletedHurryup(game.Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game, priority, font):
+		super(ModeCompletedHurryup, self).__init__(game, priority)
+		self.countdown_layer = dmd.TextLayer(128/2, 7, font, "center")
+		self.banner_layer = dmd.TextLayer(128/2, 7, font, "center")
+		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
+	
+	def mode_started(self):
+		self.banner_layer.set_text("HURRY-UP!", 3)
+		self.seconds_remaining = 13
+		self.update_and_delay()
+		self.game.lamps.multiballJackpot.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
+		if self.game.switches.dropTargetD.is_inactive():
+			self.game.coils.tripDropTarget.pulse(30)
+
+	def sw_dropTargetD_inactive_for_200ms(self, sw):
+		self.game.coils.tripDropTarget.pulse(30)
+			
+
+	def mode_stopped(self):
+		#self.drop_target_mode.animated_reset(1.0)
+		self.game.lamps.multiballJackpot.disable()
+		#self.game.disable_popperL = 0
+		#if self.game.switches.popperL.is_open():
+		#	self.game.coils.popperL.pulse(40)
+	
+	def sw_subwayEnter1_closed(self, sw):
+		self.collected()
+		self.cancel_delayed(['grace', 'countdown'])
+		#self.delay(name='end_of_mode', event_type=None, delay=3.0, handler=self.delayed_removal)
+		#Don't allow the popper to kick the ball back out until the mode is reset.
+		#self.game.disable_popperL = 1
+	
+	def update_and_delay(self):
+		self.countdown_layer.set_text("%d seconds" % (self.seconds_remaining))
+		self.delay(name='countdown', event_type=None, delay=1, handler=self.one_less_second)
+		
+	def one_less_second(self):
+		self.seconds_remaining -= 1
+		if self.seconds_remaining >= 0:
+			self.update_and_delay()
+		else:
+			self.delay(name='grace', event_type=None, delay=2, handler=self.delayed_removal)
+			
+	def delayed_removal(self):
+		self.expired()
+
 
 class ChainFeature(Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(ChainFeature, self).__init__(game, priority)
 		self.completed = False
-		self.judge_battle = False
 
 	def register_callback_function(self, function):
 		self.callback = function
@@ -851,25 +880,25 @@ class Pursuit(ChainFeature):
 		super(Pursuit, self).__init__(game, priority)
 
 	def mode_started(self):
-		self.game.coils.flasherPursuitL.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
-		self.game.coils.flasherPursuitR.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
+		self.game.coils.flasherPursuitL.schedule(schedule=0x00030003, cycle_seconds=0, now=True)
+		self.game.coils.flasherPursuitR.schedule(schedule=0x03000300, cycle_seconds=0, now=True)
 		self.shots = 0
+		print "Pursuit Started"
 
 	def mode_stopped(self):
 		self.game.coils.flasherPursuitL.disable()
 		self.game.coils.flasherPursuitR.disable()
+		print "Pursuit Stopped"
 
 	def sw_leftRampExit_active(self, sw):
 		self.shots += 1
 		self.game.score(10000)
-		if not self.judge_battle:
-			self.check_for_completion()
+		self.check_for_completion()
 
 	def sw_rightRampExit_active(self, sw):
 		self.shots += 1
 		self.game.score(10000)
-		if not self.judge_battle:
-			self.check_for_completion()
+		self.check_for_completion()
 
 	def check_for_completion(self):
 		if self.shots == 5:
@@ -904,8 +933,7 @@ class Blackout(ChainFeature):
 		self.game.coils.flasherBlackout.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots += 1
 		self.game.score(10000)
-		if not self.judge_battle:
-			self.check_for_completion()
+		self.check_for_completion()
 
 	def check_for_completion(self):
 		if self.shots == 2:
@@ -928,8 +956,7 @@ class Sniper(ChainFeature):
 	def sw_popperR_active_for_300ms(self, sw):
 		self.shots += 1
 		self.game.score(10000)
-		if not self.judge_battle:
-			self.check_for_completion()
+		self.check_for_completion()
 
 	def check_for_completion(self):
 		if self.shots == 2:
@@ -957,26 +984,23 @@ class BattleTank(ChainFeature):
 	def sw_topRightOpto_active(self, sw):
 		if not self.shots['left']:
 			if self.game.switches.leftRollover.time_since_change() < 1:
-				if not self.judge_battle:
-					self.game.lamps.tankLeft.disable()
-					self.shots['left'] = True
-					self.check_for_completion()
+				self.game.lamps.tankLeft.disable()
+				self.shots['left'] = True
+				self.check_for_completion()
 				self.game.score(10000)
 
 	def sw_centerRampExit_active(self, sw):
 		if not self.shots['center']:
-			if not self.judge_battle:
-				self.game.lamps.tankCenter.disable()
-				self.shots['center'] = True
-				self.check_for_completion()
+			self.game.lamps.tankCenter.disable()
+			self.shots['center'] = True
+			self.check_for_completion()
 			self.game.score(10000)
 
 	def sw_threeBankTargets_active(self, sw):
 		if not self.shots['right']:
-			if not self.judge_battle:
-				self.game.lamps.tankRight.disable()
-				self.shots['right'] = True
-				self.check_for_completion()
+			self.game.lamps.tankRight.disable()
+			self.shots['right'] = True
+			self.check_for_completion()
 			self.game.score(10000)
 
 	def check_for_completion(self):
@@ -1014,7 +1038,7 @@ class Meltdown(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if self.shots >= 3 and not self.judge_battle:
+		if self.shots >= 3:
 			self.completed = True
 			self.game.set_status('Mode completed!')
 			self.game.score(50000)
@@ -1043,7 +1067,7 @@ class Impersonator(ChainFeature):
 		self.cancel_delayed('moving_target')
 
 	def check_for_completion(self):
-		if not self.judge_battle and self.shots == 5:
+		if self.shots == 5:
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
@@ -1128,7 +1152,7 @@ class Safecracker(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if not self.judge_battle and self.shots == 3:
+		if self.shots == 3:
 			self.completed = True
 			self.game.set_status('Mode completed!')
 			self.game.score(50000)
@@ -1156,7 +1180,7 @@ class ManhuntMillions(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if not self.judge_battle and self.shots == 5:
+		if self.shots == 3:
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
@@ -1180,7 +1204,7 @@ class Stakeout(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
-		if not self.judge_battle and self.shots == 3:
+		if self.shots == 3:
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
@@ -1200,6 +1224,7 @@ class ModeTimer(game.Mode):
 		self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
 	def stop(self):
 		self.timer = 0
+		self.cancel_delayed('decrement timer')
 
 	def add(self,adder):
 		self.timer += adder 
@@ -1356,6 +1381,7 @@ class Multiball(Scoring_Mode):
 		self.jackpot_lit = False
 		self.lock_level = 1
 		self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=priority+1, prefix='dropTarget', letters='JUDGE')
+		self.jackpot_collected = False
 	
 	def mode_started(self):
 		self.game.coils.globeMotor.disable()
@@ -1406,7 +1432,7 @@ class Multiball(Scoring_Mode):
 	def jackpot(self):
 		self.game.score(100000)
 		self.lock_lamps()
-		self.jackpot_callback()
+		#self.jackpot_callback()
 
 	def sw_subwayEnter2_active(self,sw):
 		if self.jackpot_lit:
@@ -1415,6 +1441,10 @@ class Multiball(Scoring_Mode):
 			self.delay(name='jackpot', event_type=None, delay=1.5, handler=self.jackpot)
 			self.game.lamps.multiballJackpot.disable()
 			self.num_left_ramp_shots_hit = 0
+			self.jackpot_collected = True
+
+	def reset_jackpot_collected(self):
+		self.jackpot_collected = False
 
 	def display_text(self, text):
 		self.banner_layer.set_text(text, 3)
@@ -1426,6 +1456,7 @@ class Multiball(Scoring_Mode):
 			self.num_locks_lit = info_record['num_locks_lit']
 			self.num_times_played = info_record['num_times_played']
 			self.lock_level = info_record['lock_level']
+			self.jackpot_collected = info_record['jackpot_collected']
 
 		# Virtual locks are needed when there are more balls physically locked 
 		# than the player has locked through play.  This happens when
@@ -1458,6 +1489,7 @@ class Multiball(Scoring_Mode):
 		info_record['num_locks_lit'] = self.num_locks_lit
 		info_record['num_times_played'] = self.num_times_played
 		info_record['lock_level'] = self.lock_level
+		info_record['jackpot_collected'] = self.jackpot_collected
 		return info_record
 
 	def pause(self):
