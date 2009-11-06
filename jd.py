@@ -274,11 +274,14 @@ class BaseGameMode(game.Mode):
 		# TODO: What if the ball doesn't make it into the shooter lane?
 		#       We should check for it on a later mode_tick() and possibly re-pulse.
 
-	# This helper function can/should be used wheneve one or more new balls need to be launched.
-	# If more than one ball is being launched, it delays 2 seconds between balls.  If after 2 
-	# seconds there is still a ball in the shooter lane, it doesn't kick out a new ball.  Rather,
+	# This helper function can/should be used wheneve one or more new balls 
+	# need to be launched. If more than one ball is being launched, it 
+	# delays 2 seconds between balls.  
+	# TODO: Make it so that if after 2 seconds there is still 
+	# a ball in the shooter lane, it doesn't kick out a new ball.  Rather,
 	# it reschedules the launch.
-	# TODO: Add some logic to make sure the ball got into the shooter lane.  Otherwise, the count
+	# TODO: Add some logic to make sure the ball got into the shooter lane.  
+	# Otherwise, the count
 	# could get screwed up and the ball may never get into play. 
 
 	# Also, set up ball save according to params.
@@ -288,7 +291,7 @@ class BaseGameMode(game.Mode):
 		num = params[0]
 		num_balls_to_save = params[1]
 		ball_save_time = params[2]
-		ball_save_start_now = params[3]
+		ball_save_start_now = params[3] # If false, it waits until the shooter lane clears.
 		ball_save_allow_multiple = params[4]
 		self.game.coils.trough.pulse(40)
 		num -= 1
