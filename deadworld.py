@@ -93,5 +93,3 @@ class Deadworld(game.Mode):
 	def get_num_balls_locked(self):
 		return self.num_balls_locked - self.num_balls_to_eject
 
-#	def mode_tick(self):
-#		self.game.set_status(str(self.num_balls_locked))

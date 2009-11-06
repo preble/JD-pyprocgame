@@ -1,8 +1,46 @@
+# This file is a template for all of the settings used in the game.  The game code will
+# load this file along with a user_settings.yaml file.  Any settings not present in
+# the user_settings.yaml file will default to the default value specified here.  When
+# any setting is saved (via the in-game service menu), the user_settings.yaml file
+# will be updated with ALL of the entries here without overwriting existing settings.
+
 Machine:
-  deadworld_mod_installed:
+  'Deadworld mod installed':
     options: [true, false]
-    default: true
+    default: false
 Display:
-  left_players_score_justify:
-    # This example has no default.  The first option (left) will be used as the default.
-    options: [left, right]
+  'Left side score justify':
+    # This example has no default.  The first option (right) will be used as the default.
+    options: [right, left]
+Gameplay:
+  'Number of tilt warnings':
+    options: [0,1,2,3,4,5,6,7,8,9]
+    default: 2
+  'Allow restarts':
+    options: [true, false]
+  'New ball ballsave time':
+    options: [6,8,10,12,15,20]
+    default: 12
+  'New ball repeating ballsave':
+    options: [false, true]
+  'Multiball ballsave time':
+    options: [10,15,20,25,30,35,40]
+    default: 25
+  'Time per chain feature':
+    options: [20,25,30,35,40,45]
+    default: 30
+  'Chain feature difficulty':
+    options: ['easy', 'medium', 'hard']
+    default: 'medium'
+  'Crimescene levels for finale':
+    options: [11,12,13,14,15,16]
+    default: 16
+  'Crimescene shot difficulty':
+    options: ['easy', 'medium', 'hard']
+    default: 'medium'
+  'Max extra balls per game':
+    options: [0,1,2,3,4,5,99]
+    default: 99
+  'Max extra balls lit':
+    options: [0,1,2,3,4,5,99]
+    default: 99
