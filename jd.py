@@ -37,8 +37,6 @@ class Attract(game.Mode):
 		self.layer.opaque = True
 
 	def mode_topmost(self):
-		# Display the 'None' layer first so the score from the game that just finished is redisplayed first.
-		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':None}, {'seconds':2.0, 'layer':self.splash}, {'seconds':2.0, 'layer':self.proc_banner}, {'seconds':2.0, 'layer':self.game_title}, {'seconds':2.0, 'layer':self.press_start}])
 		pass
 
 	def mode_started(self):
