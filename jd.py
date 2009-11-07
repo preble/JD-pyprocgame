@@ -162,9 +162,6 @@ class BaseGameMode(game.Mode):
 		# Create jd_modes, which handles all of the game rules
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7, font_jazz18)
 
-		# Link helper modes
-		self.jd_modes.launch_balls = self.launch_balls
-
 		# Start modes
 		self.game.modes.add(self.jd_modes)
 
@@ -179,8 +176,7 @@ class BaseGameMode(game.Mode):
 
 		# Put the ball into play and start tracking it.
 		# self.game.coils.trough.pulse(40)
-		self.launch_balls([1,1,ball_save_time,ball_save_start_now,ball_save_repeats])
-		self.game.ball_tracker.num_balls_in_play += 1
+		self.game.trough.launch_balls(1, self.ball_launch_callback)
 
 		# Enable ball search in case a ball gets stuck during gameplay.
 		self.game.ball_search.enable()
@@ -188,6 +184,13 @@ class BaseGameMode(game.Mode):
 		# Reset tilt warnings and status
 		self.times_warned = 0;
 		self.tilt_status = 0
+
+		# In case a higher priority mode doesn't install it's own ball_drained
+		# handler.
+		self.game.trough.drain_callback = self.ball_drained_callback
+
+	def ball_launch_callback(self):
+		self.game.ball_save.start_lamp()
 	
 	def mode_stopped(self):
 		
@@ -197,38 +200,15 @@ class BaseGameMode(game.Mode):
 		# Deactivate the ball search logic so it won't search due to no 
 		# switches being hit.
 		self.game.ball_search.disable()
-	
-	def sw_trough1_active_for_500ms(self, sw):
-		self.trough_check();
 
-	def sw_trough2_active_for_500ms(self, sw):
-		self.trough_check();
-
-	def sw_trough3_active_for_500ms(self, sw):
-		self.trough_check();
-
-	def sw_trough4_active_for_500ms(self, sw):
-		self.trough_check();
-
-	def sw_trough5_active_for_500ms(self, sw):
-		self.trough_check();
-		
-	def trough_check(self):
-		# Ask the ball tracker how to handle this drained ball.
-		action = self.game.ball_tracker.ball_drain_action()
-		if action == 'save':
-			self.game.ball_save.saving_ball()
-			self.launch_balls([1,0,0,False,False])
-			self.game.set_status("Ball Saved!")
-		elif action == 'end_multiball':
-			self.game.ball_tracker.num_balls_in_play -= 1
-			self.jd_modes.end_multiball()
-		elif action == 'end_ball':
-			self.game.ball_tracker.num_balls_in_play -= 1
+	def ball_drained_callback(self):
+		print "hello"
+		if self.game.trough.num_balls_in_play == 0:
+			self.jd_modes.ball_drained()
 			self.finish_ball()
-		elif action == 'ball_out_of_play':
-			self.game.ball_tracker.num_balls_in_play -= 1
-		return True
+		else:
+			self.jd_modes.ball_drained()
+
 
 	def finish_ball(self):
 
@@ -274,34 +254,6 @@ class BaseGameMode(game.Mode):
 		# TODO: What if the ball doesn't make it into the shooter lane?
 		#       We should check for it on a later mode_tick() and possibly re-pulse.
 
-	# This helper function can/should be used wheneve one or more new balls 
-	# need to be launched. If more than one ball is being launched, it 
-	# delays 2 seconds between balls.  
-	# TODO: Make it so that if after 2 seconds there is still 
-	# a ball in the shooter lane, it doesn't kick out a new ball.  Rather,
-	# it reschedules the launch.
-	# TODO: Add some logic to make sure the ball got into the shooter lane.  
-	# Otherwise, the count
-	# could get screwed up and the ball may never get into play. 
-
-	# Also, set up ball save according to params.
-	# Note, params are in a list so the function can be called recursively using the delay 
-	# feature if more than one ball is being launched. Delayed functions take 1 param.
-	def launch_balls(self, params = [1, 0, 10, False, False]):
-		num = params[0]
-		num_balls_to_save = params[1]
-		ball_save_time = params[2]
-		ball_save_start_now = params[3] # If false, it waits until the shooter lane clears.
-		ball_save_allow_multiple = params[4]
-		self.game.coils.trough.pulse(40)
-		num -= 1
-		params[0] = num
-		if num > 0:
-			self.delay(name='launch', event_type=None, delay=2.0, handler=self.launch_balls, param=params)
-		else:
-			if num_balls_to_save > 0:
-				self.game.ball_save.start(num_balls_to_save=num_balls_to_save, time=ball_save_time, now=ball_save_start_now, allow_multiple_saves=ball_save_allow_multiple)
-			
 	def sw_startButton_active(self, sw):
 		if self.game.ball == 1:
 			p = self.game.add_player()
@@ -410,8 +362,11 @@ class Game(game.GameController):
 		self.base_game_mode = BaseGameMode(self)
 		self.deadworld = Deadworld(self, 20, self.settings['Machine']['Deadworld mod installed'])
 		self.ball_save = procgame.ballsave.BallSave(self, self.lamps.drainShield)
-		self.ball_tracker = procgame.balltracker.BallTracker(self, self.num_balls_total)
-		self.trough = procgame.balltracker.Trough(self)
+
+		trough_switchnames = []
+		for i in range(1,7):
+			trough_switchnames.append('trough' + str(i))
+		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough', self.drain_callback)
 
 		# Setup and instantiate service mode
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
@@ -442,6 +397,11 @@ class Game(game.GameController):
 
 		# Make sure flippers are off, especially for user initiated resets.
 		self.enable_flippers(enable=False)
+
+	# Empty callback just incase a ball drains into the trough before another
+	# drain_callback can be installed by a gameplay mode.
+	def drain_callback(self):
+		pass
 		
 	def ball_starting(self):
 		super(Game, self).ball_starting()

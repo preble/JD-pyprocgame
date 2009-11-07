@@ -141,6 +141,7 @@ class Multiball(modes.Scoring_Mode):
 	def resume(self):
 		self.paused = 0
 		if self.lock_enabled:
+			self.game.status("resuming")
 			self.enable_lock()
 
 	def disable_lock(self):
@@ -156,6 +157,9 @@ class Multiball(modes.Scoring_Mode):
 		switch_num = self.game.switches['leftRampEnter'].number
 		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
 		
+	def multiball_launch_callback(self):
+		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
+		self.game.ball_save.start(num_balls_to_save=4, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def sw_leftRampToLock_active(self, sw):
 		if self.lock_enabled:
@@ -163,34 +167,36 @@ class Multiball(modes.Scoring_Mode):
 			self.num_balls_locked += 1
 			self.display_text("Ball " + str(self.num_balls_locked) + " Locked!")
 			if self.num_balls_locked == 3:
-				# Tell ball tracker 3 more balls are in play (2 from locks and 1 from launch
-				self.game.ball_tracker.num_balls_in_play += 3
 				self.disable_lock()
-				ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
 				if self.deadworld_mod_installed:
 					# Tell the ball tracker 2 balls are being unlocked.
 					# This 3rd one is never logged as physically locked.
-					self.game.ball_tracker.num_balls_locked -= 2
+					self.game.trough.num_balls_locked -= 2
 					self.game.deadworld.eject_balls(3)
-					self.game.ball_save.start(num_balls_to_save=4, time=ball_save_time, now=False, allow_multiple_saves=True)
-					self.launch_balls([1,4,ball_save_time,False,True])
+					self.game.trough.launch_balls(1, self.multiball_launch_callback)
+					# Need to convert previously locked balls to balls in play.
+					# Impossible for trough logic to do it itself, as is.
+					self.game.trough.num_balls_in_play += 2
 				else:
-					self.launch_balls([3,4,ball_save_time,False,True])
+					self.game.ball_save.start_lamp()
+					self.game.trough.launch_balls(3, self.multiball_launch_callback)
 					self.delay(name='stop_globe', event_type=None, delay=7.0, handler=self.stop_globe)
 				self.start_multiball()
 			elif self.num_balls_locked == self.num_locks_lit:
 				self.disable_lock()
 				if self.deadworld_mod_installed:
-					# Tell the ball tracker another ball is physically locked
-					self.game.ball_tracker.num_balls_locked += 1
-					self.launch_balls([1,0,0,False,False])
+					# Tell the trough another ball is physically locked
+					self.game.trough.num_balls_locked += 1
+					# Use stealth launch so another ball isn't counted in play.
+					self.game.trough.launch_balls(1,'None',stealth=True)
 				
 			# When not yet multiball, launch a new ball each time
 			# one is locked.
 			elif self.deadworld_mod_installed:
-				# Tell the ball tracker another ball is physically locked
-				self.game.ball_tracker.num_balls_locked += 1
-				self.launch_balls([1,0,0,False,False])
+				# Tell the trough another ball is physically locked
+				self.game.trough.num_balls_locked += 1
+				# Use stealth launch so another ball isn't counted in play.
+				self.game.trough.launch_balls(1,'None',stealth=True)
 
 		else:
 			if self.deadworld_mod_installed:

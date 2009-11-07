@@ -23,7 +23,7 @@ class Deadworld(game.Mode):
 	def initialize(self, lock_enabled=0, num_player_balls_locked=0):
 		self.lock_enabled = lock_enabled
 		self.num_player_balls_locked = num_player_balls_locked
-		if (self.lock_enabled or self.num_balls_locked > 0):
+		if self.lock_enabled or self.num_player_balls_locked > 0:
 			self.game.coils.globeMotor.pulse(0)
 
 	def enable_lock(self):

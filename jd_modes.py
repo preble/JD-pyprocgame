@@ -27,7 +27,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.mode_completed_hurryup = ModeCompletedHurryup(game, priority+1, font_small)
 		self.mode_completed_hurryup.collected = self.hurryup_collected
 		self.mode_completed_hurryup.expired = self.hurryup_expired
-		self.multiball = Multiball(self.game, priority + 1, self.game.user_settings['Machine']['deadworld_mod_installed'], font_big)
+		self.multiball = Multiball(self.game, priority + 1, self.game.user_settings['Machine']['Deadworld mod installed'], font_big)
 		self.multiball.start_callback = self.multiball_started
 		self.multiball.end_callback = self.multiball_ended
 
@@ -81,13 +81,13 @@ class JD_Modes(modes.Scoring_Mode):
 		self.mode_list['safecracker'] = self.mode_safecracker
 		self.mode_list['manhunt'] = self.mode_manhunt
 		self.mode_list['stakeout'] = self.mode_stakeout
-		self.multiball.launch_balls = self.launch_balls
 		for mode in self.mode_list:
 			self.mode_list[mode].callback = self.mode_over
 		self.crimescenes.light_extra_ball_function = self.light_extra_ball
 		self.game.modes.add(self.mode_timer)
 		self.game.modes.add(self.crimescenes)
 		self.game.modes.add(self.multiball)
+		self.ball_starting = True
 
 	def mode_stopped(self):
 		self.game.modes.remove(self.mode_timer)
@@ -155,6 +155,10 @@ class JD_Modes(modes.Scoring_Mode):
 			self.missile_award_mode.update_info_record({})
 		
 		self.begin_processing()
+
+	def ball_drained(self):
+		if self.multiball_active and self.game.trough.num_balls_in_play == 1:
+			self.end_multiball()
 
 	def end_multiball(self):
 		if self.multiball_active:
@@ -371,10 +375,16 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.play('outlane')
 
 	# Enable auto-plunge as soon as the new ball is launched (by the player).
-	def sw_shooterR_open_for_2s(self,sw):
+	def sw_shooterR_open_for_1s(self,sw):
 		self.auto_plunge = 1
 
-	def sw_shooterR_closed_for_300ms(self,sw):
+		if self.ball_starting:
+			ball_save_time = self.game.user_settings['Gameplay']['New ball ballsave time']
+			self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=True, allow_multiple_saves=False)
+		self.ball_starting = False
+			
+
+	def sw_shooterR_closed_for_700ms(self,sw):
 		if (self.auto_plunge):
 			self.game.coils.shooterR.pulse(50)
 
@@ -399,8 +409,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.drive_mode_lamp('mystery', 'on')
 			self.mystery_lit = True
 			if self.num_extra_mode_balls > 0:
-				self.launch_balls([self.num_extra_mode_balls,0,0,False,False])
-				self.game.ball_tracker.num_balls_in_play += self.num_extra_mode_balls
+				self.game.trough.launch_balls(self.num_extra_mode_balls, 'None')
 				self.num_extra_mode_balls = 0
 			
 		elif self.state == 'pre_ultimate_challenge':
