@@ -202,7 +202,6 @@ class BaseGameMode(game.Mode):
 		self.game.ball_search.disable()
 
 	def ball_drained_callback(self):
-		print "hello"
 		if self.game.trough.num_balls_in_play == 0:
 			self.jd_modes.ball_drained()
 			self.finish_ball()
