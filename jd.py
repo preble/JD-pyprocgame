@@ -366,7 +366,7 @@ class Game(game.GameController):
 		trough_switchnames = []
 		for i in range(1,7):
 			trough_switchnames.append('trough' + str(i))
-		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough', self.drain_callback)
+		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough', 'shooterR', self.drain_callback)
 
 		# Setup and instantiate service mode
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")

@@ -277,7 +277,7 @@ class JD_Modes(modes.Scoring_Mode):
 					self.game.set_status('+10 second ball saver')
 					self.game.ball_save.add(10)
 				else:
-					self.game.ball_save.start(num_balls_to_save=self.game.ball_tracker.num_balls_in_play, time=10, now=True, allow_multiple_saves=True)
+					self.game.ball_save.start(num_balls_to_save=self.game.trough.num_balls_in_play, time=10, now=True, allow_multiple_saves=True)
 				
 			elif self.state == 'mode':
 				self.mode_timer.add(10)
