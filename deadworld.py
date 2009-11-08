@@ -93,3 +93,127 @@ class Deadworld(game.Mode):
 	def get_num_balls_locked(self):
 		return self.num_balls_locked - self.num_balls_to_eject
 
+
+class DeadworldTest(service.ServiceModeSkeleton):
+	"""Coil Test"""
+	def __init__(self, game, priority, font):
+		super(DeadworldTest, self).__init__(game, priority, font)
+		self.name = "Deadworld Test"
+		self.title_layer = dmd.TextLayer(1, 1, font, "left")
+		self.globe_layer = dmd.TextLayer(1, 9, font, "left")
+		self.arm_layer = dmd.TextLayer(1, 17, font, "left")
+		self.magnet_layer = dmd.TextLayer(1, 25, font, "left")
+		self.layer = dmd.GroupedLayer(128, 32, [self.title_layer, self.globe_layer, self.arm_layer, self.magnet_layer])
+
+		self.title_layer.set_text(self.name)
+		self.globe_layer.set_text('Start BTN: Globe: Off')
+		self.arm_layer.set_text('SuperGame BTN: Crane: Off')
+		self.magnet_layer.set_text('Buy-In BTN: Magnet: Off')
+
+	def mode_started(self):
+		super(DeadworldTest, self).mode_started()
+		self.game.coils.globeMotor.disable()
+		self.game.coils.crane.disable()
+		self.game.coils.craneMagnet.disable()
+		self.globe_state = False
+		self.crane_state = False
+		self.magnet_state = False
+		self.globe_layer.set_text('Start BTN: Globe: Off')
+		self.arm_layer.set_text('SuperGame BTN: Crane: Off')
+		self.magnet_layer.set_text('Buy-In BTN: Magnet: Off')
+		self.game.lamps.startButton.schedule(schedule=0xff00ff00, cycle_seconds=0, now=False)
+		self.game.lamps.superGame.schedule(schedule=0xff00ff00, cycle_seconds=0, now=False)
+		self.game.lamps.buyIn.schedule(schedule=0xff00ff00, cycle_seconds=0, now=False)
+
+	def mode_stopped(self):
+		self.game.coils.globeMotor.disable()
+		self.game.coils.crane.disable()
+		self.game.coils.craneMagnet.disable()
+		self.globe_state = False
+		self.crane_state = False
+		self.magnet_state = False
+		self.globe_layer.set_text('Start BTN: Globe: Off')
+		self.arm_layer.set_text('SuperGame BTN: Crane: Off')
+		self.magnet_layer.set_text('Buy-In BTN: Magnet: Off')
+		self.game.lamps.startButton.disable()
+		self.game.lamps.superGame.disable()
+		self.game.lamps.buyIn.disable()
+
+	def sw_exit_active(self,sw):
+		self.game.modes.remove(self)
+		return True
+
+	def sw_startButton_active(self,sw):
+		if self.globe_state:
+			self.globe_state = False
+			self.game.coils.globeMotor.disable()
+		else:
+			self.globe_state = True
+			self.game.coils.globeMotor.pulse(0)
+		self.set_texts()
+		return True
+
+	def sw_superGame_active(self,sw):
+		if self.crane_state:
+			self.crane_state = False
+			self.game.coils.crane.disable()
+		else:
+			self.crane_state = True
+			self.game.coils.crane.pulse(0)
+		self.set_texts()
+		return True
+
+	def sw_buyIn_active(self,sw):
+		self.magnet_state = True
+		self.game.coils.craneMagnet.pulse(0)
+		self.set_texts()
+		return True
+
+	def sw_buyIn_inactive(self,sw):
+		self.magnet_state = False
+		self.game.coils.craneMagnet.disable()
+		self.set_texts()
+		return True
+
+	def sw_enter_active(self,sw):
+		return True
+
+	def sw_up_active(self,sw):
+		return True
+
+	def sw_down_active(self,sw):
+		return True
+
+	def sw_magnetOverRing_active(self,sw):
+		self.arm_layer.set_text('SuperGame BTN: Crane: Ring')
+
+	def sw_magnetOverRing_inactive(self,sw):
+		self.set_texts()
+		
+	def sw_globePosition1_active(self,sw):
+		self.globe_layer.set_text('Start BTN: Globe: P1')
+
+	def sw_globePosition1_inactive(self,sw):
+		self.set_texts()
+
+	def sw_globePosition2_active(self,sw):
+		self.globe_layer.set_text('Start BTN: Globe: P2')
+
+	def sw_globePosition2_inactive(self,sw):
+		self.set_texts()
+
+	def set_texts(self):
+		if self.crane_state:
+			self.arm_layer.set_text('SuperGame BTN: Crane: On')
+		else:
+			self.arm_layer.set_text('SuperGame BTN: Crane: Off')
+		
+		if self.globe_state:
+			self.globe_layer.set_text('Start BTN: Globe: On')
+		else:
+			self.globe_layer.set_text('Start BTN: Globe: Off')
+
+		if self.magnet_state:
+			self.magnet_layer.set_text('Buy-In BTN: Magnet: On')
+		else:
+			self.magnet_layer.set_text('Buy-In BTN: Magnet: Off')

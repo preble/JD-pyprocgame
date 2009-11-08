@@ -100,6 +100,7 @@ class Attract(game.Mode):
 
 	# Enter service mode when the enter button is pushed.
 	def sw_enter_active(self, sw):
+		self.game.modes.remove(self.show)
 		for lamp in self.game.lamps:
 			lamp.disable()
 		self.game.modes.add(self.game.service_mode)
@@ -377,6 +378,7 @@ class Game(game.GameController):
 			trough_switchnames.append('trough' + str(i))
 		early_save_switchnames = ['outlaneR', 'outlaneL']
 		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough6','trough', early_save_switchnames, 'shooterR', self.drain_callback)
+		self.deadworld_test = DeadworldTest(self,200,font_tiny7)
 
 		# Setup and instantiate service mode
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
@@ -386,7 +388,7 @@ class Game(game.GameController):
 		self.sound.register_sound('service_switch_edge', sound_path+"switch_edge.wav")
 		self.sound.register_sound('service_save', sound_path+"save.wav")
 		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
-		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7)
+		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
 
 		# Instead of resetting everything here as well as when a user
 		# initiated reset occurs, do everything in self.reset() and call it
