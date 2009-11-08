@@ -24,6 +24,8 @@ fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
+#attract_lamps = "./games/jd/lamps/test.lampshow"
+attract_lamps = "./games/jd/lamps/attract_show_vert.lampshow"
 
 class Attract(game.Mode):
 	"""docstring for AttractMode"""
@@ -37,7 +39,9 @@ class Attract(game.Mode):
 		self.layer.opaque = True
 
 	def mode_topmost(self):
-		pass
+		self.show = procgame.lamps.LampShowMode(self.game, repeat=True)
+		self.game.modes.add(self.show)
+		self.show.load(attract_lamps)
 
 	def mode_started(self):
 		# Blink the start button to notify player about starting a game.
@@ -51,25 +55,26 @@ class Attract(game.Mode):
 			if self.game.switches[name].is_active():
 				self.game.coils[name].pulse()
 
+
 		# Set up schedules for random lamp blinking
-		lamp_schedules = []
-		for i in range(0,32):
-			lamp_schedules.append(0xffff0000 >> i)
-			# Handle wrap condition.  This code keeps 16 consecutive bits set.
-			if i > 16:
-				lamp_schedules[i] = (lamp_schedules[i] | (0xffff << (32-(i-16)))) & 0xffffffff
+		#lamp_schedules = []
+		#for i in range(0,32):
+		#	lamp_schedules.append(0xffff0000 >> i)
+		#	# Handle wrap condition.  This code keeps 16 consecutive bits set.
+		#	if i > 16:
+		#		lamp_schedules[i] = (lamp_schedules[i] | (0xffff << (32-(i-16)))) & 0xffffffff
 
 		# Randomize the order of the lamp schedules
-		shuffle(lamp_schedules)
-		i = 0
-		# Write the lamp schedules to the lamps.  Obviously don't want to include
-		# the front cabinet buttons or GIs.
-		for lamp in self.game.lamps:
-			if lamp.name.find('gi0', 0) == -1 and \
-                           lamp.name != 'startButton' and lamp.name != 'buyIn' and \
-                           lamp.name != 'superGame':
-				lamp.schedule(schedule=lamp_schedules[i%32], cycle_seconds=0, now=False)
-				i += 1
+		#shuffle(lamp_schedules)
+		#i = 0
+		## Write the lamp schedules to the lamps.  Obviously don't want to include
+		## the front cabinet buttons or GIs.
+		#for lamp in self.game.lamps:
+		#	if lamp.name.find('gi0', 0) == -1 and \
+                #           lamp.name != 'startButton' and lamp.name != 'buyIn' and \
+                #           lamp.name != 'superGame':
+		#		lamp.schedule(schedule=lamp_schedules[i%32], cycle_seconds=0, now=False)
+		#		i += 1
 
 		# TODO: Change the pattern every once in a while.  Possibly integrate
 		# predefined lamp shows.
@@ -122,6 +127,8 @@ class Attract(game.Mode):
 	def sw_startButton_active(self, sw):
 		if self.game.trough.is_full():
 			if self.game.switches.trough6.is_active():
+				#self.cancel_delayed(name='lampshow')
+				self.game.modes.remove(self.show)
 				self.game.modes.remove(self)
 				self.game.start_game()
 				self.game.add_player()
@@ -302,6 +309,9 @@ class BaseGameMode(game.Mode):
 		# No need to do this stuff again if for some reason tilt already occurred.
 		if self.tilt_status == 0:
 			
+			# Tell the rules logic tilt occurred
+			self.jd_modes.tilt = True
+
 			# Display the tilt graphic
 			self.layer = self.tilt_layer
 
@@ -309,8 +319,8 @@ class BaseGameMode(game.Mode):
 			self.game.enable_flippers(enable=False)
 
 			# Make sure ball won't be saved when it drains.
-			self.ball_save.disable()
-			self.game.modes.remove(self.ball_save)
+			self.game.ball_save.disable()
+			#self.game.modes.remove(self.ball_save)
 
 			# Make sure the ball search won't run while ball is draining.
 			self.game.ball_search.disable()

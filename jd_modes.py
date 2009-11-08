@@ -63,6 +63,7 @@ class JD_Modes(modes.Scoring_Mode):
 		# disable auto-plunging for the start of ball - Force player to hit the
 		# right Fire button.
 		self.auto_plunge = 0
+		self.tilt = False
 
 	def reset_modes(self):
 		self.modes_attempted = []
@@ -378,7 +379,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_shooterR_open_for_1s(self,sw):
 		self.auto_plunge = 1
 
-		if self.ball_starting:
+		if self.ball_starting and not self.tilt:
 			ball_save_time = self.game.user_settings['Gameplay']['New ball ballsave time']
 			self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=True, allow_multiple_saves=False)
 		self.ball_starting = False
