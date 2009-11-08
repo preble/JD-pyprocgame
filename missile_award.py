@@ -1,5 +1,6 @@
 import procgame
 from procgame import *
+from random import *
 
 class Missile_Award_Mode(game.Mode):
 	"""docstring for Bonus"""

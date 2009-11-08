@@ -288,7 +288,7 @@ class BaseGameMode(game.Mode):
 		return True
 
 	def sw_tilt_active(self, sw):
-		if self.times_warned == self.game.user_settings['Gameplay']['Number of Tilt Warnings']:
+		if self.times_warned == self.game.user_settings['Gameplay']['Number of tilt warnings']:
 			self.tilt()
 		else:
 			self.times_warned += 1
@@ -365,7 +365,8 @@ class Game(game.GameController):
 		trough_switchnames = []
 		for i in range(1,7):
 			trough_switchnames.append('trough' + str(i))
-		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough', 'shooterR', self.drain_callback)
+		early_save_switchnames = ['outlaneR', 'outlaneL']
+		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough6','trough', early_save_switchnames, 'shooterR', self.drain_callback)
 
 		# Setup and instantiate service mode
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
