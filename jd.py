@@ -24,8 +24,7 @@ fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
-#attract_lamps = "./games/jd/lamps/test.lampshow"
-attract_lamps = "./games/jd/lamps/attract_show_vert.lampshow"
+lampshow_list = ["./games/jd/lamps/attract_show_horiz.lampshow", "./games/jd/lamps/attract_show_vert.lampshow"]
 
 class Attract(game.Mode):
 	"""docstring for AttractMode"""
@@ -40,8 +39,8 @@ class Attract(game.Mode):
 
 	def mode_topmost(self):
 		self.show = procgame.lamps.LampShowMode(self.game, repeat=True)
+		self.change_lampshow()
 		self.game.modes.add(self.show)
-		self.show.load(attract_lamps)
 
 	def mode_started(self):
 		# Blink the start button to notify player about starting a game.
@@ -84,6 +83,12 @@ class Attract(game.Mode):
 		
 	def mode_tick(self):
 		pass
+
+	def change_lampshow(self):
+		shuffle(lampshow_list)
+		filename = lampshow_list[0]
+		self.show.load(filename)
+		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
 
 	# Eject any balls that get stuck before returning to the trough.
 	def sw_popperL_active_for_500ms(self, sw): # opto!
