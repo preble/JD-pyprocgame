@@ -24,7 +24,8 @@ fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
-lampshow_list = ["./games/jd/lamps/attract_show_horiz.lampshow", "./games/jd/lamps/attract_show_vert.lampshow"]
+
+lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", "./games/jd/lamps/attract_show_vert.lampshow"]
 
 class Attract(game.Mode):
 	"""docstring for AttractMode"""
@@ -38,9 +39,9 @@ class Attract(game.Mode):
 		self.layer.opaque = True
 
 	def mode_topmost(self):
-		self.show = procgame.lamps.LampShowMode(self.game, repeat=True)
+		#self.show = procgame.lamps.LampShowMode(self.game)
 		self.change_lampshow()
-		self.game.modes.add(self.show)
+		#self.game.modes.add(self.show)
 
 	def mode_started(self):
 		# Blink the start button to notify player about starting a game.
@@ -85,9 +86,8 @@ class Attract(game.Mode):
 		pass
 
 	def change_lampshow(self):
-		shuffle(lampshow_list)
-		filename = lampshow_list[0]
-		self.show.load(filename)
+		shuffle(self.game.lampshow_keys)
+		self.game.lampctrl.play_show(self.game.lampshow_keys[0], repeat=True)
 		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
 
 	# Eject any balls that get stuck before returning to the trough.
@@ -133,8 +133,8 @@ class Attract(game.Mode):
 	def sw_startButton_active(self, sw):
 		if self.game.trough.is_full():
 			if self.game.switches.trough6.is_active():
-				#self.cancel_delayed(name='lampshow')
-				self.game.modes.remove(self.show)
+				self.cancel_delayed(name='change_lampshow')
+				self.game.lampctrl.stop_show()
 				self.game.modes.remove(self)
 				self.game.start_game()
 				self.game.add_player()
@@ -351,6 +351,7 @@ class Game(game.GameController):
 	def __init__(self, machineType):
 		super(Game, self).__init__(machineType)
 		self.sound = procgame.sound.SoundController(self)
+		self.lampctrl = procgame.lamps.LampController(self)
 		self.dmd = dmd.DisplayController(self, width=128, height=32, message_font=font_tiny7)
 		self.keyboard_handler = procgame.keyboard.KeyboardHandler()
 		self.keyboard_events_enabled = True
@@ -394,6 +395,15 @@ class Game(game.GameController):
 		self.sound.register_sound('service_save', sound_path+"save.wav")
 		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
 		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
+
+		# Register lampshow files
+		self.lampshow_keys = []
+		key_ctr = 0
+		for file in lampshow_files:
+			key = 'attract' + str(key_ctr)
+			self.lampshow_keys.append(key)
+			self.lampctrl.register_show(key, file)
+			key_ctr += 1
 
 		# Instead of resetting everything here as well as when a user
 		# initiated reset occurs, do everything in self.reset() and call it

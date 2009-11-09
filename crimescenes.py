@@ -47,6 +47,8 @@ class Crimescenes(modes.Scoring_Mode):
 		self.extra_ball_levels = 2
 		self.complete = False
 
+		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
+
 	def mode_stopped(self):
 		if self.mode == 'bonus':
 			self.cancel_delayed('moving_target')
@@ -199,6 +201,10 @@ class Crimescenes(modes.Scoring_Mode):
 				#Play sound, lamp show, etc
 
 	def level_complete(self, num_levels = 1):
+		self.num_levels_to_advance = num_levels
+		self.game.lampctrl.play_show('advance_level', False, self.finish_level_complete)
+
+	def finish_level_complete(self):
 		self.game.score(10000)
 		if self.mode == 'bonus':
 			self.complete = True
@@ -207,11 +213,11 @@ class Crimescenes(modes.Scoring_Mode):
 			self.mode = 'idle'
 			self.init_level(self.level)
 		else:
-			for number in range(0,num_levels):
+			for number in range(0,self.num_levels_to_advance):
 				if self.level + number == self.extra_ball_levels:
 					self.light_extra_ball_function()
 					break
-			if (self.level + num_levels) > (self.game.user_settings['Gameplay']['Crimescene levels for finale']-1):
+			if (self.level + self.num_levels_to_advance) > (self.game.user_settings['Gameplay']['Crimescene levels for finale']-1):
 				self.mode = 'bonus'
 				self.update_lamps()
 				#Play sound, lamp show, etc
@@ -224,8 +230,8 @@ class Crimescenes(modes.Scoring_Mode):
 					self.drive_mode_lamp(lampname, 'slow')
 				
 			else:
-				self.level += num_levels
-				self.total_levels += num_levels
+				self.level += self.num_levels_to_advance
+				self.total_levels += self.num_levels_to_advance
 				self.init_level(self.level)
 				#Play sound, lamp show, etc
 
