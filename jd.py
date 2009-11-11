@@ -87,7 +87,7 @@ class Attract(game.Mode):
 	def change_lampshow(self):
 		shuffle(self.game.lampshow_keys)
 		self.game.lampctrl.play_show(self.game.lampshow_keys[0], repeat=True)
-		self.delay(name='lampshow', event_type=None, delay=3, handler=self.change_lampshow)
+		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
 
 	# Eject any balls that get stuck before returning to the trough.
 	def sw_popperL_active_for_500ms(self, sw): # opto!
