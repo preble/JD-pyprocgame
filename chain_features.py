@@ -3,10 +3,10 @@ from procgame import *
 
 class ModeCompletedHurryup(game.Mode):
 	"""docstring for AttractMode"""
-	def __init__(self, game, priority, font):
+	def __init__(self, game, priority):
 		super(ModeCompletedHurryup, self).__init__(game, priority)
-		self.countdown_layer = dmd.TextLayer(128/2, 7, font, "center")
-		self.banner_layer = dmd.TextLayer(128/2, 7, font, "center")
+		self.countdown_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
+		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
 	
 	def mode_started(self):
@@ -17,9 +17,8 @@ class ModeCompletedHurryup(game.Mode):
 		if self.game.switches.dropTargetD.is_inactive():
 			self.game.coils.tripDropTarget.pulse(30)
 
-	def sw_dropTargetD_inactive_for_200ms(self, sw):
+	def sw_dropTargetD_inactive_for_400ms(self, sw):
 		self.game.coils.tripDropTarget.pulse(30)
-			
 
 	def mode_stopped(self):
 		#self.drop_target_mode.animated_reset(1.0)
@@ -50,17 +49,24 @@ class ModeCompletedHurryup(game.Mode):
 
 class ChainFeature(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
-	def __init__(self, game, priority):
+	def __init__(self, game, priority, name):
 		super(ChainFeature, self).__init__(game, priority)
 		self.completed = False
+		self.name = name
 
 	def register_callback_function(self, function):
 		self.callback = function
 
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(name)
+		instruction_layers = [[layer1]]
+		return instruction_layers
+
 class Pursuit(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Pursuit, self).__init__(game, priority)
+		super(Pursuit, self).__init__(game, priority, 'Pursuit')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 3
@@ -96,11 +102,19 @@ class Pursuit(ChainFeature):
 			self.game.set_status('Mode completed!')
 			self.game.score(50000)
 			self.callback()
+
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot " + str(self.shots_required_for_completion) + " ramp shots")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
 	
 class Blackout(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Blackout, self).__init__(game, priority)
+		super(Blackout, self).__init__(game, priority, 'Blackout')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 1
@@ -138,10 +152,18 @@ class Blackout(ChainFeature):
 			self.game.set_status('Great job!')
 			self.game.score(50000)
 
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot center ramps " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
+
 class Sniper(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Sniper, self).__init__(game, priority)
+		super(Sniper, self).__init__(game, priority, 'Sniper')
 
 	def mode_started(self):
 		self.game.lamps.awardSniper.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
@@ -162,10 +184,19 @@ class Sniper(ChainFeature):
 			self.game.score(50000)
 			self.callback()
 
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot Sniper Tower 2 times")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
+
+
 class BattleTank(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(BattleTank, self).__init__(game, priority)
+		super(BattleTank, self).__init__(game, priority, 'Battle Tank')
 
 	def mode_started(self):
 		self.game.lamps.tankCenter.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
@@ -207,10 +238,19 @@ class BattleTank(ChainFeature):
 			self.game.score(50000)
 			self.callback()
 
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot all 3 battle tank shots")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
+
+
 class Meltdown(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Meltdown, self).__init__(game, priority)
+		super(Meltdown, self).__init__(game, priority, 'Meltdown')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 3
@@ -248,10 +288,19 @@ class Meltdown(ChainFeature):
 			self.game.score(50000)
 			self.callback()
 
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Activate " + str(self.shots_required_for_completion) + " captive ball switches")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
+
+
 class Impersonator(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Impersonator, self).__init__(game, priority)
+		super(Impersonator, self).__init__(game, priority, 'Bad Impersonator')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 3
@@ -338,12 +387,21 @@ class Impersonator(ChainFeature):
 			self.game.lamps.dropTargetG.pulse(0)
 			self.game.lamps.dropTargetE.pulse(0)
 		self.delay(name='moving_target', event_type=None, delay=1, handler=self.moving_target)
+
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot " + str(self.shots_required_for_completion) + " lit drop targets")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
+
 		
 
 class Safecracker(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Safecracker, self).__init__(game, priority)
+		super(Safecracker, self).__init__(game, priority, 'Safe Cracker')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 2
@@ -369,6 +427,9 @@ class Safecracker(ChainFeature):
 		self.check_for_completion()
 		self.game.score(10000)
 
+	def sw_dropTargetD_inactive_for_400ms(self, sw):
+		self.game.coils.tripDropTarget.pulse(30)
+
 	def check_for_completion(self):
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
@@ -377,13 +438,21 @@ class Safecracker(ChainFeature):
 			self.callback()
 
 	def trip_target(self):
-		self.game.coils.tripDropTarget.pulse(50)
+		self.game.coils.tripDropTarget.pulse(30)
+
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot the subway " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
 
 
 class ManhuntMillions(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(ManhuntMillions, self).__init__(game, priority)
+		super(ManhuntMillions, self).__init__(game, priority, 'Manhunt Millions')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 2
@@ -411,10 +480,19 @@ class ManhuntMillions(ChainFeature):
 			self.game.score(50000)
 			self.callback()
 
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot the left ramp " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
+
+
 class Stakeout(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Stakeout, self).__init__(game, priority)
+		super(Stakeout, self).__init__(game, priority, 'Stakeout')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 2
@@ -440,6 +518,14 @@ class Stakeout(ChainFeature):
 			self.completed = True
 			self.game.set_status('Great Job!')
 			self.game.score(50000)
+
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		font_small = self.game.fonts['tiny7']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot the right ramp " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer2]]
+		return instruction_layers
 
 	
 class ModeTimer(game.Mode):
@@ -477,20 +563,18 @@ class ModeTimer(game.Mode):
 
 class PlayIntro(game.Mode):
 	"""docstring for AttractMode"""
-	def __init__(self, game, priority, mode, exit_function, exit_function_param, font):
+	def __init__(self, game, priority, mode, exit_function, exit_function_param, instruction_layers):
 		super(PlayIntro, self).__init__(game, priority)
 		self.abort = 0
 		self.exit_function = exit_function
 		self.exit_function_param = exit_function_param
-		self.banner_layer = dmd.TextLayer(128/2, 7, font, "center")
-		self.countdown_layer = dmd.TextLayer(128/2, 20, font, "center")
-		self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer, self.countdown_layer])
+		self.frame_counter = 0
+		self.layer = dmd.GroupedLayer(128, 32, instruction_layers[self.frame_counter])
 		self.mode = mode
+		self.instruction_layers = instruction_layers
 	
 	def mode_started(self):
-		self.frame_counter = 5
-		self.delay(name='intro', event_type=None, delay=1, handler=self.next_frame)
-		self.banner_layer.set_text(str(self.mode) + ' intro')
+		self.next_frame()
 		self.update_gi(False, 'all')
 
 	def mode_stopped(self):
@@ -517,10 +601,10 @@ class PlayIntro(game.Mode):
 			self.abort = 1
 
 	def next_frame(self):
-		if self.frame_counter > 0:
-			self.delay(name='intro', event_type=None, delay=1, handler=self.next_frame)
-			self.countdown_layer.set_text(str(self.frame_counter))
-			self.frame_counter -= 1
+		if self.frame_counter != len(self.instruction_layers) and not self.abort:
+			self.delay(name='intro', event_type=None, delay=2, handler=self.next_frame)
+			self.layer = dmd.GroupedLayer(128, 32, self.instruction_layers[self.frame_counter])
+			self.frame_counter += 1
 		else:
 			self.exit_function(self.exit_function_param)	
 

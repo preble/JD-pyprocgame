@@ -44,3 +44,21 @@ Gameplay:
   'Max extra balls lit':
     options: [0,1,2,3,4,5,99]
     default: 99
+  'Mode hurry-up award: 0':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 1':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 2':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 3':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 4':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 5':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 6':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 7':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']
+  'Mode hurry-up award: 8':
+    options: ['Advance 3 crimescenes', 'Light extra ball', 'Add 1 ball for next mode', 'Add 2 balls for next mode', 'Add 3 balls for next mode', '1,000,000 points']

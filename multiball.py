@@ -75,6 +75,10 @@ class Multiball(modes.Scoring_Mode):
 		self.lock_lamps()
 		#self.jackpot_callback()
 
+	def sw_dropTargetD_inactive_for_400ms(self, sw):
+		if self.jackpot_lit:
+			self.game.coils.tripDropTarget.pulse(30)
+
 	def sw_subwayEnter2_active(self,sw):
 		if self.jackpot_lit:
 			self.display_text("Jackpot!")

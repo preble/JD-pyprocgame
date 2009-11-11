@@ -25,7 +25,9 @@ sound_path = "../shared/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
 
-lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", "./games/jd/lamps/attract_show_vert.lampshow"]
+lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", \
+                  "./games/jd/lamps/attract_show_vert.lampshow" \
+                 ]
 
 class Attract(game.Mode):
 	"""docstring for AttractMode"""
@@ -39,9 +41,7 @@ class Attract(game.Mode):
 		self.layer.opaque = True
 
 	def mode_topmost(self):
-		#self.show = procgame.lamps.LampShowMode(self.game)
-		self.change_lampshow()
-		#self.game.modes.add(self.show)
+		pass
 
 	def mode_started(self):
 		# Blink the start button to notify player about starting a game.
@@ -76,8 +76,7 @@ class Attract(game.Mode):
 		#		lamp.schedule(schedule=lamp_schedules[i%32], cycle_seconds=0, now=False)
 		#		i += 1
 
-		# TODO: Change the pattern every once in a while.  Possibly integrate
-		# predefined lamp shows.
+		self.change_lampshow()
 
 	def mode_stopped(self):
 		pass
@@ -88,7 +87,7 @@ class Attract(game.Mode):
 	def change_lampshow(self):
 		shuffle(self.game.lampshow_keys)
 		self.game.lampctrl.play_show(self.game.lampshow_keys[0], repeat=True)
-		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
+		self.delay(name='lampshow', event_type=None, delay=3, handler=self.change_lampshow)
 
 	# Eject any balls that get stuck before returning to the trough.
 	def sw_popperL_active_for_500ms(self, sw): # opto!
@@ -105,7 +104,9 @@ class Attract(game.Mode):
 
 	# Enter service mode when the enter button is pushed.
 	def sw_enter_active(self, sw):
-		self.game.modes.remove(self.show)
+		#self.game.modes.remove(self.show)
+		self.cancel_delayed(name='change_lampshow')
+		self.game.lampctrl.stop_show()
 		for lamp in self.game.lamps:
 			lamp.disable()
 		self.game.modes.add(self.game.service_mode)
@@ -132,14 +133,19 @@ class Attract(game.Mode):
 	# as lost?	
 	def sw_startButton_active(self, sw):
 		if self.game.trough.is_full():
-			if self.game.switches.trough6.is_active():
-				self.cancel_delayed(name='change_lampshow')
-				self.game.lampctrl.stop_show()
-				self.game.modes.remove(self)
-				self.game.start_game()
-				self.game.add_player()
-				self.game.start_ball()
+			# Stop the attract mode lampshows
+			self.cancel_delayed(name='change_lampshow')
+			self.game.lampctrl.stop_show()
+			# Remove attract mode from mode queue - Necessary?
+			self.game.modes.remove(self)
+			# Initialize game	
+			self.game.start_game()
+			# Add the first player
+			self.game.add_player()
+			# Start the ball.  This includes ejecting a ball from the trough.
+			self.game.start_ball()
 		else: 
+			
 			self.game.set_status("Ball Search!")
 			self.game.ball_search.perform_search(5)
 			self.game.deadworld.perform_ball_search()
@@ -216,9 +222,12 @@ class BaseGameMode(game.Mode):
 
 	def ball_drained_callback(self):
 		if self.game.trough.num_balls_in_play == 0:
+			# Give jd_modes a chance to do any any of ball processing
 			self.jd_modes.ball_drained()
+			# End the ball
 			self.finish_ball()
 		else:
+			# Tell jd_modes a ball has drained (but not the last ball).
 			self.jd_modes.ball_drained()
 
 
@@ -396,6 +405,11 @@ class Game(game.GameController):
 		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
 		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
 
+		# Setup fonts
+		self.fonts = {}
+		self.fonts['tiny7'] = font_tiny7
+		self.fonts['jazz18'] = font_jazz18
+
 		# Register lampshow files
 		self.lampshow_keys = []
 		key_ctr = 0
@@ -444,6 +458,8 @@ class Game(game.GameController):
 		#self.modes.add(self.attract_mode)
 		self.deadworld.mode_stopped()
 		self.set_status("Game Over")
+		# Restart attract mode lampshows
+		self.attract_mode.change_lampshow()
 		
 	def dmd_event(self):
 		"""Called by the GameController when a DMD event has been received."""
@@ -481,7 +497,11 @@ class Game(game.GameController):
 		# shouldn't be necessary to search the deadworld.  (unless a ball jumps
 		# onto the ring rather than entering through the feeder.)
 		special_handler_modes = []
-		self.ball_search = procgame.ballsearch.BallSearch(self, priority=100, countdown_time=10, coils=self.ballsearch_coils, reset_switches=self.ballsearch_resetSwitches, stop_switches=self.ballsearch_stopSwitches,special_handler_modes=special_handler_modes)
+		self.ball_search = procgame.ballsearch.BallSearch(self, priority=100, \
+                                     countdown_time=10, coils=self.ballsearch_coils, \
+                                     reset_switches=self.ballsearch_resetSwitches, \
+                                     stop_switches=self.ballsearch_stopSwitches, \
+                                     special_handler_modes=special_handler_modes)
 		
 def main():
 	config = yaml.load(open(machine_config_path, 'r'))
