@@ -107,8 +107,9 @@ class Pursuit(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot " + str(self.shots_required_for_completion) + " ramp shots")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot " + str(self.shots_required_for_completion) + " L/R ramp shots")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 	
 class Blackout(ChainFeature):
@@ -156,8 +157,9 @@ class Blackout(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot center ramps " + str(self.shots_required_for_completion) + " times")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot center ramps " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 class Sniper(ChainFeature):
@@ -188,8 +190,9 @@ class Sniper(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot Sniper Tower 2 times")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot Sniper Tower 2 times")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 
@@ -242,8 +245,9 @@ class BattleTank(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot all 3 battle tank shots")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot all 3 battle tank shots")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 
@@ -292,15 +296,16 @@ class Meltdown(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Activate " + str(self.shots_required_for_completion) + " captive ball switches")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Activate " + str(self.shots_required_for_completion) + " captive ball switches")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 
 class Impersonator(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(Impersonator, self).__init__(game, priority, 'Bad Impersonator')
+		super(Impersonator, self).__init__(game, priority, 'Impersonator')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 3
@@ -392,8 +397,9 @@ class Impersonator(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot " + str(self.shots_required_for_completion) + " lit drop targets")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot " + str(self.shots_required_for_completion) + " lit drop targets")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 		
@@ -444,15 +450,16 @@ class Safecracker(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot the subway " + str(self.shots_required_for_completion) + " times")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot the subway " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 
 class ManhuntMillions(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
-		super(ManhuntMillions, self).__init__(game, priority, 'Manhunt Millions')
+		super(ManhuntMillions, self).__init__(game, priority, 'Manhunt')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
 			self.shots_required_for_completion = 2
@@ -484,8 +491,9 @@ class ManhuntMillions(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot the left ramp " + str(self.shots_required_for_completion) + " times")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot the left ramp " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 
@@ -523,8 +531,9 @@ class Stakeout(ChainFeature):
 		font = self.game.fonts['jazz18']
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer2 = dmd.TextLayer(128/2, 7, font_small, "center").set_text("Shoot the right ramp " + str(self.shots_required_for_completion) + " times")
-		instruction_layers = [[layer1], [layer2]]
+		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot the right ramp " + str(self.shots_required_for_completion) + " times")
+		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
 	
