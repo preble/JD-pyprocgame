@@ -140,6 +140,9 @@ class Blackout(ChainFeature):
 		self.game.lamps.gi03.pulse(0)
 		self.game.lamps.gi04.pulse(0)
 
+	def update_lamps(self):
+		self.game.lamps.blackoutJackpot.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
+
 	def sw_centerRampExit_active(self, sw):
 		self.completed = True
 		self.game.coils.flasherBlackout.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
@@ -173,6 +176,9 @@ class Sniper(ChainFeature):
 
 	def mode_stopped(self):
 		self.game.lamps.awardSniper.disable()
+
+	def update_lamps(self):
+		self.game.lamps.awardSniper.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 
 	def sw_popperR_active_for_300ms(self, sw):
 		self.shots += 1
@@ -211,6 +217,14 @@ class BattleTank(ChainFeature):
 		self.game.lamps.tankCenter.disable()
 		self.game.lamps.tankLeft.disable()
 		self.game.lamps.tankRight.disable()
+
+	def update_lamps(self):
+		if not self.shots['center']:
+			self.game.lamps.tankCenter.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
+		if not self.shots['left']:
+			self.game.lamps.tankLeft.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
+		if not self.shots['right']:
+			self.game.lamps.tankRight.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 
 	def sw_topRightOpto_active(self, sw):
 		if not self.shots['left']:
@@ -269,6 +283,9 @@ class Meltdown(ChainFeature):
 
 	def mode_stopped(self):
 		self.game.lamps.stopMeltdown.disable()
+
+	def update_lamps(self):
+		self.game.lamps.stopMeltdown.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 
 	def sw_captiveBall1_active(self, sw):
 		self.shots += 1
@@ -330,6 +347,9 @@ class Impersonator(ChainFeature):
 		self.game.lamps.dropTargetG.disable()
 		self.game.lamps.dropTargetE.disable()
 		self.cancel_delayed('moving_target')
+
+	def update_lamps(self):
+		self.game.lamps.awardBadImpersonator.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 
 	def check_for_completion(self):
 		if self.shots == self.shots_required_for_completion:
@@ -427,6 +447,9 @@ class Safecracker(ChainFeature):
 		self.game.lamps.awardSafecracker.disable()
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active():
 			self.game.coils.resetDropTarget.pulse(40)
+
+	def update_lamps(self):
+		self.game.lamps.awardSafecracker.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 
 	def sw_subwayEnter2_active(self, sw):
 		self.shots += 1
@@ -559,7 +582,7 @@ class ModeTimer(game.Mode):
 	def pause(self, pause_unpause=True):
 		if pause_unpause:
 			self.cancel_delayed('decrement timer')
-		else:
+		elif self.timer > 0:
 			self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
 
 	def decrement_timer(self):

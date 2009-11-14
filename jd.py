@@ -133,6 +133,7 @@ class Attract(game.Mode):
 	# as lost?	
 	def sw_startButton_active(self, sw):
 		if self.game.trough.is_full():
+			self.game.lampctrl.save_state('temp')
 			# Stop the attract mode lampshows
 			self.cancel_delayed(name='change_lampshow')
 			self.game.lampctrl.stop_show()

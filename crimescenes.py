@@ -205,6 +205,7 @@ class Crimescenes(modes.Scoring_Mode):
 		self.game.lampctrl.play_show('advance_level', False, self.finish_level_complete)
 
 	def finish_level_complete(self):
+		self.game.update_lamps()
 		self.game.score(10000)
 		if self.mode == 'bonus':
 			self.complete = True

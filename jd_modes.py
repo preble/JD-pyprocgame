@@ -221,8 +221,8 @@ class JD_Modes(modes.Scoring_Mode):
 		return self.bonus_x
 
 	def begin_processing(self):
-		for mode in self.modes_attempted:
-			self.drive_mode_lamp(mode, 'on')
+		self.mystery_lit = True
+		self.update_lamps()
 		if self.is_ultimate_challenge_ready():
 			self.setup_ultimate_challenge()
 		elif self.state == 'idle':
@@ -231,14 +231,32 @@ class JD_Modes(modes.Scoring_Mode):
 			self.mode_complete()
 		elif self.state == 'ultimate_challenge':
 			self.ultimate_challenge_complete()
-		if self.extra_balls_lit > 0:
-			self.enable_extra_ball_lamp()
+
+	def update_lamps(self):
+		if self.state == 'idle' or self.state == 'mode':
+			for mode in self.modes_attempted:
+				self.drive_mode_lamp(mode, 'on')
+			if self.state == 'mode':
+				self.drive_mode_lamp(self.mode,'slow')
+			else:
+				if self.game.switches.popperR.is_inactive():
+					self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
+			self.drive_mode_lamp('ultChallenge','off') 
+		elif self.state == 'ultimate_challenge':
+			self.drive_mode_lamp('ultChallenge','slow') 
+		elif self.state == 'pre_ultimate_challenge':
+			self.drive_mode_lamp('ultChallenge','slow') 
+			self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+
 		if self.mystery_lit:
 			self.drive_mode_lamp('mystery', 'on')
+
 		if self.missile_award_lit:
 			self.drive_mode_lamp('airRade', 'medium')
-		self.drive_mode_lamp('mystery', 'on')
-		self.mystery_lit = True
+
+		if self.extra_balls_lit > 0:
+			self.enable_extra_ball_lamp()
 
 
 	def rotate_modes(self, adder):
