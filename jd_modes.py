@@ -239,7 +239,7 @@ class JD_Modes(modes.Scoring_Mode):
 			if self.state == 'mode':
 				self.drive_mode_lamp(self.mode,'slow')
 			else:
-				if self.game.switches.popperR.is_inactive():
+				if self.game.switches.popperR.is_inactive() and not self.multiball_active:
 					self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
 				self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
 			self.drive_mode_lamp('ultChallenge','off') 
@@ -247,7 +247,8 @@ class JD_Modes(modes.Scoring_Mode):
 			self.drive_mode_lamp('ultChallenge','slow') 
 		elif self.state == 'pre_ultimate_challenge':
 			self.drive_mode_lamp('ultChallenge','slow') 
-			self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+			if not self.multiball_active:
+				self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
 
 		if self.mystery_lit:
 			self.drive_mode_lamp('mystery', 'on')
