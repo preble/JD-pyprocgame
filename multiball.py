@@ -15,7 +15,6 @@ class Multiball(modes.Scoring_Mode):
 		self.state = 'load'
 		self.paused = 0
 		self.num_locks_lit = 0
-		self.targets = {'J':'up', 'U':'up', 'D':'up', 'G':'up', 'E':'up'}
 		self.num_times_played = 0
 		self.num_left_ramp_shots_hit = 0
 		self.num_left_ramp_shots_needed = 1
@@ -26,17 +25,14 @@ class Multiball(modes.Scoring_Mode):
 	
 	def mode_started(self):
 		self.game.coils.globeMotor.disable()
-		self.lock_lamps()
 		self.game.deadworld.initialize()
 		switch_num = self.game.switches['leftRampEnter'].number
 		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
-		for target in self.targets:
-			self.targets[target] = 'up'
-			self.game.lamps['dropTarget' + target].pulse(0)
 		self.drops.on_advance = self.on_drops_advance
 		self.drops.on_completed = self.possibly_light_lock
 		self.drops.auto_reset = True
 		self.game.modes.add(self.drops)
+		self.update_lamps()
 
 	def mode_stopped(self):
 		self.game.coils.flasherGlobe.disable()
@@ -53,12 +49,11 @@ class Multiball(modes.Scoring_Mode):
 		self.game.set_status(self.state)
 		self.end_callback()
 		self.jackpot_lit = False
-		self.game.lamps.multiballJackpot.disable()
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active(): 
 			self.game.coils.resetDropTarget.pulse(40)
 		self.num_locks_lit = 0
 		self.lock_level += 1
-		self.lock_lamps()
+		self.update_lamps()
 
 	def start_multiball(self):
 		self.num_balls_locked = 0
@@ -68,11 +63,11 @@ class Multiball(modes.Scoring_Mode):
 		self.num_left_ramp_shots_hit = 0
 		self.num_left_ramp_shots_needed = 1
 		self.jackpot_lit = False
-		self.lock_lamps()
+		self.update_lamps()
 
 	def jackpot(self):
 		self.game.score(100000)
-		self.lock_lamps()
+		self.update_lamps()
 		#self.jackpot_callback()
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
@@ -84,9 +79,9 @@ class Multiball(modes.Scoring_Mode):
 			self.display_text("Jackpot!")
 			self.jackpot_lit = False
 			self.delay(name='jackpot', event_type=None, delay=1.5, handler=self.jackpot)
-			self.game.lamps.multiballJackpot.disable()
 			self.num_left_ramp_shots_hit = 0
 			self.jackpot_collected = True
+			self.update_lamps
 
 	def reset_jackpot_collected(self):
 		self.jackpot_collected = False
@@ -125,7 +120,7 @@ class Multiball(modes.Scoring_Mode):
 			self.enable_lock()
 			self.display_text("Lock is Lit!")
 			
-		self.lock_lamps()
+		self.update_lamps()
 
 	def get_info_record(self):
 		info_record = {}
@@ -205,16 +200,12 @@ class Multiball(modes.Scoring_Mode):
 		else:
 			if self.deadworld_mod_installed:
 				self.game.deadworld.eject_balls(1)
-		self.lock_lamps()
+		self.update_lamps()
 
 	def possibly_light_lock(self, mode):
 		if self.state == 'load' and not self.paused:
 			# Prepare to lock
 			if self.num_locks_lit < 3:
-				for target in self.targets:
-					self.targets[target] = 'up'
-					self.game.lamps['dropTarget' + target].pulse(0)
-					
 				if self.lock_level == 1:
 					self.num_locks_lit = 3
 				else:
@@ -224,7 +215,7 @@ class Multiball(modes.Scoring_Mode):
 					self.enable_lock()
 					self.display_text("Lock is Lit!")
 
-			self.lock_lamps()
+			self.update_lamps()
 
 	def sw_leftRampExit_active(self,sw):
 		if self.state == 'load':
@@ -232,18 +223,16 @@ class Multiball(modes.Scoring_Mode):
 				self.num_balls_locked += 1
 				self.virtual_locks_needed -= 1
 
-			self.lock_lamps()
 		elif self.state == 'multiball':
 			if not self.jackpot_lit:
 				self.num_left_ramp_shots_hit += 1
 				if self.num_left_ramp_shots_hit == self.num_left_ramp_shots_needed:
 					self.jackpot_lit = True
-					self.game.lamps.multiballJackpot.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 				if self.game.switches.dropTargetD.is_inactive():
 					self.game.coils.tripDropTarget.pulse(50)
-				self.lock_lamps()
+		self.update_lamps()
 
-	def lock_lamps(self):
+	def update_lamps(self):
 		if self.state == 'load':
 			for i in range(1,4):
 				lampname = 'lock' + str(i)
@@ -266,6 +255,11 @@ class Multiball(modes.Scoring_Mode):
 			self.game.lamps.lock1.disable()
 			self.game.lamps.lock2.disable()
 			self.game.lamps.lock3.disable()
+
+		if self.jackpot_lit:
+			self.game.lamps.multiballJackpot.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
+		else:
+			self.game.lamps.multiballJackpot.disable()
 
 	def how_many_balls_locked(self):
 		return self.num_balls_locked
