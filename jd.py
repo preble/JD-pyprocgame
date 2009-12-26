@@ -105,7 +105,7 @@ class Attract(game.Mode):
 	# Enter service mode when the enter button is pushed.
 	def sw_enter_active(self, sw):
 		#self.game.modes.remove(self.show)
-		self.cancel_delayed(name='change_lampshow')
+		self.cancel_delayed(name='lampshow')
 		self.game.lampctrl.stop_show()
 		for lamp in self.game.lamps:
 			lamp.disable()
@@ -135,7 +135,7 @@ class Attract(game.Mode):
 		if self.game.trough.is_full():
 			self.game.lampctrl.save_state('temp')
 			# Stop the attract mode lampshows
-			self.cancel_delayed(name='change_lampshow')
+			self.cancel_delayed(name='lampshow')
 			self.game.lampctrl.stop_show()
 			# Remove attract mode from mode queue - Necessary?
 			self.game.modes.remove(self)
@@ -296,7 +296,7 @@ class BaseGameMode(game.Mode):
 			# but it's better than nothing.
 			self.game.reset()
 			return True
-		
+
 	# Allow service mode to be entered during a game.
 	def sw_enter_active(self, sw):
 		self.game.modes.add(self.game.service_mode)
