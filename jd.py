@@ -461,6 +461,7 @@ class Game(game.GameController):
 		self.set_status("Game Over")
 		# Restart attract mode lampshows
 		self.attract_mode.change_lampshow()
+		self.modes.add(self.attract_mode)
 		
 	def dmd_event(self):
 		"""Called by the GameController when a DMD event has been received."""
