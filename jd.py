@@ -22,6 +22,7 @@ settings_path = "./games/jd/config/settings.yaml"
 user_settings_path = "./games/jd/config/user_settings.yaml"
 fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
+music_path = "./games/jd/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
 
@@ -234,6 +235,8 @@ class BaseGameMode(game.Mode):
 
 	def finish_ball(self):
 
+		self.game.sound.fadeout_music()
+
 		# Make sure the motor isn't spinning between balls.
 		self.game.coils.globeMotor.disable()
 
@@ -304,6 +307,7 @@ class BaseGameMode(game.Mode):
 
 	# Reset game on slam tilt
 	def sw_slamTilt_active(self_sw):
+		self.game.sound.fadeout_music()
 		# Need to play a sound and show a slam tilt screen.
 		# For now just popup a status message.
 		self.game.set_status("Slam Tilt!")
@@ -324,6 +328,8 @@ class BaseGameMode(game.Mode):
 		# First check to make sure tilt hasn't already been processed once.
 		# No need to do this stuff again if for some reason tilt already occurred.
 		if self.tilt_status == 0:
+
+			self.game.sound.fadeout_music()
 			
 			# Tell the rules logic tilt occurred
 			self.jd_modes.tilt = True
@@ -387,7 +393,7 @@ class Game(game.GameController):
 		self.attract_mode = Attract(self)
 		self.base_game_mode = BaseGameMode(self)
 		self.deadworld = Deadworld(self, 20, self.settings['Machine']['Deadworld mod installed'])
-		self.ball_save = procgame.ballsave.BallSave(self, self.lamps.drainShield)
+		self.ball_save = procgame.ballsave.BallSave(self, self.lamps.drainShield, 'shooterR')
 
 		trough_switchnames = []
 		for i in range(1,7):
