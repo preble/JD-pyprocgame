@@ -4,6 +4,8 @@ from multiball import *
 from crimescenes import *
 from missile_award import *
 
+music_path = "./games/jd/sound/"
+
 class JD_Modes(modes.Scoring_Mode):
 	"""docstring for JD_Modes"""
 	def __init__(self, game, priority, font_small, font_big):
@@ -35,6 +37,13 @@ class JD_Modes(modes.Scoring_Mode):
 		self.multiball = Multiball(self.game, priority + 1, self.game.user_settings['Machine']['Deadworld mod installed'], font_big)
 		self.multiball.start_callback = self.multiball_started
 		self.multiball.end_callback = self.multiball_ended
+
+		#self.game.sound.register_music('background', music_path+"mainSongLoop.mp3")
+		#self.game.sound.register_music('background', music_path+"mainSongDarkerSlower.mp3")
+		#self.game.sound.register_music('background', music_path+"mainSongDarkerFaster.mp3")
+		self.game.sound.register_music('background', music_path+"mainSongDarkerEvenFaster.mp3")
+		self.game.sound.register_sound('ball_launch', music_path+"preBallLaunch.wav")
+
 
 	def reset(self):
 		self.state = 'idle'
@@ -337,7 +346,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.drive_mode_lamp('extraBall2','off')
 		self.game.set_status('Extra Ball!')
 
-	def sw_shooterL_active_for_200ms(self, sw):
+	def sw_shooterL_active_for_500ms(self, sw):
 		if self.multiball_active:
 			self.game.coils.shooterL.pulse()
 		elif self.missile_award_lit:
@@ -360,6 +369,9 @@ class JD_Modes(modes.Scoring_Mode):
 			self.rotate_modes(1)
 		else:
 			self.game.coils.shooterR.pulse(50)
+			if self.ball_starting:
+				self.game.sound.stop('ball_launch')
+				self.game.sound.play_music('background')
 
 	
 
@@ -428,6 +440,9 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=True, allow_multiple_saves=False)
 		self.ball_starting = False
 			
+	def sw_shooterR_active(self,sw):
+		if self.ball_starting: 
+			self.game.sound.play('ball_launch',loops=-1)
 
 	def sw_shooterR_closed_for_700ms(self,sw):
 		if (self.auto_plunge):
