@@ -112,10 +112,11 @@ class Crimescenes(modes.Scoring_Mode):
 						self.drive_mode_lamp(lampname, 'medium')
 					else:
 						self.drive_mode_lamp(lampname, 'off')
-			# Use 4 center crimescene lamps as a binary representation
-			# of the level.
+			# Use 4 center crimescene lamps to indicate block.
+			# 4 levels per block.
 			for i in range (1,5):
-				lampnum = self.level%4 + 1
+				#lampnum = self.level%4 + 1
+				lampnum = self.level/4 + 1
 				lampname = 'crimeLevel' + str(i)
 				if i == lampnum:
 					self.drive_mode_lamp(lampname, 'on')
