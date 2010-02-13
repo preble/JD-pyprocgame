@@ -74,7 +74,7 @@ class Multiball(modes.Scoring_Mode):
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
 		if self.jackpot_lit:
-			self.game.coils.tripDropTarget.pulse(30)
+			self.game.coils.tripDropTarget.pulse(40)
 
 	def sw_subwayEnter2_active(self,sw):
 		if self.jackpot_lit:
@@ -164,7 +164,7 @@ class Multiball(modes.Scoring_Mode):
 		
 	def multiball_launch_callback(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
-		self.game.ball_save.start(num_balls_to_save=4, time=ball_save_time, now=False, allow_multiple_saves=True)
+		self.game.ball_save.start(num_balls_to_save=3, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def sw_leftRampToLock_active(self, sw):
 		if self.lock_enabled:
@@ -178,13 +178,17 @@ class Multiball(modes.Scoring_Mode):
 					# This 3rd one is never logged as physically locked.
 					self.game.trough.num_balls_locked -= 2
 					self.game.deadworld.eject_balls(3)
-					self.game.trough.launch_balls(1, self.multiball_launch_callback)
+					#commenting out launch, use 3 ball MB.
+					#self.game.trough.launch_balls(1, self.multiball_launch_callback)
+					#Added for 3 ball MB with no launch
+					self.multiball_launch_callback()
 					# Need to convert previously locked balls to balls in play.
 					# Impossible for trough logic to do it itself, as is.
 					self.game.trough.num_balls_in_play += 2
 				else:
 					self.game.ball_save.start_lamp()
-					self.game.trough.launch_balls(3, self.multiball_launch_callback)
+					# Was 3 (for 4 ball MB), now 2 for 3 ball MB.
+					self.game.trough.launch_balls(2, self.multiball_launch_callback)
 					self.delay(name='stop_globe', event_type=None, delay=7.0, handler=self.stop_globe)
 				self.start_multiball()
 			elif self.num_balls_locked == self.num_locks_lit:
