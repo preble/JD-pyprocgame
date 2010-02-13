@@ -29,6 +29,7 @@ class Bonus(game.Mode):
 		self.total_base = 0
 
 	def bonus_computer(self):
+		self.game.sound.play('bonus')
 		self.title_layer.set_text('')
 		self.element_layer.set_text(self.elements[self.timer])
 		self.value_layer.set_text(str(self.value[self.timer]))
@@ -43,14 +44,17 @@ class Bonus(game.Mode):
 
 	def bonus_finish(self):
 		if self.timer == 0:
+			self.game.sound.play('bonus')
 			self.element_layer.set_text('Total Base:')
 			self.value_layer.set_text(str(self.total_base))
 			self.delay(name='bonus_finish', event_type=None, delay=self.delay_time, handler=self.bonus_finish)
 		elif self.timer == 1:
+			self.game.sound.play('bonus')
 			self.element_layer.set_text('Multiplier:')
 			self.value_layer.set_text(str(self.x))
 			self.delay(name='bonus_finish', event_type=None, delay=self.delay_time, handler=self.bonus_finish)
 		elif self.timer == 2:
+			self.game.sound.play('bonus')
 			total_bonus = self.total_base * self.x
 			self.element_layer.set_text('Total Bonus:')
 			self.value_layer.set_text(str(total_bonus))
