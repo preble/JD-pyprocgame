@@ -359,7 +359,15 @@ class BaseGameMode(game.Mode):
 			self.tilt_status = 1
 			#play sound
 			#play video
-
+	
+	def sw_slingL_active(self, sw):
+		self.game.sound.play('slingL')
+		self.game.score(100)
+		return False
+	def sw_slingR_active(self, sw):
+		self.game.sound.play('slingR')
+		self.game.score(100)
+		return False
 
 
 class Game(game.GameController):
@@ -411,7 +419,12 @@ class Game(game.GameController):
 		self.sound.register_sound('service_save', sound_path+"save.wav")
 		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
 		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
-
+		
+		self.sound.register_sound('slingL', sound_path+'exp_smoother.wav')
+		self.sound.register_sound('slingR', sound_path+'exp_smoother2.wav')
+		
+		self.sound.register_sound('bonus', sound_path+'coin.wav') # Used as bonus is counting up.
+		
 		# Setup fonts
 		self.fonts = {}
 		self.fonts['tiny7'] = font_tiny7
