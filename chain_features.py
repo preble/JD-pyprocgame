@@ -567,7 +567,7 @@ class ModeTimer(game.Mode):
 		self.timer = 0;
 
 	def mode_stopped(self):
-		self.timer = 0;
+		self.stop()
 
 	def start(self, time):
 		self.timer = time
