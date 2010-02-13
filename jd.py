@@ -423,7 +423,8 @@ class Game(game.GameController):
 		self.sound.register_sound('slingL', sound_path+'exp_smoother.wav')
 		self.sound.register_sound('slingR', sound_path+'exp_smoother2.wav')
 		
-		self.sound.register_sound('bonus', sound_path+'coin.wav') # Used as bonus is counting up.
+		#self.sound.register_sound('bonus', sound_path+'coin.wav') # Used as bonus is counting up.
+		self.sound.register_sound('bonus', sound_path+'exp_smoother.wav') # Used as bonus is counting up.
 		
 		# Setup fonts
 		self.fonts = {}
