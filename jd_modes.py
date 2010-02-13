@@ -41,7 +41,8 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_music('background', music_path+"mainSongLoop.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerSlower.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerFaster.mp3")
-		self.game.sound.register_music('background', music_path+"mainSongDarkerEvenFaster.mp3")
+		#self.game.sound.register_music('background', music_path+"mainSongDarkerEvenFaster.mp3")
+		self.game.sound.register_music('background', music_path+"mainSongDarker(161)LessSynthesizedLead.mp3")
 		self.game.sound.register_sound('ball_launch', music_path+"preBallLaunch.wav")
 
 
@@ -120,6 +121,7 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.mode_active:
 			this_mode = self.mode_list[self.mode]
 			self.game.modes.remove(self.mode_list[self.mode])
+		self.game.modes.remove(self.mode_completed_hurryup)
 
 		# Disable all flashers.
 		for coil in self.game.coils:
@@ -326,6 +328,7 @@ class JD_Modes(modes.Scoring_Mode):
 					self.game.set_status('+10 second ball saver')
 					self.game.ball_save.add(10)
 				else:
+					self.game.set_status('save  ' + str(self.game.trough.num_balls_in_play) + ' balls')
 					self.game.ball_save.start(num_balls_to_save=self.game.trough.num_balls_in_play, time=10, now=True, allow_multiple_saves=True)
 				
 			elif self.state == 'mode':
@@ -572,7 +575,6 @@ class JD_Modes(modes.Scoring_Mode):
 
 		self.hurryup_expired()
 		self.num_hurryups_collected += 1
-		self.game.modes.remove(self.mode_completed_hurryup)
 
 	def hurryup_expired(self):
 		self.game.modes.remove(self.mode_completed_hurryup)
