@@ -14,11 +14,10 @@ class ModeCompletedHurryup(game.Mode):
 		self.seconds_remaining = 13
 		self.update_and_delay()
 		self.game.lamps.multiballJackpot.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
-		if self.game.switches.dropTargetD.is_inactive():
-			self.game.coils.tripDropTarget.pulse(30)
+		self.game.coils.tripDropTarget.pulse(40)
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
-		self.game.coils.tripDropTarget.pulse(30)
+		self.game.coils.tripDropTarget.pulse(40)
 
 	def mode_stopped(self):
 		#self.drop_target_mode.animated_reset(1.0)
@@ -26,7 +25,8 @@ class ModeCompletedHurryup(game.Mode):
 		#if self.game.switches.popperL.is_open():
 		#	self.game.coils.popperL.pulse(40)
 	
-	def sw_subwayEnter1_closed(self, sw):
+	def sw_subwayEnter2_closed(self, sw):
+		# self.collected is defined by the instantiator as a callback of sorts.
 		self.collected()
 		self.cancel_delayed(['grace', 'countdown'])
 		#self.delay(name='end_of_mode', event_type=None, delay=3.0, handler=self.delayed_removal)
