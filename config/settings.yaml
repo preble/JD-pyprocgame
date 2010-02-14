@@ -26,6 +26,9 @@ Gameplay:
   'Multiball ballsave time':
     options: [10,15,20,25,30,35,40]
     default: 25
+  'Block Wars ballsave time':
+    options: [5,10,15,20,25,30]
+    default: 15
   'Time per chain feature':
     options: [20,25,30,35,40,45]
     default: 30

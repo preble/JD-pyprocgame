@@ -2,10 +2,13 @@ import procgame
 from procgame import *
 from random import *
 
+sound_path = "../shared/sound/"
+
 class Crimescenes(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Crimescenes, self).__init__(game, priority)
+		self.game.sound.register_sound('block_war_target', sound_path+'exp_smoother.wav')
 		self.total_levels = 0
 		self.level = 0
 		self.mode = 'idle'
@@ -48,6 +51,7 @@ class Crimescenes(modes.Scoring_Mode):
 		self.complete = False
 
 		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
+		self.mb_active = False
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
@@ -93,6 +97,19 @@ class Crimescenes(modes.Scoring_Mode):
 	def update_lamps(self):
 		if self.mode == 'idle':
 			self.init_level(0)
+		elif self.mode == 'block_war':
+			for i in range (1,5):
+				lampnum = self.level/4 + 1
+				lampname = 'crimeLevel' + str(i)
+				self.drive_mode_lamp(lampname, 'slow')
+			for i in range(0,5):
+				lamp_color_num = self.level%4
+				for j in range(0,4):
+					lampname = 'perp' + str(i+1) + self.lamp_colors[j]
+					self.drive_mode_lamp(lampname, 'medium')
+			lampname = 'advanceCrimeLevel'
+			self.drive_mode_lamp(lampname, 'off')
+
 		elif self.mode == 'levels':
 			lampname = 'advanceCrimeLevel'
 			if self.num_advance_hits == 0:
@@ -148,9 +165,6 @@ class Crimescenes(modes.Scoring_Mode):
 
 	def sw_topRightOpto_active(self, sw):
 		#See if ball came around outer left loop
-		print "time"
-		print self.game.switches.leftRollover.time_since_change()
-
 		if self.game.switches.leftRollover.time_since_change() < 1:
 			self.switch_hit(0)
 
@@ -183,12 +197,14 @@ class Crimescenes(modes.Scoring_Mode):
 				return True
 
 	def switch_hit(self, num):
+		self.game.set_status(str(self.game.trough.num_balls_in_play))
+		if self.mode == 'block_war':
+			self.game.score(1000)
+			self.game.sound.play('block_war_target')
 		if self.mode == 'levels':
 			if self.targets[num]:
 				self.game.score(1000)
 			self.targets[num] = 0
-			print 'self.targets'
-			print self.targets
 			if self.all_targets_off():
 				self.level_complete()
 			else:
@@ -201,18 +217,27 @@ class Crimescenes(modes.Scoring_Mode):
 				self.level_complete()
 				#Play sound, lamp show, etc
 
+	def end_mb(self):
+		self.game.set_status("end block wars")
+		self.finish_level_complete()
+
 	def level_complete(self, num_levels = 1):
 		self.num_levels_to_advance = num_levels
-		self.game.lampctrl.play_show('advance_level', False, self.finish_level_complete)
+		self.finish_level_complete()
 
 	def finish_level_complete(self):
 		self.game.update_lamps()
 		self.game.score(10000)
+		self.game.lampctrl.play_show('advance_level', False, self.update_lamps)
 		if self.mode == 'bonus':
 			self.complete = True
 			self.crimescenes_completed()
 			self.level = 0
 			self.mode = 'idle'
+			self.init_level(self.level)
+		if self.mode == 'block_war':
+			self.mode = 'levels'
+			self.level += 1
 			self.init_level(self.level)
 		else:
 			for number in range(0,self.num_levels_to_advance):
@@ -231,12 +256,31 @@ class Crimescenes(modes.Scoring_Mode):
 					lampname = 'crimeLevel' + str(i)
 					self.drive_mode_lamp(lampname, 'slow')
 				
+			elif (self.level % 4) == 3:
+				self.mode = 'block_war'
+				self.game.trough.launch_balls(1, self.block_war_start_callback)
+				self.mb_start_callback()
 			else:
 				self.level += self.num_levels_to_advance
 				self.total_levels += self.num_levels_to_advance
 				self.init_level(self.level)
 				#Play sound, lamp show, etc
 
+	def is_mb_active(self):
+		return self.mode == 'block_war' or self.mode == 'block_ mania'
+
+	def block_war_start_callback(self):
+		ball_save_time = self.game.user_settings['Gameplay']['Block Wars ballsave time']
+		# 1 ball added already from launcher.  So ask ball_save to save
+		# new total of balls in play.
+		local_num_balls_to_save = self.game.trough.num_balls_in_play
+		self.game.set_status(str(local_num_balls_to_save))
+		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
+
+	def end_mb(self):
+		if self.mode == 'block_war':
+			self.level_complete()
+	
 	def bonus_target(self):
 		self.drive_bonus_lamp(self.bonus_num, 'off')
 		if self.bonus_num == 5:
@@ -288,23 +332,14 @@ class Crimescenes(modes.Scoring_Mode):
 	def init_level(self, level):
 		self.mode = 'levels'
 		level_template = self.level_templates[level]
-		print "level template"
-		print level_template
 		shuffle(level_template)
-		print "shuffled_level template"
-		print level_template
 		# First initialize targets (redundant?)
 		for i in range(0,5):
 			self.targets[i] = 0
 		# Now fill targets according to shuffled template
 		for i in range(0,5):
-			print "len(self.level_templates[level])"
-			print len(self.level_templates[level])
-			print self.level_nums
 			if i < self.level_nums[level] and i < len(self.level_templates[level]):
 				self.targets[level_template[i]] = 1
-		print "targets"
-		print self.targets
 		self.update_lamps()
 
 	def complete(self):

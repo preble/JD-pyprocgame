@@ -164,7 +164,14 @@ class Multiball(modes.Scoring_Mode):
 		
 	def multiball_launch_callback(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
-		self.game.ball_save.start(num_balls_to_save=3, time=ball_save_time, now=False, allow_multiple_saves=True)
+		# Balls launched are already in play.
+		local_num_balls_to_save = self.game.trough.num_balls_in_play
+		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
+
+	def start_ballsave(self):
+		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
+		local_num_balls_to_save = self.game.trough.num_balls_in_play + 2
+		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def sw_leftRampToLock_active(self, sw):
 		if self.lock_enabled:
@@ -181,7 +188,7 @@ class Multiball(modes.Scoring_Mode):
 					#commenting out launch, use 3 ball MB.
 					#self.game.trough.launch_balls(1, self.multiball_launch_callback)
 					#Added for 3 ball MB with no launch
-					self.multiball_launch_callback()
+					self.start_ballsave()
 					# Need to convert previously locked balls to balls in play.
 					# Impossible for trough logic to do it itself, as is.
 					self.game.trough.num_balls_in_play += 2
