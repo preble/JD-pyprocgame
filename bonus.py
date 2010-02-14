@@ -18,8 +18,6 @@ class Bonus(game.Mode):
 		self.exit_function = exit_function
 		self.elements = []
 		self.value = []
-		print "base"
-		print base
 		for element, value in base.iteritems():
 			self.elements.append(element)
 			self.value.append(value)
