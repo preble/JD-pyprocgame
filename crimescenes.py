@@ -8,7 +8,6 @@ class Crimescenes(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Crimescenes, self).__init__(game, priority)
-		self.game.sound.register_sound('block_war_target', sound_path+'exp_smoother.wav')
 		self.total_levels = 0
 		self.level = 0
 		self.mode = 'idle'
@@ -52,6 +51,7 @@ class Crimescenes(modes.Scoring_Mode):
 
 		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
 		self.mb_active = False
+		self.block_war = BlockWar(game, priority+1)
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
@@ -197,10 +197,8 @@ class Crimescenes(modes.Scoring_Mode):
 				return True
 
 	def switch_hit(self, num):
-		self.game.set_status(str(self.game.trough.num_balls_in_play))
 		if self.mode == 'block_war':
-			self.game.score(1000)
-			self.game.sound.play('block_war_target')
+			self.block_war.switch_hit(num)
 		if self.mode == 'levels':
 			if self.targets[num]:
 				self.game.score(1000)
@@ -218,7 +216,6 @@ class Crimescenes(modes.Scoring_Mode):
 				#Play sound, lamp show, etc
 
 	def end_mb(self):
-		self.game.set_status("end block wars")
 		self.finish_level_complete()
 
 	def level_complete(self, num_levels = 1):
@@ -236,6 +233,7 @@ class Crimescenes(modes.Scoring_Mode):
 			self.mode = 'idle'
 			self.init_level(self.level)
 		if self.mode == 'block_war':
+			self.game.modes.remove(self.block_war)
 			self.mode = 'levels'
 			self.level += 1
 			self.init_level(self.level)
@@ -257,6 +255,7 @@ class Crimescenes(modes.Scoring_Mode):
 					self.drive_mode_lamp(lampname, 'slow')
 				
 			elif (self.level % 4) == 3:
+				self.game.modes.add(self.block_war)
 				self.mode = 'block_war'
 				self.game.trough.launch_balls(1, self.block_war_start_callback)
 				self.mb_start_callback()
@@ -274,7 +273,6 @@ class Crimescenes(modes.Scoring_Mode):
 		# 1 ball added already from launcher.  So ask ball_save to save
 		# new total of balls in play.
 		local_num_balls_to_save = self.game.trough.num_balls_in_play
-		self.game.set_status(str(local_num_balls_to_save))
 		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def end_mb(self):
@@ -348,3 +346,32 @@ class Crimescenes(modes.Scoring_Mode):
 	def reset_complete(self):
 		self.complete = False
 
+class BlockWar(game.Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game, priority):
+		super(BlockWar, self).__init__(game, priority)
+		self.countdown_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
+		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
+		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
+		self.game.sound.register_sound('block_war_target', sound_path+'exp_smoother.wav')
+	
+	def mode_started(self):
+		self.banner_layer.set_text("Block War!", 3)
+
+	def switch_hit(self, shot_index):
+		self.game.score(5000)
+		self.game.sound.play('block_war_target')
+		if shot_index == 0:
+			self.banner_layer.set_text("Pow!", 2)
+		if shot_index == 1:
+			self.banner_layer.set_text("Bam!", 2)
+		if shot_index == 2:
+			self.banner_layer.set_text("Boom!", 2)
+		if shot_index == 3:
+			self.banner_layer.set_text("Zowie!", 2)
+		if shot_index == 4:
+			self.banner_layer.set_text("Poof!", 2)
+
+	def mode_stopped(self):
+		pass
+	
