@@ -388,7 +388,6 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.coils.shooterL.pulse(50)
 
 	def sw_rightRampExit_closed(self, sw):
-		self.game.set_status("Right ramp!")
 		self.game.coils.flashersRtRamp.schedule(0x333, cycle_seconds=1, now=False)
 		self.game.score(2000)
 	
