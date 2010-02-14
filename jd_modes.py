@@ -564,8 +564,8 @@ class JD_Modes(modes.Scoring_Mode):
 	def hurryup_collected(self):
 		settings_key = 'Mode hurry-up award: ' + str(self.num_hurryups_collected)
 		award = self.game.user_settings['Gameplay'][settings_key]
-		if award == 'Advance 3 crimescenes':
-			self.crimescenes.level_complete(3)
+		if award == 'Advance crimescenes':
+			self.crimescenes.level_complete(1)
 		elif award == 'Light extra ball':
 			self.light_extra_ball()
 		elif award == 'Add 1 ball for next mode':
