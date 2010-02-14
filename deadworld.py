@@ -36,7 +36,7 @@ class Deadworld(game.Mode):
 	def sw_leftRampToLock_active(self, sw):
 		if self.deadworld_mod_installed:
 			self.num_balls_locked += 1
-			self.game.set_status("balls locked: " + str(self.num_balls_locked))
+			#self.game.set_status("balls locked: " + str(self.num_balls_locked))
 
 	def eject_balls(self,num):
 		if not self.num_balls_to_eject:
@@ -59,10 +59,10 @@ class Deadworld(game.Mode):
 		if not self.performing_ball_search:
 			self.num_balls_to_eject -= 1
 			self.num_balls_locked -= 1
-			self.game.set_status("1balls locked: " + str(self.num_balls_locked))
+			#self.game.set_status("1balls locked: " + str(self.num_balls_locked))
 		else:
 			self.performing_ball_search = 0
-			self.game.set_status("2balls locked: " + str(self.num_balls_locked))
+			#self.game.set_status("2balls locked: " + str(self.num_balls_locked))
 			
 		
 	def sw_magnetOverRing_open(self,sw):
