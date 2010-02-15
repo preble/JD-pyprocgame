@@ -227,7 +227,10 @@ class BaseGameMode(game.Mode):
 			# Give jd_modes a chance to do any any of ball processing
 			self.jd_modes.ball_drained()
 			# End the ball
-			self.finish_ball()
+			if self.tilt_status:
+				self.delay(name='tilt_delay', event_type=None, delay=3.0, handler=self.finish_ball)
+			else:
+				self.finish_ball()
 		else:
 			# Tell jd_modes a ball has drained (but not the last ball).
 			self.jd_modes.ball_drained()
@@ -475,6 +478,9 @@ class Game(game.GameController):
 		
 	def game_ended(self):
 		super(Game, self).game_ended()
+		# Make sure nothing unexpected happens if a ball drains
+		# after a game ends (due possibly to a ball search).
+		self.trough.drain_callback = self.drain_callback
 		self.modes.remove(self.base_game_mode)
 		#self.modes.add(self.attract_mode)
 		self.deadworld.mode_stopped()
