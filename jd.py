@@ -228,12 +228,21 @@ class BaseGameMode(game.Mode):
 			self.jd_modes.ball_drained()
 			# End the ball
 			if self.tilt_status:
-				self.delay(name='tilt_delay', event_type=None, delay=3.0, handler=self.finish_ball)
+				self.tilt_delay()
 			else:
 				self.finish_ball()
 		else:
 			# Tell jd_modes a ball has drained (but not the last ball).
 			self.jd_modes.ball_drained()
+
+	def tilt_delay(self):
+		# Make sure tilt switch hasn't been hit for at least 2 seconds before
+		# finishing ball to ensure next ball doesn't start with tilt bob still
+		# swaying.
+		if self.game.switches.tilt.time_since_change() < 2:
+			self.delay(name='tilt_bob_settle', event_type=None, delay=2.0, handler=self.tilt_delay)
+		else:
+			self.finish_ball()
 
 
 	def finish_ball(self):
