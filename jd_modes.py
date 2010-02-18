@@ -597,6 +597,8 @@ class JD_Modes(modes.Scoring_Mode):
 				self.setup_next_mode()
 			else:
 				self.state = 'modes_complete'
+		else:
+			self.state = 'idle'
 
 	def crimescenes_completed(self):
 		if self.is_ultimate_challenge_ready():
