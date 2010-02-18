@@ -15,14 +15,23 @@ class ModeCompletedHurryup(game.Mode):
 		self.seconds_remaining = 13
 		self.update_and_delay()
 		self.game.lamps.multiballJackpot.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
+		self.game.lamps.awardBadImpersonator.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
+		self.game.lamps.awardSafecracker.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
 		self.game.coils.tripDropTarget.pulse(40)
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
 		self.game.coils.tripDropTarget.pulse(40)
 
+	def update_lamps(self):
+		self.game.lamps.multiballJackpot.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
+		self.game.lamps.awardBadImpersonator.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
+		self.game.lamps.awardSafecracker.schedule(schedule=0x33333333, cycle_seconds=0, now=True)
+
 	def mode_stopped(self):
 		#self.drop_target_mode.animated_reset(1.0)
 		self.game.lamps.multiballJackpot.disable()
+		self.game.lamps.awardBadImpersonator.disable()
+		self.game.lamps.awardSafecracker.disable()
 		#if self.game.switches.popperL.is_open():
 		#	self.game.coils.popperL.pulse(40)
 	
@@ -207,7 +216,7 @@ class Sniper(ChainFeature):
 		self.update_status()
 
 	def update_status(self):
-		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		status = 'Shots made: ' + str(self.shots) + '/' + str(2)
 		self.status_layer.set_text(status)
 		
 
@@ -394,7 +403,11 @@ class Impersonator(ChainFeature):
 		self.update_status()
 
 	def update_status(self):
-		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		if self.shots > self.shots_required_for_completion:
+			extra_shots = self.shots - self.shots_required_for_completion
+			status = 'Shots made: ' + str(extra_shots) + ' extra'
+		else:
+			status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
 		self.status_layer.set_text(status)
 		
 
@@ -609,7 +622,11 @@ class Stakeout(ChainFeature):
 		self.update_status()
 
 	def update_status(self):
-		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		if self.shots > self.shots_required_for_completion:
+			extra_shots = self.shots - self.shots_required_for_completion
+			status = 'Shots made: ' + str(extra_shots) + ' extra'
+		else:
+			status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
 		self.status_layer.set_text(status)
 		
 
