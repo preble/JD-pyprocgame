@@ -1,4 +1,5 @@
 import procgame
+import locale
 from procgame import *
 
 class ModeCompletedHurryup(game.Mode):
@@ -53,6 +54,12 @@ class ChainFeature(modes.Scoring_Mode):
 		super(ChainFeature, self).__init__(game, priority)
 		self.completed = False
 		self.name = name
+		self.countdown_layer = dmd.TextLayer(127, 1, self.game.fonts['tiny7'], "right")
+		self.name_layer = dmd.TextLayer(1, 1, self.game.fonts['tiny7'], "left").set_text(name)
+		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['14x10'], "center")
+		self.status_layer = dmd.TextLayer(128/2, 26, self.game.fonts['tiny7'], "center")
+		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
+		
 
 	def register_callback_function(self, function):
 		self.callback = function
@@ -62,6 +69,16 @@ class ChainFeature(modes.Scoring_Mode):
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(name)
 		instruction_layers = [[layer1]]
 		return instruction_layers
+
+	def mode_tick(self):
+		score = self.game.current_player().score
+		if score == 0:
+			self.score_layer.set_text('00')
+		else:
+			self.score_layer.set_text(locale.format("%d",score,True))
+
+	def timer_update(self, timer):
+		self.countdown_layer.set_text(str(timer))
 
 class Pursuit(ChainFeature):
 	"""docstring for AttractMode"""
@@ -79,12 +96,16 @@ class Pursuit(ChainFeature):
 		self.game.coils.flasherPursuitL.schedule(schedule=0x00030003, cycle_seconds=0, now=True)
 		self.game.coils.flasherPursuitR.schedule(schedule=0x03000300, cycle_seconds=0, now=True)
 		self.shots = 0
-		print "Pursuit Started"
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.coils.flasherPursuitL.disable()
 		self.game.coils.flasherPursuitR.disable()
-		print "Pursuit Stopped"
 
 	def sw_leftRampExit_active(self, sw):
 		self.shots += 1
@@ -97,9 +118,9 @@ class Pursuit(ChainFeature):
 		self.check_for_completion()
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Mode completed!')
 			self.game.score(50000)
 			self.callback()
 
@@ -131,6 +152,16 @@ class Blackout(ChainFeature):
 		self.game.lamps.gi04.disable()
 		self.game.lamps.blackoutJackpot.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots = 0
+		self.update_status()
+
+	def update_status(self):
+		if self.shots > self.shots_required_for_completion:
+			extra_shots = self.shots - self.shots_required_for_completion
+			status = 'Shots made: ' + str(extra_shots) + ' extra'
+		else:
+			status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.lamps.blackoutJackpot.disable()
@@ -151,9 +182,9 @@ class Blackout(ChainFeature):
 		self.check_for_completion()
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Great job!')
 			self.game.score(50000)
 
 	def get_instruction_layers(self):
@@ -173,6 +204,12 @@ class Sniper(ChainFeature):
 	def mode_started(self):
 		self.game.lamps.awardSniper.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 		self.shots = 0
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.lamps.awardSniper.disable()
@@ -186,9 +223,9 @@ class Sniper(ChainFeature):
 		self.check_for_completion()
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == 2:
 			self.completed = True
-			self.game.set_status('Mode completed!')
 			self.game.score(50000)
 			self.callback()
 
@@ -212,6 +249,16 @@ class BattleTank(ChainFeature):
 		self.game.lamps.tankLeft.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 		self.game.lamps.tankRight.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 		self.shots = {'left':False,'center':False,'right':False}
+		self.update_status()
+
+	def update_status(self):
+		num_shots = 0
+		for shot in self.shots:
+			if self.shots[shot]:
+				num_shots += 1
+		status = 'Shots made: ' + str(num_shots) + '/' + str(len(self.shots))
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.lamps.tankCenter.disable()
@@ -249,9 +296,9 @@ class BattleTank(ChainFeature):
 			self.game.score(10000)
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots['right'] and self.shots['left'] and self.shots['center']:
 			self.completed = True
-			self.game.set_status('Mode completed!')
 			self.game.score(50000)
 			self.callback()
 
@@ -280,6 +327,12 @@ class Meltdown(ChainFeature):
 	def mode_started(self):
 		self.game.lamps.stopMeltdown.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 		self.shots = 0
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.lamps.stopMeltdown.disable()
@@ -303,9 +356,9 @@ class Meltdown(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots >= self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Mode completed!')
 			self.game.score(50000)
 			self.callback()
 
@@ -338,6 +391,12 @@ class Impersonator(ChainFeature):
 		self.delay(name='moving_target', event_type=None, delay=1, handler=self.moving_target)
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active(): 
 			self.game.coils.resetDropTarget.pulse(40)
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.lamps.awardBadImpersonator.disable()
@@ -352,9 +411,9 @@ class Impersonator(ChainFeature):
 		self.game.lamps.awardBadImpersonator.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Great Job!')
 			self.game.score(50000)
 
 	def sw_dropTargetJ_active(self,sw):
@@ -442,6 +501,12 @@ class Safecracker(ChainFeature):
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active():
 			self.game.coils.resetDropTarget.pulse(40)
 		self.delay(name='trip_target', event_type=None, delay=2, handler=self.trip_target)
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.lamps.awardSafecracker.disable()
@@ -460,9 +525,9 @@ class Safecracker(ChainFeature):
 		self.game.coils.tripDropTarget.pulse(30)
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Mode completed!')
 			self.game.score(50000)
 			self.callback()
 
@@ -494,6 +559,12 @@ class ManhuntMillions(ChainFeature):
 	def mode_started(self):
 		self.game.coils.flasherPursuitL.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots = 0
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.coils.flasherPursuitL.disable()
@@ -504,9 +575,9 @@ class ManhuntMillions(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Great Job!')
 			self.game.score(50000)
 			self.callback()
 
@@ -535,6 +606,12 @@ class Stakeout(ChainFeature):
 	def mode_started(self):
 		self.game.coils.flasherPursuitR.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots = 0
+		self.update_status()
+
+	def update_status(self):
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		self.status_layer.set_text(status)
+		
 
 	def mode_stopped(self):
 		self.game.coils.flasherPursuitR.disable()
@@ -545,9 +622,9 @@ class Stakeout(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
+		self.update_status()
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
-			self.game.set_status('Great Job!')
 			self.game.score(50000)
 
 	def get_instruction_layers(self):
@@ -565,11 +642,16 @@ class ModeTimer(game.Mode):
 	def __init__(self, game, priority):
 		super(ModeTimer, self).__init__(game, priority)
 		self.timer = 0;
+		self.timer_update_callback = 'None'
+
 
 	def mode_stopped(self):
 		self.stop()
 
 	def start(self, time):
+		# Tell the mode how much time it gets, if it cares.
+		if (self.timer_update_callback != 'None'):
+			self.timer_update_callback(time)
 		self.timer = time
 		self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
 	def stop(self):
@@ -589,7 +671,8 @@ class ModeTimer(game.Mode):
 		if self.timer > 0:
 			self.timer -= 1
 			self.delay(name='decrement timer', event_type=None, delay=1, handler=self.decrement_timer)
-			self.game.set_status('Mode Timer: ' + str(self.timer))
+			if (self.timer_update_callback != 'None'):
+				self.timer_update_callback(self.timer)
 		else:
 			self.callback()
 

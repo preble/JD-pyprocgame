@@ -44,7 +44,8 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerSlower.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerFaster.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerEvenFaster.mp3")
-		self.game.sound.register_music('background', music_path+"mainSongDarker(161)LessSynthesizedLead.mp3")
+		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)LessSynthesizedLead.mp3")
+		self.game.sound.register_music('background', music_path+"mainSongDarker(161)DarkerMelody.mp3")
 		self.game.sound.register_sound('ball_launch', music_path+"preBallLaunch.wav")
 
 
@@ -454,6 +455,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.coils.shooterR.pulse(50)
 
 	def activate_mode(self, mode):
+		self.mode_timer.timer_update_callback = self.mode_list[self.mode].timer_update
 		self.game.modes.remove(self.play_intro)
 
 		# Put the ball back into play
@@ -477,11 +479,12 @@ class JD_Modes(modes.Scoring_Mode):
 			# Change state to indicate a mode is in progress.
 			self.state = 'mode'
 
-			# Add the mode to the mode Q to activate it.
 			self.game.modes.add(self.mode_list[self.mode])
 
 			# Start the mode timer
-			self.mode_timer.start(self.game.user_settings['Gameplay']['Time per chain feature'])
+			mode_time = self.game.user_settings['Gameplay']['Time per chain feature']
+			# Add the mode to the mode Q to activate it.
+			self.mode_timer.start(mode_time)
 			self.mode_active = True
 
 			# See if any extra mode balls need to be launched.

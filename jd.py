@@ -25,6 +25,7 @@ sound_path = "../shared/sound/"
 music_path = "./games/jd/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
+font_14x10 = dmd.Font(fonts_path+"Font14x10.dmd")
 
 lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", \
                   "./games/jd/lamps/attract_show_vert.lampshow" \
@@ -442,6 +443,7 @@ class Game(game.GameController):
 		self.fonts = {}
 		self.fonts['tiny7'] = font_tiny7
 		self.fonts['jazz18'] = font_jazz18
+		self.fonts['14x10'] = font_14x10
 
 		# Register lampshow files
 		self.lampshow_keys = []
