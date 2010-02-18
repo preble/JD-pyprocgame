@@ -36,6 +36,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.mode_completed_hurryup = ModeCompletedHurryup(game, priority+1)
 		self.mode_completed_hurryup.collected = self.hurryup_collected
 		self.mode_completed_hurryup.expired = self.hurryup_expired
+		self.award_selection = AwardSelector(game, priority+1)
 		self.multiball = Multiball(self.game, priority + 1, self.game.user_settings['Machine']['Deadworld mod installed'], font_big)
 		self.multiball.start_callback = self.multiball_started
 		self.multiball.end_callback = self.multiball_ended
@@ -113,6 +114,8 @@ class JD_Modes(modes.Scoring_Mode):
 		# Set flag for switch events the do something unique the first time they
 		# they are triggered.
 		self.ball_starting = True
+
+		self.present_hurryup_selection = False
 
 	def mode_stopped(self):
 
@@ -398,8 +401,32 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_slingR_active(self, sw):
 		self.rotate_modes(1)
 
-	def sw_popperL_open_for_200ms(self, sw):
-		self.flash_then_pop('flashersLowerLeft', 'popperL', 50)
+	def sw_popperL_active_for_200ms(self, sw):
+		if self.present_hurryup_selection:
+			self.game.ball_search.disable()
+			self.award_selection.awards = ['100000 points','crimescenes']
+			self.award_selection.callback = self.award_selection_award
+			self.game.modes.add(self.award_selection)
+			self.game.modes.remove(self.mode_completed_hurryup)
+		else:
+			self.flash_then_pop('flashersLowerLeft', 'popperL', 50)
+
+		# Clear flag the ball will be kicked out normally next time.
+		self.present_hurryup_selection = False
+
+	def award_selection_award(self, award):
+		self.game.modes.remove(self.award_selection)
+		self.game.ball_search.enable()
+		if award == 'all' or award == '100000 points':
+			self.game.score(100000)
+
+		if award == 'all' or award == 'crimescenes':
+			self.crimescenes.level_complete(1)
+
+		self.hurryup_expired()
+		if self.game.switches.popperL.is_active():
+			self.flash_then_pop('flashersLowerLeft', 'popperL', 50)
+		
 
 	def popperR_eject(self):
 		self.flash_then_pop('flashersRtRamp', 'popperR', 20)
@@ -565,26 +592,33 @@ class JD_Modes(modes.Scoring_Mode):
 			self.ultimate_challenge_complete()	
 
 	def hurryup_collected(self):
-		settings_key = 'Mode hurry-up award: ' + str(self.num_hurryups_collected)
-		award = self.game.user_settings['Gameplay'][settings_key]
-		if award == 'Advance crimescenes':
-			self.crimescenes.level_complete(1)
-		elif award == 'Light extra ball':
-			self.light_extra_ball()
-		elif award == 'Add 1 ball for next mode':
-			self.num_extra_mode_balls = 1
-		elif award == 'Add 2 balls for next mode':
-			self.num_extra_mode_balls = 2
-		elif award == 'Add 3 balls for next mode':
-			self.num_extra_mode_balls = 3
-		elif award == '1,000,000 points':
-			self.game.score(1000000)
 
-		self.hurryup_expired()
 		self.num_hurryups_collected += 1
+		if not self.any_mb_active():
+			self.present_hurryup_selection = True
+		else:
+			self.award_selection_award('all')
+			self.hurryup_expired()
+			self.game.modes.remove(self.mode_completed_hurryup)
+
+
+#		settings_key = 'Mode hurry-up award: ' + str(self.num_hurryups_collected)
+#		award = self.game.user_settings['Gameplay'][settings_key]
+#		if award == 'Advance crimescenes':
+#			self.crimescenes.level_complete(1)
+#		elif award == 'Light extra ball':
+#			self.light_extra_ball()
+#		elif award == 'Add 1 ball for next mode':
+#			self.num_extra_mode_balls = 1
+#		elif award == 'Add 2 balls for next mode':
+#			self.num_extra_mode_balls = 2
+#		elif award == 'Add 3 balls for next mode':
+#			self.num_extra_mode_balls = 3
+#		elif award == '1,000,000 points':
+#			self.game.score(1000000)
+
 
 	def hurryup_expired(self):
-		self.game.modes.remove(self.mode_completed_hurryup)
 		if not self.any_mb_active():
 			self.multiball.drops.animated_reset(.1)
 			# See if it's time for the finale!
@@ -645,3 +679,65 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def any_mb_active(self):
 		return self.multiball.is_active() or self.crimescenes.is_mb_active()
+
+class AwardSelector(game.Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game, priority):
+		super(AwardSelector, self).__init__(game, priority)
+		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
+		self.instruction_layer_1 = dmd.TextLayer(128/2, 7, self.game.fonts['tiny7'], "center")
+		self.instruction_layer_2 = dmd.TextLayer(128/2, 20, self.game.fonts['tiny7'], "center")
+		self.award_layer_1 = dmd.TextLayer(1, 12, self.game.fonts['tiny7'], "left")
+		self.award_layer_2 = dmd.TextLayer(127, 12, self.game.fonts['tiny7'], "right")
+		self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer])
+		self.time = 0
+		self.awards = ['award1','award2']
+	
+	def mode_started(self):
+		self.time = 0
+		self.banner_layer.set_text("Pick-A-Prize")
+		self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
+		self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer])
+
+	def delay_handler(self):
+		self.time += 1
+		if self.time == 3:
+			self.instruction_layer_1.set_text("Select award")	
+			self.instruction_layer_2.set_text("with flipper buttons")	
+			self.layer = dmd.GroupedLayer(128, 32, [self.instruction_layer_1, self.instruction_layer_2])
+			self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
+		elif self.time == 6:
+			self.award_layer_1.set_text(self.awards[0])
+			self.award_layer_2.set_text(self.awards[1])
+			self.layer = dmd.GroupedLayer(128, 32, [self.award_layer_1, self.award_layer_2])
+			self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
+		elif self.time == 16:
+			self.finish_award(0)
+		else:
+			self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
+		
+
+	def sw_flipperLwL_active(self,sw):
+		if self.time >= 6:
+			self.finish_award(0)
+
+	def sw_flipperLwR_active(self,sw):
+		if self.time >= 6:
+			self.finish_award(1)
+
+	def finish_award(self, choice):
+		self.selection = choice;
+		self.instruction_layer_1.set_text("Selection:")	
+		self.instruction_layer_2.set_text(self.awards[choice])	
+		self.delay(name='award_exit_delay', event_type=None, delay=2.0, handler=self.exit_delay_handler)
+		self.layer = dmd.GroupedLayer(128, 32, [self.instruction_layer_1, self.instruction_layer_2])
+		self.cancel_delayed('selector_timer')
+
+
+	def exit_delay_handler(self):
+		self.callback(self.awards[self.selection])
+		
+
+	def mode_stopped(self):
+		pass
+	
