@@ -31,7 +31,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.crimescenes.crimescenes_completed = self.crimescenes_completed
 		self.crimescenes.mb_start_callback = self.multiball_started
 		self.crimescenes.mb_end_callback = self.multiball_ended
-		self.missile_award_mode = Missile_Award_Mode(game, priority+1, font_small)
+		self.missile_award_mode = Missile_Award_Mode(game, priority+10, font_small)
 		self.missile_award_mode.callback = self.award_missile_award
 		self.mode_completed_hurryup = ModeCompletedHurryup(game, priority+1)
 		self.mode_completed_hurryup.collected = self.hurryup_collected
@@ -47,6 +47,7 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerEvenFaster.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)LessSynthesizedLead.mp3")
 		self.game.sound.register_music('background', music_path+"mainSongDarker(161)DarkerMelody.mp3")
+		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)QuieterMelody.mp3")
 		self.game.sound.register_sound('ball_launch', music_path+"preBallLaunch.wav")
 
 
@@ -553,8 +554,9 @@ class JD_Modes(modes.Scoring_Mode):
 
 
 	def multiball_started(self):
-		# Make sure no other multiball is still active
-		if not self.any_mb_active():
+		# Make sure no other multiball was already active before
+		# preparing for MB.
+		if not self.multiball.is_active() and self.crimescenes.is_mb_active():
 			# No modes can be started when multiball is active
 			self.game.lamps.rightStartFeature.disable()
 			# Light mystery once for free.
@@ -630,9 +632,17 @@ class JD_Modes(modes.Scoring_Mode):
 				self.state = 'idle'
 				self.setup_next_mode()
 			else:
+				# No more modes.  Set it to something that
+				# is unused.
 				self.state = 'modes_complete'
-		else:
+		elif len(self.modes_not_attempted) > 0:
+			# Set to idle while in MB.  setup_next_mode() will
+			# be called when MB completes.
 			self.state = 'idle'
+		else:
+			# No more modes.  Set it to something that
+			# is unused.
+			self.state = 'modes_complete'
 
 	def crimescenes_completed(self):
 		if self.is_ultimate_challenge_ready():
@@ -663,6 +673,8 @@ class JD_Modes(modes.Scoring_Mode):
 				self.state = 'idle'
 				self.setup_next_mode()
 			else:
+				# No more modes.  Set it to something that
+				# is unused.
 				self.state = 'modes_complete'
 
 		# Turn on mode lamp to show it has been attempted
