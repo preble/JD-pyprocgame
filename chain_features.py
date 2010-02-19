@@ -1,5 +1,6 @@
 import procgame
 import locale
+import time
 from procgame import *
 
 class ModeCompletedHurryup(game.Mode):
@@ -16,6 +17,7 @@ class ModeCompletedHurryup(game.Mode):
 		self.update_and_delay()
 		self.update_lamps()
 		self.game.coils.tripDropTarget.pulse(40)
+		self.already_collected = False
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
 		self.game.coils.tripDropTarget.pulse(40)
@@ -29,12 +31,20 @@ class ModeCompletedHurryup(game.Mode):
 		#if self.game.switches.popperL.is_open():
 		#	self.game.coils.popperL.pulse(40)
 	
-	def sw_subwayEnter2_closed(self, sw):
-		# self.collected is defined by the instantiator as a callback of sorts.
+	def sw_subwayEnter1_closed(self, sw):
 		self.collected()
 		self.cancel_delayed(['grace', 'countdown'])
-		#self.delay(name='end_of_mode', event_type=None, delay=3.0, handler=self.delayed_removal)
-		#Don't allow the popper to kick the ball back out until the mode is reset.
+		self.already_collected = True
+		self.banner_layer.set_text('Well Done!')
+		self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer])
+	
+	# Ball might jump over first switch.  Use 2nd switch as a catchall.
+	def sw_subwayEnter2_closed(self, sw):
+		if not self.already_collected:
+			self.banner_layer.set_text('Well Done!')
+			self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer])
+			self.collected()
+			self.cancel_delayed(['grace', 'countdown'])
 	
 	def update_and_delay(self):
 		self.countdown_layer.set_text("%d seconds" % (self.seconds_remaining))
@@ -125,6 +135,7 @@ class Pursuit(ChainFeature):
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
 			self.game.score(50000)
+			print "% 10.3f Pursuit calling callback" % (time.time())
 			self.callback()
 
 	def get_instruction_layers(self):
@@ -182,6 +193,7 @@ class Blackout(ChainFeature):
 		self.game.coils.flasherBlackout.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots += 1
 		self.game.score(10000)
+		print "% 10.3f Blackout calling callback" % (time.time())
 		self.check_for_completion()
 
 	def check_for_completion(self):
@@ -230,6 +242,7 @@ class Sniper(ChainFeature):
 		if self.shots == 2:
 			self.completed = True
 			self.game.score(50000)
+			print "% 10.3f Sniper calling callback" % (time.time())
 			self.callback()
 
 	def get_instruction_layers(self):
@@ -303,6 +316,7 @@ class BattleTank(ChainFeature):
 		if self.shots['right'] and self.shots['left'] and self.shots['center']:
 			self.completed = True
 			self.game.score(50000)
+			print "% 10.3f BattleTank calling callback" % (time.time())
 			self.callback()
 
 	def get_instruction_layers(self):
@@ -363,6 +377,7 @@ class Meltdown(ChainFeature):
 		if self.shots >= self.shots_required_for_completion:
 			self.completed = True
 			self.game.score(50000)
+			print "% 10.3f Meltdown calling callback" % (time.time())
 			self.callback()
 
 	def get_instruction_layers(self):
@@ -536,6 +551,7 @@ class Safecracker(ChainFeature):
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
 			self.game.score(50000)
+			print "% 10.3f Safecracker calling callback" % (time.time())
 			self.callback()
 
 	def trip_target(self):
@@ -586,6 +602,7 @@ class ManhuntMillions(ChainFeature):
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
 			self.game.score(50000)
+			print "% 10.3f Manhunt calling callback" % (time.time())
 			self.callback()
 
 	def get_instruction_layers(self):
@@ -685,6 +702,7 @@ class ModeTimer(game.Mode):
 			if (self.timer_update_callback != 'None'):
 				self.timer_update_callback(self.timer)
 		else:
+			print "% 10.3f Timer calling callback" % (time.time())
 			self.callback()
 
 class PlayIntro(game.Mode):
@@ -702,11 +720,15 @@ class PlayIntro(game.Mode):
 	def mode_started(self):
 		self.next_frame()
 		self.update_gi(False, 'all')
+		# Disable the flippers
+		self.game.enable_flippers(enable=False)
 
 	def mode_stopped(self):
 		if self.abort:
 			self.cancel_delayed('intro')
 		self.update_gi(True, 'all')
+		# Enable the flippers
+		self.game.enable_flippers(enable=True)
 
 	def update_gi(self, on, num):
 		for i in range(1,5):

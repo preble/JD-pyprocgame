@@ -14,6 +14,14 @@ class Bonus(game.Mode):
 		self.timer = 0
 		self.delay_time = 1
 
+	def mode_started(self):
+		# Disable the flippers
+		self.game.enable_flippers(enable=False)
+
+	def mode_stopped(self):
+		# Enable the flippers
+		self.game.enable_flippers(enable=True)
+
 	def compute(self, base, x, exit_function):
 		self.exit_function = exit_function
 		self.elements = []

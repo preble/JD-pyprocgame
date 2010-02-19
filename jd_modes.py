@@ -367,9 +367,9 @@ class JD_Modes(modes.Scoring_Mode):
 			if self.state == 'mode':
 				self.mode_timer.pause(True)
 		else:
-			self.game.coils.shooterL.pulse()
 			self.missile_award_lit = True
 			self.drive_mode_lamp('airRade', 'medium')
+			self.game.coils.shooterL.pulse()
 
 	def sw_shooterL_inactive_for_200ms(self, sw):
 		self.mode_timer.pause(False)
@@ -389,7 +389,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_fireL_active(self, sw):
 		if self.game.switches.shooterL.is_inactive():
 			self.rotate_modes(-1)
-		else:
+		elif not self.any_mb_active() and self.missile_award_lit:
 			self.game.coils.shooterL.pulse(50)
 
 	def sw_rightRampExit_closed(self, sw):
@@ -556,7 +556,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def multiball_started(self):
 		# Make sure no other multiball was already active before
 		# preparing for MB.
-		if not self.multiball.is_active() and self.crimescenes.is_mb_active():
+		if not (self.multiball.is_active() and self.crimescenes.is_mb_active()):
 			# No modes can be started when multiball is active
 			self.game.lamps.rightStartFeature.disable()
 			# Light mystery once for free.
@@ -601,7 +601,6 @@ class JD_Modes(modes.Scoring_Mode):
 		else:
 			self.award_selection_award('all')
 			self.hurryup_expired()
-			self.game.modes.remove(self.mode_completed_hurryup)
 
 
 #		settings_key = 'Mode hurry-up award: ' + str(self.num_hurryups_collected)
@@ -621,6 +620,7 @@ class JD_Modes(modes.Scoring_Mode):
 
 
 	def hurryup_expired(self):
+		self.game.modes.remove(self.mode_completed_hurryup)
 		if not self.any_mb_active():
 			self.multiball.drops.animated_reset(.1)
 			# See if it's time for the finale!
@@ -708,48 +708,73 @@ class AwardSelector(game.Mode):
 	def mode_started(self):
 		self.time = 0
 		self.banner_layer.set_text("Pick-A-Prize")
-		self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
 		self.layer = dmd.GroupedLayer(128, 32, [self.banner_layer])
+		# Disable the flippers
+		self.game.enable_flippers(enable=False)
+		self.selection_made = False
+		self.selection_enabled = False
 
-	def delay_handler(self):
-		self.time += 1
-		if self.time == 3:
-			self.instruction_layer_1.set_text("Select award")	
-			self.instruction_layer_2.set_text("with flipper buttons")	
-			self.layer = dmd.GroupedLayer(128, 32, [self.instruction_layer_1, self.instruction_layer_2])
-			self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
-		elif self.time == 6:
-			self.award_layer_1.set_text(self.awards[0])
-			self.award_layer_2.set_text(self.awards[1])
-			self.layer = dmd.GroupedLayer(128, 32, [self.award_layer_1, self.award_layer_2])
-			self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
-		elif self.time == 16:
-			self.finish_award(0)
-		else:
-			self.delay(name='selector_timer', event_type=None, delay=1.0, handler=self.delay_handler)
-		
+		self.delay(name='selector_timer', event_type=None, delay=2.0, handler=self.progress)
+		self.state = 'intro'
+
+	def mode_stopped(self):
+		# Enable the flippers
+		self.game.enable_flippers(enable=True)
 
 	def sw_flipperLwL_active(self,sw):
-		if self.time >= 6:
+		if self.game.switches.flipperLwR.is_active() and not self.state == 'choices':
+			self.progress()
+		if self.selection_enabled and not self.selection_made:
+			self.selection_made = True
 			self.finish_award(0)
 
 	def sw_flipperLwR_active(self,sw):
-		if self.time >= 6:
+		if self.game.switches.flipperLwL.is_active() and not self.state == 'choices':
+			self.progress()
+		if self.selection_enabled and not self.selection_made:
+			self.selection_made = True
 			self.finish_award(1)
 
+	def progress(self):
+		self.cancel_delayed('selector_timer')
+		if self.state == 'intro':
+			self.show_instructions()
+		elif self.state == 'instructions':
+			self.show_choices()
+		elif self.state == 'choices':
+			self.finish_award(0)
+		elif self.state == 'finish':
+			self.exit()
+
+	def show_instructions(self):
+		self.state = 'instructions'
+		self.instruction_layer_1.set_text("Select award")	
+		self.instruction_layer_2.set_text("with flipper buttons")	
+		self.layer = dmd.GroupedLayer(128, 32, [self.instruction_layer_1, self.instruction_layer_2])
+		self.delay(name='selector_timer', event_type=None, delay=2.0, handler=self.progress)
+
+	def show_choices(self):
+		self.state = 'choices'
+		self.award_layer_1.set_text(self.awards[0])
+		self.award_layer_2.set_text(self.awards[1])
+		self.layer = dmd.GroupedLayer(128, 32, [self.award_layer_1, self.award_layer_2])
+		self.delay(name='selector_timer', event_type=None, delay=8.0, handler=self.progress)
+		self.delay(name='selector_enabler', event_type=None, delay=0.5, handler=self.selector_enabler)
+
+	def selector_enabler(self):
+		self.selection_enabled = True
+			
+
 	def finish_award(self, choice):
+		self.state = 'finish'
 		self.selection = choice;
 		self.instruction_layer_1.set_text("Selection:")	
 		self.instruction_layer_2.set_text(self.awards[choice])	
-		self.delay(name='award_exit_delay', event_type=None, delay=2.0, handler=self.exit_delay_handler)
+		self.delay(name='award_exit_delay', event_type=None, delay=2.0, handler=self.progress)
 		self.layer = dmd.GroupedLayer(128, 32, [self.instruction_layer_1, self.instruction_layer_2])
 		self.cancel_delayed('selector_timer')
 
 
-	def exit_delay_handler(self):
+	def exit(self):
 		self.callback(self.awards[self.selection])
-		
 
-	def mode_stopped(self):
-		pass
-	

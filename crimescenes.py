@@ -48,6 +48,9 @@ class Crimescenes(modes.Scoring_Mode):
 		self.bonus_num = 1
 		self.extra_ball_levels = 2
 		self.complete = False
+		self.bw_shots = 1
+		self.bw_shots_required = [1,1,1,1,1]
+		self.num_advance_hits = 0
 
 		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
 		self.mb_active = False
@@ -55,7 +58,7 @@ class Crimescenes(modes.Scoring_Mode):
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
-			self.cancel_delayed('moving_target')
+			self.cancel_delayed('bonus_target')
 		for i in range(1,6):
 			for j in range(0,4):
 				lampname = 'perp' + str(i) + self.lamp_colors[j]
@@ -81,8 +84,9 @@ class Crimescenes(modes.Scoring_Mode):
 			self.targets = info_record['targets']
 			self.complete = info_record['complete']
 
-		if self.mode == 'bonus':
-			self.mode = 'complete'
+		if self.mode == 'idle':
+			self.init_level(0)
+
 		self.num_advance_hits = 0
 		self.update_lamps()
 
@@ -94,64 +98,109 @@ class Crimescenes(modes.Scoring_Mode):
 		return bonus_base_elements
 
 
+        ####################################################
+	# Lamps
+        ####################################################
 	def update_lamps(self):
-		if self.mode == 'idle':
-			self.init_level(0)
-		elif self.mode == 'block_war':
-			for i in range (1,5):
-				lampnum = self.level/4 + 1
-				lampname = 'crimeLevel' + str(i)
-				self.drive_mode_lamp(lampname, 'slow')
-			for i in range(0,5):
-				lamp_color_num = self.level%4
-				for j in range(0,4):
-					lampname = 'perp' + str(i+1) + self.lamp_colors[j]
-					self.drive_mode_lamp(lampname, 'medium')
-			lampname = 'advanceCrimeLevel'
-			self.drive_mode_lamp(lampname, 'off')
-
+		if self.mode == 'block_war':
+			self.update_block_war_lamps()
 		elif self.mode == 'levels':
-			lampname = 'advanceCrimeLevel'
-			if self.num_advance_hits == 0:
-				self.drive_mode_lamp(lampname, 'on')
-			elif self.num_advance_hits == 1:
-				self.drive_mode_lamp(lampname, 'slow')
-			elif self.num_advance_hits == 2:
-				self.drive_mode_lamp(lampname, 'fast')
-			else:
-				self.drive_mode_lamp(lampname, 'off')
-				
-			for i in range(0,5):
-				lamp_color_num = self.level%4
-				for j in range(0,4):
-					lampname = 'perp' + str(i+1) + self.lamp_colors[j]
-					if self.targets[i] and lamp_color_num == j:
-						self.drive_mode_lamp(lampname, 'medium')
-					else:
-						self.drive_mode_lamp(lampname, 'off')
-			# Use 4 center crimescene lamps to indicate block.
-			# 4 levels per block.
-			for i in range (1,5):
-				#lampnum = self.level%4 + 1
-				lampnum = self.level/4 + 1
-				lampname = 'crimeLevel' + str(i)
-				if i == lampnum:
-					self.drive_mode_lamp(lampname, 'on')
+			self.update_levels_lamps()
+		elif self.mode == 'bonus':
+			self.update_bonus_lamps()
+		elif self.mode == 'complete':
+			self.update_crimescenes_complete_lamps()
+
+	def update_levels_lamps(self):
+		lampname = 'advanceCrimeLevel'
+		if self.num_advance_hits == 0:
+			self.drive_mode_lamp(lampname, 'on')
+		elif self.num_advance_hits == 1:
+			self.drive_mode_lamp(lampname, 'slow')
+		elif self.num_advance_hits == 2:
+			self.drive_mode_lamp(lampname, 'fast')
+		else:
+			self.drive_mode_lamp(lampname, 'off')
+			
+		for i in range(0,5):
+			lamp_color_num = self.level%4
+			for j in range(0,4):
+				lampname = 'perp' + str(i+1) + self.lamp_colors[j]
+				if self.targets[i] and lamp_color_num == j:
+					self.drive_mode_lamp(lampname, 'medium')
 				else:
 					self.drive_mode_lamp(lampname, 'off')
-		elif self.mode == 'bonus':
-			lampname = 'advanceCrimeLevel'
-			self.drive_mode_lamp(lampname, 'off')
-			for i in range(0,5):
+		self.update_center_lamps()
+
+
+	def update_bonus_lamps(self):
+		lampname = 'advanceCrimeLevel'
+		self.drive_mode_lamp(lampname, 'off')
+
+		for i in range(0,5):
+			for j in range(1,len(self.lamp_colors)):
+				lampname = 'perp' + str(i+1) + self.lamp_colors[j]
+				if self.bonus_num == i+1:
+					self.drive_mode_lamp(lampname, 'medium')
+				else:
+					self.drive_mode_lamp(lampname, 'off')
+	
+		self.update_center_lamps()
+		
+
+	def update_crimescenes_complete_lamps(self):
+		for i in range(0,5):
+			if self.targets[i]:
 				for j in range(0,4):
 					lampname = 'perp' + str(i+1) + self.lamp_colors[j]
+					self.drive_mode_lamp(lampname, 'off')
+		self.update_center_lamps()
+
+	def update_block_war_lamps(self):
+		for i in range(0,5):
+			lamp_color_num = self.level%4
+			for j in range(0,4):
+				lampname = 'perp' + str(i+1) + self.lamp_colors[j]
+				if j < self.bw_shots_required[i]:
+					self.drive_mode_lamp(lampname, 'medium')
+				else:
+					self.drive_mode_lamp(lampname, 'off')
+		lampname = 'advanceCrimeLevel'
+		self.drive_mode_lamp(lampname, 'off')
+		self.update_center_lamps()
+
+	def update_center_lamps(self):
+		# Use 4 center crimescene lamps to indicate block.
+		# 4 levels per block.
+		for i in range (1,5):
+			#lampnum = self.level%4 + 1
+			lampnum = self.level/4 + 1
+			lampname = 'crimeLevel' + str(i)
+			if i <= lampnum:
+				self.drive_mode_lamp(lampname, 'on')
+			else:
 				self.drive_mode_lamp(lampname, 'off')
-		elif self.mode == 'complete':
-			for i in range(0,5):
-				if self.targets[i]:
-					for j in range(0,4):
-						lampname = 'perp' + str(i+1) + self.lamp_colors[j]
-						self.drive_mode_lamp(lampname, 'off')
+
+	def drive_mode_lamp(self, lampname, style='on'):
+		if style == 'slow':
+			self.game.lamps[lampname].schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+		if style == 'medium':
+			self.game.lamps[lampname].schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+		if style == 'fast':
+			self.game.lamps[lampname].schedule(schedule=0x55555555, cycle_seconds=0, now=True)
+		elif style == 'on':
+			self.game.lamps[lampname].pulse(0)
+		elif style == 'off':
+			self.game.lamps[lampname].disable()
+
+
+        ####################################################
+	# End Lamps
+        ####################################################
+
+        ####################################################
+	# Switch Handlers
+        ####################################################
 
 	def sw_threeBankTargets_active(self, sw):
 		if self.mode == 'levels':
@@ -189,6 +238,10 @@ class Crimescenes(modes.Scoring_Mode):
 	def sw_rightRampExit_active(self, sw):
 		self.switch_hit(4)
 
+        ####################################################
+	# End Switch Handlers
+        ####################################################
+
 	def award_hit(self):
 		for i in range(0,5):
 			award_switch = self.target_award_order[i]
@@ -197,8 +250,6 @@ class Crimescenes(modes.Scoring_Mode):
 				return True
 
 	def switch_hit(self, num):
-		if self.mode == 'block_war':
-			self.block_war.switch_hit(num)
 		if self.mode == 'levels':
 			if self.targets[num]:
 				self.game.score(1000)
@@ -207,55 +258,69 @@ class Crimescenes(modes.Scoring_Mode):
 				self.level_complete()
 			else:
 				self.update_lamps()
+		elif self.mode == 'block_war':
+			if self.bw_shots_required[num] > 0:
+				self.bw_shots_required[num] -= 1
+				self.block_war.switch_hit(num)
+			if self.all_bw_shots_hit():
+				self.finish_level_complete()
+			else:
+				self.update_lamps()
 		elif self.mode == 'bonus':
 			if num+1 == self.bonus_num:
 				self.cancel_delayed('bonus_target')
-				self.drive_bonus_lamp(self.bonus_num, 'off')
-				self.game.score(500000)
-				self.level_complete()
-				#Play sound, lamp show, etc
+				self.finish_level_complete()
+
+	def all_bw_shots_hit(self):
+		for i in range(0,5):
+			if self.bw_shots_required[i]:
+				return False
+		return True
+
+	def setup_bw_shots_required(self, num):
+		for i in range(0,5):
+			self.bw_shots_required[i] = num
 
 	def end_mb(self):
-		self.finish_level_complete()
+		self.game.modes.remove(self.block_war)
+		self.mode = 'levels'
+		self.level += 1
+		self.init_level(self.level)
+		self.mb_end_callback()
 
 	def level_complete(self, num_levels = 1):
 		self.num_levels_to_advance = num_levels
 		self.finish_level_complete()
 
+	def start_bonus(self):
+		self.mode = 'bonus'
+		#Play sound, lamp show, etc
+		self.bonus_num = 1
+		self.bonus_dir = 'up'
+		self.delay(name='bonus_target', event_type=None, delay=3, handler=self.bonus_target)
+		self.update_lamps()
 	def finish_level_complete(self):
 		self.game.score(10000)
 		self.game.lampctrl.play_show('advance_level', False, self.game.update_lamps)
 		if self.mode == 'bonus':
-			self.complete = True
-			self.crimescenes_completed()
-			self.level = 0
-			self.mode = 'idle'
-			self.init_level(self.level)
-		if self.mode == 'block_war':
-			self.game.modes.remove(self.block_war)
-			self.mode = 'levels'
-			self.level += 1
-			self.init_level(self.level)
+			self.mode = 'block_war'
+			self.bw_shots += 1
+			self.setup_bw_shots_required(self.bw_shots)
+			self.block_war.bonus_hit()
+			#Play sound, lamp show, etc
+
+		elif self.mode == 'block_war':
+			self.start_bonus()
 		else:
 			for number in range(0,self.num_levels_to_advance):
 				if self.level + number == self.extra_ball_levels:
 					self.light_extra_ball_function()
 					break
-			if (self.level + self.num_levels_to_advance) > (self.game.user_settings['Gameplay']['Crimescene levels for finale']-1):
-				self.mode = 'bonus'
-				self.update_lamps()
-				#Play sound, lamp show, etc
-				self.bonus_num = 1
-				self.bonus_dir = 'up'
-				self.delay(name='bonus_target', event_type=None, delay=3, handler=self.bonus_target)
-				self.drive_bonus_lamp(self.bonus_num, 'on')
-				for i in range(1,5):
-					lampname = 'crimeLevel' + str(i)
-					self.drive_mode_lamp(lampname, 'slow')
-				
-			elif (self.level % 4) == 3:
+			if (self.level % 4) == 3:
 				self.game.modes.add(self.block_war)
 				self.mode = 'block_war'
+				self.bw_shots = 1
+				self.setup_bw_shots_required(self.bw_shots)
 				self.game.trough.launch_balls(1, self.block_war_start_callback)
 				self.mb_start_callback()
 			else:
@@ -265,7 +330,7 @@ class Crimescenes(modes.Scoring_Mode):
 				#Play sound, lamp show, etc
 
 	def is_mb_active(self):
-		return self.mode == 'block_war' or self.mode == 'block_ mania'
+		return self.mode == 'block_war' or self.mode == 'bonus'
 
 	def block_war_start_callback(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Block Wars ballsave time']
@@ -274,51 +339,21 @@ class Crimescenes(modes.Scoring_Mode):
 		local_num_balls_to_save = self.game.trough.num_balls_in_play
 		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
 
-	def end_mb(self):
-		if self.mode == 'block_war':
-			self.level_complete()
-	
 	def bonus_target(self):
-		self.drive_bonus_lamp(self.bonus_num, 'off')
 		if self.bonus_num == 5:
 			self.bonus_dir = 'down'
 
 		if self.bonus_dir == 'down' and self.bonus_num == 1:
-			self.level_complete()
-			for i in range(1,5):
-				lampname = 'crimeLevel' + str(i)
-				self.drive_mode_lamp(lampname, 'off')
+			self.mode = 'levels'
+			self.level += 1
+			self.init_level(self.level)
 		else:
 			if self.bonus_dir == 'up':
 				self.bonus_num += 1
 			else:
 				self.bonus_num -= 1
-			self.drive_bonus_lamp(self.bonus_num, 'on')
 			self.delay(name='bonus_target', event_type=None, delay=3, handler=self.bonus_target)
-			
-
-	def drive_mode_lamp(self, lamp_name, style='on'):
-		if style == 'slow':
-			self.game.lamps[lamp_name].schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-		if style == 'medium':
-			self.game.lamps[lamp_name].schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
-		if style == 'fast':
-			self.game.lamps[lamp_name].schedule(schedule=0x55555555, cycle_seconds=0, now=True)
-		elif style == 'on':
-			self.game.lamps[lamp_name].pulse(0)
-		elif style == 'off':
-			self.game.lamps[lamp_name].disable()
-
-	def drive_bonus_lamp(self, lamp_num, style='on'):
-		for i in range(1,len(self.lamp_colors)):
-			lamp_name = 'perp' + str(lamp_num) + self.lamp_colors[i]
-			if style == 'slow':
-				self.game.lamps[lamp_name].schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			elif style == 'on':
-				self.game.lamps[lamp_name].pulse(0)
-			elif style == 'off':
-				self.game.lamps[lamp_name].disable()
-		
+		self.update_lamps()
 
 	def all_targets_off(self):
 		for i in range(0,5):
@@ -327,16 +362,22 @@ class Crimescenes(modes.Scoring_Mode):
 		return True
 
 	def init_level(self, level):
-		self.mode = 'levels'
-		level_template = self.level_templates[level]
-		shuffle(level_template)
-		# First initialize targets (redundant?)
-		for i in range(0,5):
-			self.targets[i] = 0
-		# Now fill targets according to shuffled template
-		for i in range(0,5):
-			if i < self.level_nums[level] and i < len(self.level_templates[level]):
-				self.targets[level_template[i]] = 1
+		if level > (self.game.user_settings['Gameplay']['Crimescene levels for finale']-1):
+			self.complete = True
+			self.crimescenes_completed()
+			#self.level = 0
+			self.mode = 'complete'
+		else:
+			self.mode = 'levels'
+			level_template = self.level_templates[level]
+			shuffle(level_template)
+			# First initialize targets (redundant?)
+			for i in range(0,5):
+				self.targets[i] = 0
+			# Now fill targets according to shuffled template
+			for i in range(0,5):
+				if i < self.level_nums[level] and i < len(self.level_templates[level]):
+					self.targets[level_template[i]] = 1
 		self.update_lamps()
 
 	def complete(self):
@@ -371,6 +412,10 @@ class BlockWar(game.Mode):
 		if shot_index == 4:
 			self.banner_layer.set_text("Poof!", 2)
 
+	def bonus_hit(self):
+		self.banner_layer.set_text("Yahoo!!!", 2)
+		self.game.sound.play('block_war_target')
+		self.game.score(500000)
+
 	def mode_stopped(self):
 		pass
-	
