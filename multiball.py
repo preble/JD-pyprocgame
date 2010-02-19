@@ -27,9 +27,11 @@ class Multiball(modes.Scoring_Mode):
 		self.game.coils.globeMotor.disable()
 		self.game.deadworld.initialize()
 		switch_num = self.game.switches['leftRampEnter'].number
-		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, False)
 		switch_num = self.game.switches['leftRampEnterAlt'].number
-		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, False)
 		self.drops.on_advance = self.on_drops_advance
 		self.drops.on_completed = self.possibly_light_lock
 		self.drops.auto_reset = True
@@ -48,7 +50,6 @@ class Multiball(modes.Scoring_Mode):
 
 	def end_multiball(self):
 		self.state = 'load'
-		self.game.set_status(self.state)
 		self.end_callback()
 		self.jackpot_lit = False
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active(): 
@@ -149,18 +150,22 @@ class Multiball(modes.Scoring_Mode):
 		self.game.deadworld.disable_lock()
 		self.lock_enabled = 0
 		switch_num = self.game.switches['leftRampEnter'].number
-		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, False)
 		switch_num = self.game.switches['leftRampEnterAlt'].number
-		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, False)
+		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, False)
 
 	def enable_lock(self):
 		self.game.deadworld.enable_lock()
 		self.game.coils.flasherGlobe.schedule(schedule=0x0000AAAA, cycle_seconds=2, now=True)
 		self.lock_enabled = 1
 		switch_num = self.game.switches['leftRampEnter'].number
-		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
+		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
+		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, True)
 		switch_num = self.game.switches['leftRampEnterAlt'].number
-		self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
+		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
+		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, True)
 		
 	def multiball_launch_callback(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
