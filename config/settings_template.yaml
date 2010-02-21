@@ -1,0 +1,88 @@
+# This file is a template for all of the settings used in the game.  The game code will
+# load this file along with a user_settings.yaml file.  Any settings not present in
+# the user_settings.yaml file will default to the default value specified here.  When
+# any setting is saved (via the in-game service menu), the user_settings.yaml file
+# will be updated with ALL of the entries here without overwriting existing settings.
+
+Machine:
+  'Deadworld mod installed':
+    options: [true, false]
+    default: false
+Display:
+  'Left side score justify':
+    # This example has no default.  The first option (right) will be used as the default.
+    options: [right, left]
+Replay:
+  'Replay Type':
+    options: ['none','auto','fixed','incremental']
+    default: 'auto'
+  'Replay Percentage':
+    options: [5,50]
+    increments: 1
+    default: 10
+  'Replay Award':
+    options: ['Credit', 'Extra Ball']
+    default: 'Credit'
+  'Replay Levels':
+    options: [1,2,3,4]
+    default: 1
+  'Replay Level 1':
+    options: [50000,5000000]
+    increments: 50000
+    default: 100000
+  'Replay Level 2':
+    options: [100000,5000000]
+    increments: 50000
+    default: 200000
+  'Replay Level 3':
+    options: [150000,5000000]
+    increments: 50000
+    default: 300000
+  'Replay Level 4':
+    options: [200000,5000000]
+    increments: 50000
+    default: 400000
+  'Replay Boost':
+    options: [50000,5000000]
+    increments: 50000
+    default: 100000
+Gameplay:
+  'Number of tilt warnings':
+    options: [0,10]
+    increments: 1
+    default: 2
+  'Balls per game':
+    options: [1,10]
+    increments: 1
+    default: 3
+  'Allow restarts':
+    options: [true, false]
+  'New ball ballsave time':
+    options: [6,8,10,12,15]
+    default: 12
+  'New ball repeating ballsave':
+    options: [false, true]
+  'Multiball ballsave time':
+    options: [15,20,25,30,35]
+    default: 25
+  'Block Wars ballsave time':
+    options: [10,15,20,25,30]
+    default: 15
+  'Time per chain feature':
+    options: [25,30,35,40,45]
+    default: 30
+  'Chain feature difficulty':
+    options: ['easy', 'medium', 'hard']
+    default: 'medium'
+  'Crimescene levels for finale':
+    options: [8,12,16]
+    default: 16
+  'Crimescene shot difficulty':
+    options: ['easy', 'medium', 'hard']
+    default: 'medium'
+  'Max extra balls per game':
+    options: [0,1,2,3,4,5,99]
+    default: 99
+  'Max extra balls lit':
+    options: [0,1,2,3,4,5,99]
+    default: 99
