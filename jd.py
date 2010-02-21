@@ -3,7 +3,9 @@ sys.path.append(sys.path[0]+'/../..') # Set the path so we can find procgame.  W
 import procgame
 import pinproc
 from deadworld import *
+from info import *
 from bonus import *
+from tilt import *
 from jd_modes import *
 from procgame import *
 from threading import Thread
@@ -19,13 +21,19 @@ locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 
 machine_config_path = "../shared/config/JD.yaml"
 settings_path = "./games/jd/config/settings.yaml"
-user_settings_path = "./games/jd/config/user_settings.yaml"
+game_data_path = "./games/jd/config/game_data.yaml"
+game_data_template_path = "./games/jd/config/game_data_template.yaml"
+settings_template_path = "./games/jd/config/settings_template.yaml"
 fonts_path = "../shared/dmd/"
 sound_path = "../shared/sound/"
 music_path = "./games/jd/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
 font_14x10 = dmd.Font(fonts_path+"Font14x10.dmd")
+font_18x12 = dmd.Font(fonts_path+"Font18x12.dmd")
+font_07x4 = dmd.Font(fonts_path+"Font07x4.dmd")
+font_07x5 = dmd.Font(fonts_path+"Font07x5.dmd")
+font_09Bx7 = dmd.Font(fonts_path+"Font09Bx7.dmd")
 
 lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", \
                   "./games/jd/lamps/attract_show_vert.lampshow" \
@@ -35,12 +43,6 @@ class Attract(game.Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game):
 		super(Attract, self).__init__(game, 1)
-		self.press_start = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Press Start")
-		self.proc_banner = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("pyprocgame")
-		self.game_title = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Judge Dredd")
-		self.splash = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
-		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.splash}, {'seconds':2.0, 'layer':self.proc_banner}, {'seconds':2.0, 'layer':self.game_title}, {'seconds':2.0, 'layer':self.press_start}, {'seconds':2.0, 'layer':None}])
-		self.layer.opaque = True
 
 	def mode_topmost(self):
 		pass
@@ -79,6 +81,7 @@ class Attract(game.Mode):
 		#		i += 1
 
 		self.change_lampshow()
+		self.change_display(0)
 
 	def mode_stopped(self):
 		pass
@@ -90,6 +93,60 @@ class Attract(game.Mode):
 		shuffle(self.game.lampshow_keys)
 		self.game.lampctrl.play_show(self.game.lampshow_keys[0], repeat=True)
 		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
+
+	def change_display(self, index=0):
+		# Cancel delay just in case it is still active from earlier.
+		self.cancel_delayed('display')
+		if index == 0:
+			ret_delay = self.setup_intro_display()
+		elif index == 1:
+			ret_delay = self.setup_intro_display()
+		elif index == 2:
+			ret_delay = self.setup_scores_display()
+		elif index == 3:
+			ret_delay = self.setup_intro_display()
+		elif index == 4:
+			ret_delay = self.setup_credits_display()
+		else: 
+			ret_delay = self.setup_game_over_display()
+		if index >= 4:
+			new_index = 0
+		else:
+			new_index = index + 1			
+		self.delay(name='display', event_type=None, delay=ret_delay, handler=self.change_display, param=new_index)
+
+	def setup_intro_display(self):
+		self.press_start = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Press Start")
+		self.proc_banner = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("pyprocgame")
+		self.game_title = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Judge Dredd")
+		self.splash = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
+		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.splash}, {'seconds':2.0, 'layer':self.proc_banner}, {'seconds':2.0, 'layer':self.game_title}, {'seconds':2.0, 'layer':self.press_start}, {'seconds':2.0, 'layer':None}])
+		self.layer.opaque = True
+		return 10
+
+	def setup_scores_display(self):
+		self.hs_intro = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("High Scores")
+		self.gc0 = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:")
+		self.gc1 = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'])
+		self.gc2 = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']))
+		self.gc_layer = dmd.GroupedLayer(128, 32, [self.gc0, self.gc1, self.gc2])
+		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.hs_intro}, {'seconds':2.0, 'layer':self.gc_layer}])
+		return 4
+
+	def setup_credits_display(self):
+		self.credits_intro = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Credits")
+		self.credits_1 = dmd.TextLayer(128/2, 1, font_tiny7, "center").set_text("Rules: Gerry Stellenberg")
+		self.credits_2 = dmd.TextLayer(128/2, 8, font_tiny7, "center").set_text("Tools/Framework: Adam Preble")
+		self.credits_sound_0 = dmd.TextLayer(128/2, 15, font_tiny7, "center").set_text("Sound/Music: Rob Keller")
+		self.credits_sound_1 = dmd.TextLayer(128/2, 22, font_tiny7, "center").set_text("Music: Jonathan Coultan")
+		self.credits_layer = dmd.GroupedLayer(128, 32, [self.credits_1, self.credits_2, self.credits_sound_0, self.credits_sound_1])
+		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.credits_intro}, {'seconds':2.0, 'layer':self.credits_layer}])
+		return 4
+
+	def setup_game_over_display(self):
+		self.game_over_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Game Over")
+		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':3.0, 'layer':self.game_over_layer}, {'seconds':3.0, 'layer':None}])
+		return 6
 
 	# Eject any balls that get stuck before returning to the trough.
 	def sw_popperL_active_for_500ms(self, sw): # opto!
@@ -108,9 +165,13 @@ class Attract(game.Mode):
 	def sw_enter_active(self, sw):
 		#self.game.modes.remove(self.show)
 		self.cancel_delayed(name='lampshow')
+		self.cancel_delayed(name='display')
 		self.game.lampctrl.stop_show()
 		for lamp in self.game.lamps:
 			lamp.disable()
+		#self.game.load_settings(settings_template_path, settings_path)
+		del self.game.service_mode
+		self.game.service_mode = procgame.service.ServiceMode(self.game,100,font_tiny7,[self.game.deadworld_test])
 		self.game.modes.add(self.game.service_mode)
 		return True
 
@@ -154,13 +215,11 @@ class Attract(game.Mode):
 			self.game.deadworld.perform_ball_search()
 		return True
 
-
 class BaseGameMode(game.Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game):
 		super(BaseGameMode, self).__init__(game, 2)
-		self.tilt_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("TILT!")
-		self.layer = None # Presently used for tilt layer
+		self.tilt = Tilt(self.game, 1000, font_jazz18, font_tiny7, 'tilt', 'slamTilt')
 
 	def mode_started(self):
 
@@ -184,8 +243,19 @@ class BaseGameMode(game.Mode):
 		# Create jd_modes, which handles all of the game rules
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7, font_jazz18)
 
+		# Create mode to check for replay
+		self.replay = procgame.replay.Replay(self.game, 18)
+		self.game.modes.add(self.replay)
+		self.replay.replay_callback = self.jd_modes.replay_callback
+		self.jd_modes.high_score_mention = self.high_score_mention
+
+
 		# Start modes
 		self.game.modes.add(self.jd_modes)
+		self.tilt.tilt_callback = self.tilt_callback
+		self.tilt.slam_tilt_callback = self.slam_tilt_callback
+		self.tilt.num_tilt_warnings = self.game.user_settings['Gameplay']['Number of tilt warnings']
+		self.game.modes.add(self.tilt)
 
 		# Load the player data saved from the previous ball.
 		# It will be empty if this is the first ball.
@@ -223,6 +293,18 @@ class BaseGameMode(game.Mode):
 		# switches being hit.
 		self.game.ball_search.disable()
 
+	def high_score_mention(self):
+		self.title_layer = dmd.TextLayer(128/2, 7, self.game.fonts['tiny7'], "center")
+		self.text_layer = dmd.TextLayer(128/2, 17, self.game.fonts['tiny7'], "center")
+		self.layer = dmd.GroupedLayer(128, 32, [self.title_layer, self.text_layer])
+		if self.game.ball == self.game.balls_per_game:
+			if self.replay.replay_achieved[0]:
+				self.title_layer.set_text("Highest Score:",4)	
+				self.text_layer.set_text(str(self.game.game_data['High Scores']['Grand Champion']['name']),4)	
+			else:
+				self.title_layer.set_text("Replay:",4)	
+				self.text_layer.set_text(str(self.replay.replay_scores[0]),4)
+
 	def ball_drained_callback(self):
 		if self.game.trough.num_balls_in_play == 0:
 			# Give jd_modes a chance to do any any of ball processing
@@ -255,10 +337,7 @@ class BaseGameMode(game.Mode):
 
 		# Remove the rules logic from responding to switch events.
 		self.game.modes.remove(self.jd_modes)
-
-		# Turn off tilt display (if it was on) now that the ball has drained.
-		if self.tilt_status and self.layer == self.tilt_layer:
-			self.layer = None
+		self.game.modes.remove(self.tilt)
 
 		# Get and save the player's data
 		jd_modes_info_record = self.jd_modes.get_info_record()
@@ -277,6 +356,7 @@ class BaseGameMode(game.Mode):
 	# Final processing for the ending ball.  If bonus was calculated, it is finished
 	# by now.
 	def end_ball(self):
+		self.game.modes.remove(self.replay)
 		# Remove the bonus mode since it's finished.
 		self.game.modes.remove(self.bonus)
 		# Tell the game object it can process the end of ball
@@ -315,28 +395,20 @@ class BaseGameMode(game.Mode):
 
 	# Allow service mode to be entered during a game.
 	def sw_enter_active(self, sw):
+		del self.game.service_mode
+		self.game.service_mode = procgame.service.ServiceMode(self.game,100,font_tiny7,[self.game.deadworld_test])
 		self.game.modes.add(self.game.service_mode)
 		return True
 
 	# Reset game on slam tilt
-	def sw_slamTilt_active(self_sw):
+	def slam_tilt_callback(self):
 		self.game.sound.fadeout_music()
 		# Need to play a sound and show a slam tilt screen.
 		# For now just popup a status message.
-		self.game.set_status("Slam Tilt!")
 		self.game.reset()
 		return True
 
-	def sw_tilt_active(self, sw):
-		if self.times_warned == self.game.user_settings['Gameplay']['Number of tilt warnings']:
-			self.tilt()
-		else:
-			self.times_warned += 1
-			#play sound
-			#add a display layer and add a delayed removal of it.
-			self.game.set_status("Tilt Warning " + str(self.times_warned) + "!")
-
-	def tilt(self):
+	def tilt_callback(self):
 		# Process tilt.
 		# First check to make sure tilt hasn't already been processed once.
 		# No need to do this stuff again if for some reason tilt already occurred.
@@ -346,9 +418,6 @@ class BaseGameMode(game.Mode):
 			
 			# Tell the rules logic tilt occurred
 			self.jd_modes.tilt = True
-
-			# Display the tilt graphic
-			self.layer = self.tilt_layer
 
 			# Disable flippers so the ball will drain.
 			self.game.enable_flippers(enable=False)
@@ -395,15 +464,25 @@ class Game(game.GameController):
 		self.get_keyboard_events = self.keyboard_handler.get_keyboard_events
 
 	def save_settings(self):
-		self.write_settings(user_settings_path)
+		self.write_settings(settings_path)
+
+	def save_game_data(self):
+		self.write_game_data(game_data_path)
 		
 	def setup(self):
 		"""docstring for setup"""
 		self.load_config(machine_config_path)
-		self.load_settings(settings_path, user_settings_path)
+		self.load_settings(settings_template_path, settings_path)
+		self.load_game_data(game_data_template_path, game_data_path)
+		print "Stats:"
+		print self.game_data
+		print "Settings:"
+		print self.settings
 		print("Initial switch states:")
 		for sw in self.switches:
 			print("  %s:\t%s" % (sw.name, sw.state_str()))
+
+		self.balls_per_game = self.user_settings['Gameplay']['Balls per game']
 
 		self.setup_ball_search()
 
@@ -424,6 +503,7 @@ class Game(game.GameController):
 		self.deadworld_test = DeadworldTest(self,200,font_tiny7)
 
 		# Setup and instantiate service mode
+		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
 		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
 		self.sound.register_sound('service_exit', sound_path+"menu_out.wav")
 		self.sound.register_sound('service_next', sound_path+"next_item.wav")
@@ -431,7 +511,6 @@ class Game(game.GameController):
 		self.sound.register_sound('service_switch_edge', sound_path+"switch_edge.wav")
 		self.sound.register_sound('service_save', sound_path+"save.wav")
 		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
-		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
 		
 		self.sound.register_sound('slingL', sound_path+'exp_smoother.wav')
 		self.sound.register_sound('slingR', sound_path+'exp_smoother2.wav')
@@ -443,7 +522,11 @@ class Game(game.GameController):
 		self.fonts = {}
 		self.fonts['tiny7'] = font_tiny7
 		self.fonts['jazz18'] = font_jazz18
-		self.fonts['14x10'] = font_14x10
+		self.fonts['num_14x10'] = font_14x10
+		self.fonts['18x12'] = font_18x12
+		self.fonts['num_07x4'] = font_07x4
+		self.fonts['07x5'] = font_07x5
+		self.fonts['num_09Bx7'] = font_09Bx7
 
 		# Register lampshow files
 		self.lampshow_keys = []
@@ -471,6 +554,11 @@ class Game(game.GameController):
 		self.modes.add(self.ball_save)
 		self.modes.add(self.trough)
 
+
+		self.ball_search.disable()
+		self.ball_save.disable()
+		self.trough.drain_callback = self.drain_callback
+
 		# Make sure flippers are off, especially for user initiated resets.
 		self.enable_flippers(enable=False)
 
@@ -478,14 +566,44 @@ class Game(game.GameController):
 	# drain_callback can be installed by a gameplay mode.
 	def drain_callback(self):
 		pass
-		
+
 	def ball_starting(self):
 		super(Game, self).ball_starting()
 		self.modes.add(self.base_game_mode)
+
+	def end_ball(self):
+		super(Game, self).end_ball()
+
+		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
+		self.game_data['Audits']['Balls Played'] += 1
+		print "Ball time: % 10.3f" % self.ball_time
+
+	def int_to_sec(self, seconds_int):
+		return int((float(seconds_int)*0.6))
+
+	def calc_time_average_string(self, prev_total, prev_x, new_value):
+		prev_time_list = prev_x.split(':')
+		prev_time = int(prev_time_list[0] * 60) + self.int_to_sec(prev_time_list[1])
+		avg_game_time = int((int(prev_total) * int(prev_time)) + int(new_value)) / (int(prev_total) + 1)
+
+		avg_game_time_min = avg_game_time/60
+		avg_game_time_sec = str(avg_game_time%60)
+		if len(avg_game_time_sec) == 1:
+			avg_game_time_sec = '0' + avg_game_time_sec
+
+		return str(avg_game_time_min) + ':' + avg_game_time_sec
+
+	def calc_number_average(self, prev_total, prev_x, new_value):
+		avg_game_time = int((prev_total * prev_x) + new_value) / (prev_total + 1)
+		return int(avg_game_time)
 		
 	def ball_ended(self):
 		self.modes.remove(self.base_game_mode)
 		super(Game, self).ball_ended()
+
+	def start_game(self):
+		super(Game, self).start_game()
+		self.game_data['Audits']['Games Started'] += 1
 		
 	def game_ended(self):
 		super(Game, self).game_ended()
@@ -495,10 +613,22 @@ class Game(game.GameController):
 		self.modes.remove(self.base_game_mode)
 		#self.modes.add(self.attract_mode)
 		self.deadworld.mode_stopped()
-		self.set_status("Game Over")
 		# Restart attract mode lampshows
-		self.attract_mode.change_lampshow()
 		self.modes.add(self.attract_mode)
+		self.attract_mode.change_display(99)
+
+		# Handle stats for last ball here
+		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
+		self.game_data['Audits']['Balls Played'] += 1
+		print "Ball time: % 10.3f" % self.ball_time
+		# Also handle game stats.
+		for i in range(0,len(self.players)):
+			self.game_data['Audits']['Avg Game Time'] = self.calc_time_average_string( self.game_data['Audits']['Games Played'], self.game_data['Audits']['Avg Game Time'], self.get_game_time(i))
+			self.game_data['Audits']['Games Played'] += 1
+
+		for i in range(0,len(self.players)):
+			self.game_data['Audits']['Avg Score'] = self.calc_number_average(self.game_data['Audits']['Games Played'], self.game_data['Audits']['Avg Score'], self.players[i].score)
+		self.save_game_data()
 		
 	def dmd_event(self):
 		"""Called by the GameController when a DMD event has been received."""

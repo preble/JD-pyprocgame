@@ -69,7 +69,7 @@ class ChainFeature(modes.Scoring_Mode):
 		self.name = name
 		self.countdown_layer = dmd.TextLayer(127, 1, self.game.fonts['tiny7'], "right")
 		self.name_layer = dmd.TextLayer(1, 1, self.game.fonts['tiny7'], "left").set_text(name)
-		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['14x10'], "center")
+		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['num_14x10'], "center")
 		self.status_layer = dmd.TextLayer(128/2, 26, self.game.fonts['tiny7'], "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
 		

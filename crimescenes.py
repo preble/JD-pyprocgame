@@ -8,10 +8,6 @@ class Crimescenes(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Crimescenes, self).__init__(game, priority)
-		self.total_levels = 0
-		self.level = 0
-		self.mode = 'idle'
-		self.targets = [1,0,0,0,0]
 		self.target_award_order = [1,3,0,2,4]
 		self.lamp_colors = ['G', 'Y', 'R', 'W']
 		difficulty = self.game.user_settings['Gameplay']['Crimescene shot difficulty']
@@ -45,16 +41,24 @@ class Crimescenes(modes.Scoring_Mode):
                                                  [0,1,2,3,4], [0,1,2,3,4], 
                                                  [0,1,2,3,4], [0,1,2,3,4] ]
 			self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
+		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
+		self.block_war = BlockWar(game, priority+1)
+		self.total_levels = 0
+
+	def reset(self):
 		self.bonus_num = 1
 		self.extra_ball_levels = 2
 		self.complete = False
 		self.bw_shots = 1
 		self.bw_shots_required = [1,1,1,1,1]
 		self.num_advance_hits = 0
-
-		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
 		self.mb_active = False
-		self.block_war = BlockWar(game, priority+1)
+		self.level = 0
+		self.mode = 'idle'
+		self.targets = [1,0,0,0,0]
+
+	def mode_started(self):
+		self.reset()
 
 	def mode_stopped(self):
 		if self.mode == 'bonus':
@@ -226,7 +230,7 @@ class Crimescenes(modes.Scoring_Mode):
 
 	def sw_leftRollover_active(self, sw):
 		#See if ball came around right loop
-		if self.game.switches.topRightOpto.time_since_change() < 1:
+		if self.game.switches.topRightOpto.time_since_change() < 1.5:
 			self.switch_hit(3)
 
 	def sw_topCenterRollover_active(self, sw):
@@ -253,10 +257,9 @@ class Crimescenes(modes.Scoring_Mode):
 		if self.mode == 'levels':
 			if self.targets[num]:
 				self.game.score(1000)
-			self.targets[num] = 0
-			if self.all_targets_off():
-				self.level_complete()
-			else:
+				self.targets[num] = 0
+				if self.all_targets_off():
+					self.level_complete()
 				self.update_lamps()
 		elif self.mode == 'block_war':
 			if self.bw_shots_required[num] > 0:
@@ -312,11 +315,17 @@ class Crimescenes(modes.Scoring_Mode):
 		elif self.mode == 'block_war':
 			self.start_bonus()
 		else:
+			self.total_levels += self.num_levels_to_advance
 			for number in range(0,self.num_levels_to_advance):
 				if self.level + number == self.extra_ball_levels:
 					self.light_extra_ball_function()
 					break
 			if (self.level % 4) == 3:
+				# ensure flippers are enable.  
+				# This is a workaround for when a mode is 
+				# starting (flippers disable during
+				# intro) just before block wars is started.
+				self.game.enable_flippers(enable=True)
 				self.game.modes.add(self.block_war)
 				self.mode = 'block_war'
 				self.bw_shots = 1
@@ -325,7 +334,6 @@ class Crimescenes(modes.Scoring_Mode):
 				self.mb_start_callback()
 			else:
 				self.level += self.num_levels_to_advance
-				self.total_levels += self.num_levels_to_advance
 				self.init_level(self.level)
 				#Play sound, lamp show, etc
 
@@ -383,8 +391,15 @@ class Crimescenes(modes.Scoring_Mode):
 	def complete(self):
 		return self.complete
 
-	def reset_complete(self):
-		self.complete = False
+	def get_info_layers(self):
+		self.title_layer = dmd.TextLayer(128/2, 7, self.game.fonts['tiny7'], "center").set_text('Crimescenes')
+		self.item_0_layer = dmd.TextLayer(128/2, 16, self.game.fonts['tiny7'], "center").set_text('Current Level: ' + str(self.level + 1) + '/16')
+		self.value_0_layer = dmd.TextLayer(128/2, 25, self.game.fonts['tiny7'], "center").set_text('Block War in ' + str(4-(self.level % 4)) + ' levels')
+
+		self.layer_0 = dmd.GroupedLayer(128, 32, [self.title_layer, self.item_0_layer, self.value_0_layer])
+
+		return [self.layer_0]
+		
 
 class BlockWar(game.Mode):
 	"""docstring for AttractMode"""
