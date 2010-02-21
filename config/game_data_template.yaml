@@ -1,0 +1,22 @@
+# This file is a template for all of the statistical data to be kept for the game.# The game code will load this file along with a game_data.yaml file.  
+# Any items not present in the game_data.yaml file will default to the 
+# value specified here.  When game ends or when defaults are restored, 
+# game_data will be written and will then contain every item here.
+
+Audits:
+  Avg Ball Time: 0:00
+  Avg Extra Balls: 0
+  Avg Game Time: 0:00
+  Avg Score: 0
+  Games Played: 0
+  Games Started: 0
+  Balls Played: 0
+High Scores:
+  Block War Champ: {name: HHHHHH, score: 100000}
+  Grand Champion: {name: AAAAAA, score: 500000}
+  High Score 1: {name: BBBBBB, score: 400000}
+  High Score 2: {name: CCCCCC, score: 300000}
+  High Score 3: {name: DDDDDD, score: 200000}
+  High Score 4: {name: EEEEEE, score: 100000}
+  Inner Loop Champ: {name: GGGGGG, score: 2}
+  Outer Loop Champ: {name: FFFFFF, score: 2}
