@@ -2,7 +2,7 @@ import procgame
 from procgame import *
 from random import *
 
-sound_path = "../shared/sound/"
+sound_path = "./games/jd/sound/FX/"
 
 class Crimescenes(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
@@ -307,7 +307,8 @@ class Crimescenes(modes.Scoring_Mode):
 		self.game.lampctrl.play_show('advance_level', False, self.game.update_lamps)
 		if self.mode == 'bonus':
 			self.mode = 'block_war'
-			self.bw_shots += 1
+			if self.bw_shots < 4:
+				self.bw_shots += 1
 			self.setup_bw_shots_required(self.bw_shots)
 			self.block_war.bonus_hit()
 			#Play sound, lamp show, etc
@@ -408,7 +409,7 @@ class BlockWar(game.Mode):
 		self.countdown_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
-		self.game.sound.register_sound('block_war_target', sound_path+'exp_smoother.wav')
+		self.game.sound.register_sound('block_war_target', sound_path+'droptarget.ogg')
 	
 	def mode_started(self):
 		self.banner_layer.set_text("Block War!", 3)
