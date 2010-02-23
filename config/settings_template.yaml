@@ -8,6 +8,14 @@ Machine:
   'Deadworld mod installed':
     options: [true, false]
     default: false
+  'Initial volume':
+    options: [0.1,1.0]
+    increments: 0.1
+    default: 0.5
+  'Music volume offset':
+    options: [-0.4,0.4]
+    increments: 0.1
+    default: 0
 Display:
   'Left side score justify':
     # This example has no default.  The first option (right) will be used as the default.
