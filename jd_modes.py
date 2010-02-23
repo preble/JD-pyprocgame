@@ -60,7 +60,18 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)QuieterMelody.mp3")
 		self.game.sound.register_music('ball_launch', music_path+"darkerintro loop.mp3")
 		#self.game.sound.register_sound('ball_launch', music_path+"darkerintro loop.mp3")
-		self.game.sound.register_sound('outlane', sfx_path+"outlane.mp3")
+		self.game.sound.register_sound('outlane', sfx_path+"outlane.ogg")
+		self.game.sound.register_sound('inlane', sfx_path+"inlane.ogg")
+		self.game.sound.register_sound('meltdown', sfx_path+"captiveball.ogg")
+		self.game.sound.register_sound('ball_launch', sfx_path+"balllaunchmotorcycle.ogg")
+		self.game.sound.register_sound('drop_target', sfx_path+"droptarget.ogg")
+		self.game.sound.register_sound('extra_ball_target', sfx_path+"extraballtargetlower.ogg")
+		self.game.sound.register_sound('shooterL_launch', sfx_path+"left_kickback.ogg")
+		self.game.sound.register_sound('outer_loop', sfx_path+"loopflyby.ogg")
+		self.game.sound.register_sound('inner_loop', sfx_path+"loopflyby.ogg")
+		self.game.sound.register_sound('mystery', sfx_path+"questionmarktarget.ogg")
+		self.game.sound.register_sound('right_ramp', sfx_path+"rightrampflyby.ogg")
+		self.game.sound.register_sound('slingshot', sfx_path+"slingshot.ogg")
 		#self.game.sound.register_sound('outlane', sfx_path+"darkerintro loop.mp3")
 
 	def reset(self):
@@ -308,15 +319,25 @@ class JD_Modes(modes.Scoring_Mode):
 		else:
 			self.drive_mode_lamp('judgeAgain', 'off')
 
-		if self.state == 'idle' or self.state == 'mode':
-			for mode in self.modes_attempted:
-				self.drive_mode_lamp(mode, 'on')
+		if self.extra_balls_lit == 0:
+			self.drive_mode_lamp('extraBall2','off')
+		else:
+			self.drive_mode_lamp('extraBall2','slow')
+
+		for mode in self.modes_not_attempted:
+			self.drive_mode_lamp(mode, 'off')
+		for mode in self.modes_attempted:
+			self.drive_mode_lamp(mode, 'on')
+		self.game.lamps.rightStartFeature.disable()
+
+		if self.state == 'idle' or self.state == 'mode' or self.state == 'modes_complete':
 			if self.state == 'mode':
 				self.drive_mode_lamp(self.mode,'slow')
 			else:
 				if self.game.switches.popperR.is_inactive() and not self.any_mb_active():
 					self.game.lamps.rightStartFeature.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-				self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
+				if len(self.modes_not_attempted) > 0:
+					self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
 			self.drive_mode_lamp('ultChallenge','off') 
 		elif self.state == 'ultimate_challenge':
 			self.drive_mode_lamp('ultChallenge','slow') 
@@ -359,8 +380,6 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def rotate_modes(self, adder):
 
-		# Start by turning off all lamps of not attempted modes
-		self.disable_not_attempted_mode_lamps()
 		# Increment the mode pointer
 		self.active_mode_pointer += adder
 		# Adjust the pointer based on the number of not attempted modes
@@ -368,13 +387,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.modes_not_attempted_ptr = 0
 		else:
 			self.modes_not_attempted_ptr = self.active_mode_pointer % len(self.modes_not_attempted)
-		# Drive the lamp of the selected mode.
-		if self.state == 'idle':
-			self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
-
-	def disable_not_attempted_mode_lamps(self):
-		for mode in self.modes_not_attempted:
-			self.game.lamps[mode].disable()
+		self.update_lamps()
 
 	def drive_mode_lamp(self, lamp_name, style='on'):
 		if style == 'slow':
@@ -387,14 +400,6 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.lamps[lamp_name].pulse(0)
 		elif style == 'off':
 			self.game.lamps[lamp_name].disable()
-
-	def sw_flipperLwL_active_for_6s(self,sw):
-		if not self.any_mb_active() and not self.info_on:
-			self.start_info()
-
-	def sw_flipperLwR_active_for_6s(self,sw):
-		if not self.any_mb_active() and not self.info_on:
-			self.start_info()
 
         ####################################################
 	# Info - Information for Instant Info Screens.
@@ -432,9 +437,18 @@ class JD_Modes(modes.Scoring_Mode):
 	# Switch Handlers
         ####################################################
 
+	def sw_flipperLwL_active_for_6s(self,sw):
+		if not self.any_mb_active() and not self.info_on:
+			self.start_info()
+
+	def sw_flipperLwR_active_for_6s(self,sw):
+		if not self.any_mb_active() and not self.info_on:
+			self.start_info()
+
 	def sw_topRightOpto_active(self, sw):
 		#See if ball came around inner left loop
 		if self.game.switches.topCenterRollover.time_since_change() < 1.5:
+			self.game.sound.play('inner_loop')
 			self.inner_loop_combos += 1
 			self.inner_loops_hit += 1
 			score = 10000 * (self.inner_loop_combos)
@@ -448,6 +462,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_leftRollover_active(self, sw):
 		#See if ball came around right loop
 		if self.game.switches.topRightOpto.time_since_change() < 1:
+			self.game.sound.play('outer_loop')
 			self.outer_loops_hit += 1
 			self.outer_loop_combos += 1
 			score = 1000 * (self.outer_loop_combos)
@@ -458,20 +473,41 @@ class JD_Modes(modes.Scoring_Mode):
 			self.outer_loop_active = True
 			self.update_lamps()
 
+	def sw_dropTargetJ_active(self, sw):
+		self.game.sound.play('drop_target')
+	def sw_dropTargetU_active(self, sw):
+		self.game.sound.play('drop_target')
+	def sw_dropTargetD_active(self, sw):
+		self.game.sound.play('drop_target')
+	def sw_dropTargetG_active(self, sw):
+		self.game.sound.play('drop_target')
+	def sw_dropTargetE_active(self, sw):
+		self.game.sound.play('drop_target')
+
+	def sw_captiveBall1_active(self, sw):
+		self.game.sound.play('meltdown')
+
+	def sw_captiveBall2_active(self, sw):
+		self.game.sound.play('meltdown')
+
 	def sw_captiveBall3_active(self, sw):
+		self.game.sound.play('meltdown')
 		self.drive_mode_lamp('mystery', 'on')
 		self.mystery_lit = True
 		self.inc_bonus_x()
 
 	def sw_leftScorePost_active(self, sw):
+		self.game.sound.play('extra_ball_target')
 		if self.extra_balls_lit > 0:
 			self.award_extra_ball()
 
 	def sw_rightTopPost_active(self, sw):
+		self.game.sound.play('extra_ball_target')
 		if self.extra_balls_lit > 0:
 			self.award_extra_ball()
 
 	def sw_mystery_active(self, sw):
+		self.game.sound.play('mystery')
 		if self.mystery_lit:
 			self.mystery_lit = False
 			self.drive_mode_lamp('mystery', 'off')
@@ -507,6 +543,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.coils.shooterL.pulse()
 
 	def sw_shooterL_inactive_for_200ms(self, sw):
+		self.game.sound.play('shooterL_launch')
 		self.mode_timer.pause(False)
 			
 
@@ -527,14 +564,20 @@ class JD_Modes(modes.Scoring_Mode):
 		elif not self.any_mb_active() and self.missile_award_lit:
 			self.game.coils.shooterL.pulse(50)
 
-	def sw_rightRampExit_closed(self, sw):
+	def sw_leftRampExit_active(self, sw):
+		self.game.sound.play('right_ramp')
+
+	def sw_rightRampExit_active(self, sw):
+		self.game.sound.play('right_ramp')
 		self.game.coils.flashersRtRamp.schedule(0x333, cycle_seconds=1, now=False)
 		self.game.score(2000)
 	
 	def sw_slingL_active(self, sw):
+		self.game.sound.play('slingshot')
 		self.rotate_modes(-1)
 
 	def sw_slingR_active(self, sw):
+		self.game.sound.play('slingshot')
 		self.rotate_modes(1)
 
 	def sw_popperL_active_for_200ms(self, sw):
@@ -553,7 +596,6 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_popperR_active_for_200ms(self, sw):
 		if not self.any_mb_active():
 			if self.state == 'idle':
-				self.game.lamps.rightStartFeature.disable()
 				self.mode = self.modes_not_attempted[self.modes_not_attempted_ptr]
 				intro_instruction_layers = self.mode_list[self.mode].get_instruction_layers()
 				self.play_intro = PlayIntro(self.game, self.priority+1, self.modes_not_attempted[self.modes_not_attempted_ptr], self.activate_mode, self.modes_not_attempted[0], intro_instruction_layers)
@@ -566,16 +608,29 @@ class JD_Modes(modes.Scoring_Mode):
 				self.popperR_eject()
 		else:
 			self.popperR_eject()
+		self.update_lamps()
 
-	def sw_outlaneL_closed(self, sw):
+	def sw_inlaneL_active(self, sw):
+		self.game.sound.play('inlane')
+
+	def sw_inlaneR_active(self, sw):
+		self.game.sound.play('inlane')
+
+	def sw_inlaneFarR_active(self, sw):
+		self.game.sound.play('inlane')
+
+	def sw_outlaneL_active(self, sw):
 		self.game.score(1000)
 		self.game.sound.play('outlane')
 
-	def sw_outlaneR_closed(self, sw):
+	def sw_outlaneR_active(self, sw):
 		self.game.score(1000)
 		self.game.sound.play('outlane')
 
 	# Enable auto-plunge as soon as the new ball is launched (by the player).
+	def sw_shooterR_inactive_for_300ms(self,sw):
+		self.game.sound.play('ball_launch')
+
 	def sw_shooterR_inactive_for_1s(self,sw):
 		self.auto_plunge = 1
 
@@ -607,6 +662,16 @@ class JD_Modes(modes.Scoring_Mode):
 	# End Switch Handlers
         ####################################################
 
+	def high_score_mention(self):
+		if self.game.ball == self.game.balls_per_game:
+			if self.replay.replay_achieved[0]:
+				text = 'Highest Score'
+				score = str(self.game.game_data['High Scores']['Grand Champion']['name']) + str(self.game.game_data['High Scores']['Grand Champion']['score'])
+			else:
+				text = 'Replay'
+				score = self.replay.replay_scores[0]
+			self.show_on_display(text, score, 'high')
+
 	def inner_loop_combo_handler(self):
 		self.inner_loop_combos = 0
 		self.inner_loop_active = False
@@ -625,8 +690,6 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.extra_ball()
 		self.extra_balls_lit -= 1
 		self.show_on_display("Extra Ball!", 'None', 'high')
-		if self.extra_balls_lit == 0:
-			self.drive_mode_lamp('extraBall2','off')
 		self.update_lamps()
 
 	def replay_callback(self):
@@ -671,15 +734,13 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.state == 'idle':
 			# Get the active mode
 			self.mode = self.modes_not_attempted[self.modes_not_attempted_ptr]
-			# Drive lamp of the starting mode
-			self.drive_mode_lamp(self.mode, 'slow')
-			
 			# Pause multibal drop target mode if this mode uses the drop targets.
 			if self.mode == 'impersonator' or self.mode == 'safecracker':
 				self.multiball.drops.paused = True
 
 			# Update the mode lists.
 			self.modes_not_attempted.remove(self.mode)
+			self.rotate_modes(0)
 			self.modes_attempted.append(self.mode)
 			self.modes_just_attempted.append(self.mode)
 
@@ -711,11 +772,12 @@ class JD_Modes(modes.Scoring_Mode):
 			self.state = 'ultimate_challenge'
 
 			# Light mystery to start the finale
-			self.drive_mode_lamp('mystery', 'on')
 			self.mystery_lit = True
 
 			# Start ultimate challenge!
 			# self.game.modes.add(self.ultimate_challenge)
+
+		self.update_lamps()
 
 	def setup_next_mode(self):
 		# Don't setup a mode if in multiball.
