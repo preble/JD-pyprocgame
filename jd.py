@@ -25,7 +25,8 @@ game_data_path = "./games/jd/config/game_data.yaml"
 game_data_template_path = "./games/jd/config/game_data_template.yaml"
 settings_template_path = "./games/jd/config/settings_template.yaml"
 fonts_path = "../shared/dmd/"
-sound_path = "../shared/sound/"
+shared_sound_path = "../shared/sound/"
+sound_path = "./games/jd/sound/FX/"
 music_path = "./games/jd/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
 font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
@@ -135,10 +136,10 @@ class Attract(game.Mode):
 
 	def setup_credits_display(self):
 		self.credits_intro = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Credits")
-		self.credits_1 = dmd.TextLayer(128/2, 1, font_tiny7, "center").set_text("Rules: Gerry Stellenberg")
-		self.credits_2 = dmd.TextLayer(128/2, 8, font_tiny7, "center").set_text("Tools/Framework: Adam Preble")
-		self.credits_sound_0 = dmd.TextLayer(128/2, 15, font_tiny7, "center").set_text("Sound/Music: Rob Keller")
-		self.credits_sound_1 = dmd.TextLayer(128/2, 22, font_tiny7, "center").set_text("Music: Jonathan Coultan")
+		self.credits_1 = dmd.TextLayer(1, 1, font_tiny7, "left").set_text("Rules: Gerry Stellenberg")
+		self.credits_2 = dmd.TextLayer(1, 8, font_tiny7, "left").set_text("Tools/Framework: Adam Preble")
+		self.credits_sound_0 = dmd.TextLayer(1, 15, font_tiny7, "left").set_text("Sound/Music: Rob Keller")
+		self.credits_sound_1 = dmd.TextLayer(1, 22, font_tiny7, "left").set_text("Music: Jonathan Coultan")
 		self.credits_layer = dmd.GroupedLayer(128, 32, [self.credits_1, self.credits_2, self.credits_sound_0, self.credits_sound_1])
 		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.credits_intro}, {'seconds':2.0, 'layer':self.credits_layer}])
 		return 4
@@ -247,7 +248,7 @@ class BaseGameMode(game.Mode):
 		self.replay = procgame.replay.Replay(self.game, 18)
 		self.game.modes.add(self.replay)
 		self.replay.replay_callback = self.jd_modes.replay_callback
-		self.jd_modes.high_score_mention = self.high_score_mention
+		self.jd_modes.replay = self.replay
 
 
 		# Start modes
@@ -292,18 +293,6 @@ class BaseGameMode(game.Mode):
 		# Deactivate the ball search logic so it won't search due to no 
 		# switches being hit.
 		self.game.ball_search.disable()
-
-	def high_score_mention(self):
-		self.title_layer = dmd.TextLayer(128/2, 7, self.game.fonts['tiny7'], "center")
-		self.text_layer = dmd.TextLayer(128/2, 17, self.game.fonts['tiny7'], "center")
-		self.layer = dmd.GroupedLayer(128, 32, [self.title_layer, self.text_layer])
-		if self.game.ball == self.game.balls_per_game:
-			if self.replay.replay_achieved[0]:
-				self.title_layer.set_text("Highest Score:",4)	
-				self.text_layer.set_text(str(self.game.game_data['High Scores']['Grand Champion']['name']),4)	
-			else:
-				self.title_layer.set_text("Replay:",4)	
-				self.text_layer.set_text(str(self.replay.replay_scores[0]),4)
 
 	def ball_drained_callback(self):
 		if self.game.trough.num_balls_in_play == 0:
@@ -400,6 +389,18 @@ class BaseGameMode(game.Mode):
 		self.game.modes.add(self.game.service_mode)
 		return True
 
+	# Outside of the service mode, up/down control audio volume.
+	def sw_down_active(self, sw):
+		volume = self.game.sound.volume_down()
+		self.game.set_status("Volume Down : " + str(volume))
+		return True
+
+	def sw_up_active(self, sw):
+		volume = self.game.sound.volume_up()
+		self.game.set_status("Volume Up : " + str(volume))
+		return True
+
+
 	# Reset game on slam tilt
 	def slam_tilt_callback(self):
 		self.game.sound.fadeout_music()
@@ -443,11 +444,9 @@ class BaseGameMode(game.Mode):
 			#play video
 	
 	def sw_slingL_active(self, sw):
-		self.game.sound.play('slingL')
 		self.game.score(100)
 		return False
 	def sw_slingR_active(self, sw):
-		self.game.sound.play('slingR')
 		self.game.score(100)
 		return False
 
@@ -473,6 +472,8 @@ class Game(game.GameController):
 		"""docstring for setup"""
 		self.load_config(machine_config_path)
 		self.load_settings(settings_template_path, settings_path)
+		self.sound.music_volume_offset = self.user_settings['Machine']['Music volume offset']
+		self.sound.set_volume(self.user_settings['Machine']['Initial volume'])
 		self.load_game_data(game_data_template_path, game_data_path)
 		print "Stats:"
 		print self.game_data
@@ -504,19 +505,20 @@ class Game(game.GameController):
 
 		# Setup and instantiate service mode
 		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
-		self.sound.register_sound('service_enter', sound_path+"menu_in.wav")
-		self.sound.register_sound('service_exit', sound_path+"menu_out.wav")
-		self.sound.register_sound('service_next', sound_path+"next_item.wav")
-		self.sound.register_sound('service_previous', sound_path+"previous_item.wav")
-		self.sound.register_sound('service_switch_edge', sound_path+"switch_edge.wav")
-		self.sound.register_sound('service_save', sound_path+"save.wav")
-		self.sound.register_sound('service_cancel', sound_path+"cancel.wav")
+		self.sound.register_sound('service_enter', shared_sound_path+"menu_in.wav")
+		self.sound.register_sound('service_exit', shared_sound_path+"menu_out.wav")
+		self.sound.register_sound('service_next', shared_sound_path+"next_item.wav")
+		self.sound.register_sound('service_previous', shared_sound_path+"previous_item.wav")
+		self.sound.register_sound('service_switch_edge', shared_sound_path+"switch_edge.wav")
+		self.sound.register_sound('service_save', shared_sound_path+"save.wav")
+		self.sound.register_sound('service_cancel', shared_sound_path+"cancel.wav")
 		
-		self.sound.register_sound('slingL', sound_path+'exp_smoother.wav')
-		self.sound.register_sound('slingR', sound_path+'exp_smoother2.wav')
+		#self.sound.register_sound('slingL', shared_sound_path+'exp_smoother.wav')
+		#self.sound.register_sound('slingR', shared_sound_path+'exp_smoother2.wav')
 		
-		#self.sound.register_sound('bonus', sound_path+'coin.wav') # Used as bonus is counting up.
-		self.sound.register_sound('bonus', sound_path+'exp_smoother.wav') # Used as bonus is counting up.
+		#self.sound.register_sound('bonus', shared_sound_path+'coin.wav') # Used as bonus is counting up.
+		#self.sound.register_sound('bonus', shared_sound_path+'exp_smoother.wav') # Used as bonus is counting up.
+		self.sound.register_sound('bonus', sound_path+'droptarget.ogg') # Used as bonus is counting up.
 		
 		# Setup fonts
 		self.fonts = {}
@@ -576,22 +578,18 @@ class Game(game.GameController):
 
 		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
 		self.game_data['Audits']['Balls Played'] += 1
-		print "Ball time: % 10.3f" % self.ball_time
-
-	def int_to_sec(self, seconds_int):
-		return int((float(seconds_int)*0.6))
 
 	def calc_time_average_string(self, prev_total, prev_x, new_value):
 		prev_time_list = prev_x.split(':')
-		prev_time = int(prev_time_list[0] * 60) + self.int_to_sec(prev_time_list[1])
+		prev_time = (int(prev_time_list[0]) * 60) + int(prev_time_list[1])
 		avg_game_time = int((int(prev_total) * int(prev_time)) + int(new_value)) / (int(prev_total) + 1)
-
 		avg_game_time_min = avg_game_time/60
 		avg_game_time_sec = str(avg_game_time%60)
 		if len(avg_game_time_sec) == 1:
 			avg_game_time_sec = '0' + avg_game_time_sec
 
-		return str(avg_game_time_min) + ':' + avg_game_time_sec
+		return_str = str(avg_game_time_min) + ':' + avg_game_time_sec
+		return return_str
 
 	def calc_number_average(self, prev_total, prev_x, new_value):
 		avg_game_time = int((prev_total * prev_x) + new_value) / (prev_total + 1)
@@ -620,10 +618,10 @@ class Game(game.GameController):
 		# Handle stats for last ball here
 		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
 		self.game_data['Audits']['Balls Played'] += 1
-		print "Ball time: % 10.3f" % self.ball_time
 		# Also handle game stats.
 		for i in range(0,len(self.players)):
-			self.game_data['Audits']['Avg Game Time'] = self.calc_time_average_string( self.game_data['Audits']['Games Played'], self.game_data['Audits']['Avg Game Time'], self.get_game_time(i))
+			game_time = self.get_game_time(i)
+			self.game_data['Audits']['Avg Game Time'] = self.calc_time_average_string( self.game_data['Audits']['Games Played'], self.game_data['Audits']['Avg Game Time'], game_time)
 			self.game_data['Audits']['Games Played'] += 1
 
 		for i in range(0,len(self.players)):
