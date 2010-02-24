@@ -1,4 +1,5 @@
 import procgame
+import locale
 from procgame import *
 	
 class SkillShot(game.Mode):
@@ -29,7 +30,8 @@ class SkillShot(game.Mode):
 		self.shots_hit += 1
 		self.game.score(self.shots_hit * 5000)
 		self.text_layer.set_text("Skill Shot!",3)
-		self.award_layer.set_text(str(self.shots_hit*5000),3)
+		score = self.shots_hit*5000
+		self.award_layer.set_text(locale.format("%d",score,True),3)
 		self.cancel_delayed('skill_shot_delay')
 		self.delay(name='skill_shot_delay', event_type=None, delay=3.0, handler=self.skill_shot_expired)
 		self.update_lamps()
