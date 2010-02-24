@@ -22,6 +22,7 @@ class Multiball(modes.Scoring_Mode):
 		self.lock_level = 1
 		self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=priority+1, prefix='dropTarget', letters='JUDGE')
 		self.jackpot_collected = False
+		self.game.lampctrl.register_show('jackpot', "./games/jd/lamps/jackpot.lampshow")
 	
 	def mode_started(self):
 		self.game.coils.globeMotor.disable()
@@ -49,6 +50,7 @@ class Multiball(modes.Scoring_Mode):
 		return self.state == 'multiball'
 
 	def end_multiball(self):
+		self.game.coils.flasherGlobe.disable()
 		self.state = 'load'
 		self.end_callback()
 		self.jackpot_lit = False
@@ -84,7 +86,8 @@ class Multiball(modes.Scoring_Mode):
 			self.delay(name='jackpot', event_type=None, delay=1.5, handler=self.jackpot)
 			self.num_left_ramp_shots_hit = 0
 			self.jackpot_collected = True
-			self.update_lamps
+			self.update_lamps()
+			self.game.lampctrl.play_show('jackpot', False, self.game.update_lamps)
 
 	def reset_jackpot_collected(self):
 		self.jackpot_collected = False
@@ -282,6 +285,9 @@ class Multiball(modes.Scoring_Mode):
 			self.game.lamps.multiballJackpot.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
 		else:
 			self.game.lamps.multiballJackpot.disable()
+
+		if self.state == 'multiball':
+			self.game.coils.flasherGlobe.schedule(schedule=0x88888888, cycle_seconds=0, now=True)
 
 	def how_many_balls_locked(self):
 		return self.num_balls_locked
