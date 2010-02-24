@@ -707,28 +707,29 @@ class ModeTimer(game.Mode):
 
 class PlayIntro(game.Mode):
 	"""docstring for AttractMode"""
-	def __init__(self, game, priority, mode, exit_function, exit_function_param, instruction_layers):
+	def __init__(self, game, priority):
 		super(PlayIntro, self).__init__(game, priority)
-		self.abort = 0
-		self.exit_function = exit_function
-		self.exit_function_param = exit_function_param
 		self.frame_counter = 0
-		self.layer = dmd.GroupedLayer(128, 32, instruction_layers[self.frame_counter])
-		self.mode = mode
-		self.instruction_layers = instruction_layers
-	
+
 	def mode_started(self):
+		self.frame_counter = 0
 		self.next_frame()
 		self.update_gi(False, 'all')
 		# Disable the flippers
 		self.game.enable_flippers(enable=False)
 
 	def mode_stopped(self):
-		if self.abort:
-			self.cancel_delayed('intro')
+		self.cancel_delayed('intro')
 		self.update_gi(True, 'all')
 		# Enable the flippers
 		self.game.enable_flippers(enable=True)
+
+	def setup(self, mode, exit_function, exit_function_param, instruction_layers):
+		self.exit_function = exit_function
+		self.exit_function_param = exit_function_param
+		self.mode = mode
+		self.instruction_layers = instruction_layers
+		self.layer = dmd.GroupedLayer(128, 32, self.instruction_layers[0])
 
 	def update_gi(self, on, num):
 		for i in range(1,5):
@@ -740,20 +741,50 @@ class PlayIntro(game.Mode):
 
 	def sw_flipperLwL_active(self, sw):
 		if self.game.switches.flipperLwR.is_active():
+			self.cancel_delayed('intro')
 			self.exit_function(self.exit_function_param)	
-			self.abort = 1
 
 	def sw_flipperLwR_active(self, sw):
 		if self.game.switches.flipperLwL.is_active():
+			self.cancel_delayed('intro')
 			self.exit_function(self.exit_function_param)	
-			self.abort = 1
 
 	def next_frame(self):
-		if self.frame_counter != len(self.instruction_layers) and not self.abort:
+		if self.frame_counter != len(self.instruction_layers):
 			self.delay(name='intro', event_type=None, delay=2, handler=self.next_frame)
 			self.layer = dmd.GroupedLayer(128, 32, self.instruction_layers[self.frame_counter])
 			self.frame_counter += 1
 		else:
 			self.exit_function(self.exit_function_param)	
 
+class UltimateChallenge(modes.Scoring_Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game, priority):
+		super(UltimateChallenge, self).__init__(game, priority)
+		self.completed = False
+		self.name = 'Ultimate Challenge'
+		self.countdown_layer = dmd.TextLayer(127, 1, self.game.fonts['tiny7'], "right")
+		self.name_layer = dmd.TextLayer(1, 1, self.game.fonts['tiny7'], "left").set_text(self.name)
+		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['num_14x10'], "center")
+		self.status_layer = dmd.TextLayer(128/2, 26, self.game.fonts['tiny7'], "center")
+		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
+		
 
+	def register_callback_function(self, function):
+		self.callback = function
+
+	def get_instruction_layers(self):
+		font = self.game.fonts['jazz18']
+		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(name)
+		instruction_layers = [[layer1]]
+		return instruction_layers
+
+	def mode_tick(self):
+		score = self.game.current_player().score
+		if score == 0:
+			self.score_layer.set_text('00')
+		else:
+			self.score_layer.set_text(locale.format("%d",score,True))
+
+	def timer_update(self, timer):
+		self.countdown_layer.set_text(str(timer))
