@@ -19,11 +19,13 @@ class Missile_Award_Mode(game.Mode):
 		self.award_ptr_adj = 0
 		self.title_layer.set_text("Missile Award")
 		self.element_layer.set_text("Left Fire btn collects:")
+		self.active = False
 
 	def mode_started(self):
 		self.rotate_awards()
 		self.delay(name='update', event_type=None, delay=self.delay_time, handler=self.update)
 		self.timer = 70
+		self.active = False
 		
 
 	def update_info_record(self, info_record):
@@ -43,6 +45,7 @@ class Missile_Award_Mode(game.Mode):
 
 	def update(self):
 		if self.timer == 0:
+			self.active = False
 			self.game.modes.remove(self)
 		elif self.timer == 3:
 			self.game.coils.shooterL.pulse()
@@ -50,6 +53,7 @@ class Missile_Award_Mode(game.Mode):
 			self.delay(name='update', event_type=None, delay=self.delay_time, handler=self.update)
 			self.timer -= 1
 		else:
+			self.active = True
 			self.delay(name='update', event_type=None, delay=self.delay_time, handler=self.update)
 			if self.timer > 10:
 				self.rotate_awards()
