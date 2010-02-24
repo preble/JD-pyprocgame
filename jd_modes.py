@@ -1,4 +1,5 @@
 from procgame import *
+import locale
 from chain_features import *
 from multiball import *
 from crimescenes import *
@@ -21,8 +22,10 @@ class JD_Modes(modes.Scoring_Mode):
 		self.reset()
 		
 		# Instantiate sub-modes
+		self.play_intro = PlayIntro(self.game, self.priority+1)
 		self.info = Info(game, priority+20)
 		self.info.callback = self.info_callback
+		self.ultimate_challenge = UltimateChallenge(game, priority+1)
 		self.mode_timer = ModeTimer(game, priority+1)
 		self.mode_pursuit = Pursuit(game, priority+1)
 		self.mode_blackout = Blackout(game, priority+1)
@@ -561,7 +564,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_fireL_active(self, sw):
 		if self.game.switches.shooterL.is_inactive():
 			self.rotate_modes(-1)
-		elif not self.any_mb_active() and self.missile_award_lit:
+		elif not self.any_mb_active() and self.missile_award_mode.active:
 			self.game.coils.shooterL.pulse(50)
 
 	def sw_leftRampExit_active(self, sw):
@@ -598,11 +601,12 @@ class JD_Modes(modes.Scoring_Mode):
 			if self.state == 'idle':
 				self.mode = self.modes_not_attempted[self.modes_not_attempted_ptr]
 				intro_instruction_layers = self.mode_list[self.mode].get_instruction_layers()
-				self.play_intro = PlayIntro(self.game, self.priority+1, self.modes_not_attempted[self.modes_not_attempted_ptr], self.activate_mode, self.modes_not_attempted[0], intro_instruction_layers)
+				self.play_intro.setup(self.modes_not_attempted[self.modes_not_attempted_ptr], self.activate_mode, self.modes_not_attempted[0], intro_instruction_layers)
 				self.game.modes.add(self.play_intro)
 			elif self.state == 'pre_ultimate_challenge':
 				self.game.lamps.rightStartFeature.disable()
-				self.play_intro = PlayIntro(self.game, self.priority+1, 'ultimate_challenge', self.activate_mode, 'ultimate_challenge', self.font)
+				intro_instruction_layers = self.ultimate_challenge.get_instruction_layers()
+				self.play_intro.setup('ultimate_challenge', self.activate_mode, None, intro_instruction_layers)
 				self.game.modes.add(self.play_intro)
 			else:
 				self.popperR_eject()
@@ -666,10 +670,10 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.game.ball == self.game.balls_per_game:
 			if self.replay.replay_achieved[0]:
 				text = 'Highest Score'
-				score = str(self.game.game_data['High Scores']['Grand Champion']['name']) + str(self.game.game_data['High Scores']['Grand Champion']['score'])
+				score = str(self.game.game_data['High Scores']['Grand Champion']['name']) + locale.format("%d",self.game.game_data['High Scores']['Grand Champion']['score'],True)
 			else:
 				text = 'Replay'
-				score = self.replay.replay_scores[0]
+				score = locale.format("%d",self.replay.replay_scores[0],True)
 			self.show_on_display(text, score, 'high')
 
 	def inner_loop_combo_handler(self):
@@ -724,7 +728,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.coils[coil_pulse[0]].pulse(coil_pulse[1])	
 
 
-	def activate_mode(self, mode):
+	def activate_mode(self, mode = None):
 		self.mode_timer.timer_update_callback = self.mode_list[self.mode].timer_update
 		self.game.modes.remove(self.play_intro)
 
