@@ -527,13 +527,13 @@ class Game(game.GameController):
 
 		# Setup and instantiate service mode
 		self.service_mode = procgame.service.ServiceMode(self,100,font_tiny7,[self.deadworld_test])
-		self.sound.register_sound('service_enter', shared_sound_path+"menu_in.wav")
-		self.sound.register_sound('service_exit', shared_sound_path+"menu_out.wav")
-		self.sound.register_sound('service_next', shared_sound_path+"next_item.wav")
-		self.sound.register_sound('service_previous', shared_sound_path+"previous_item.wav")
-		self.sound.register_sound('service_switch_edge', shared_sound_path+"switch_edge.wav")
-		self.sound.register_sound('service_save', shared_sound_path+"save.wav")
-		self.sound.register_sound('service_cancel', shared_sound_path+"cancel.wav")
+		#self.sound.register_sound('service_enter', shared_sound_path+"menu_in.wav")
+		#self.sound.register_sound('service_exit', shared_sound_path+"menu_out.wav")
+		#self.sound.register_sound('service_next', shared_sound_path+"next_item.wav")
+		#self.sound.register_sound('service_previous', shared_sound_path+"previous_item.wav")
+		#self.sound.register_sound('service_switch_edge', shared_sound_path+"switch_edge.wav")
+		#self.sound.register_sound('service_save', shared_sound_path+"save.wav")
+		#self.sound.register_sound('service_cancel', shared_sound_path+"cancel.wav")
 		
 		#self.sound.register_sound('slingL', shared_sound_path+'exp_smoother.wav')
 		#self.sound.register_sound('slingR', shared_sound_path+'exp_smoother2.wav')

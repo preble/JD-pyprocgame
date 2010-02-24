@@ -25,7 +25,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.play_intro = PlayIntro(self.game, self.priority+1)
 		self.info = Info(game, priority+20)
 		self.info.callback = self.info_callback
-		self.ultimate_challenge = UltimateChallenge(game, priority+1)
+		self.ultimate_challenge = UltimateChallenge(game, priority+10)
 		self.mode_timer = ModeTimer(game, priority+1)
 		self.mode_pursuit = Pursuit(game, priority+1)
 		self.mode_blackout = Blackout(game, priority+1)
@@ -78,6 +78,7 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_sound('outlane', sfx_path+"darkerintro loop.mp3")
 
 	def reset(self):
+		#self.state = 'pre_ultimate_challenge'
 		self.state = 'idle'
 		self.judges_attempted = []
 		self.judges_not_attempted = ['Fear', 'Mortis', 'Death', 'Fire']
@@ -163,6 +164,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.modes.remove(self.mode_timer)
 		self.game.modes.remove(self.crimescenes)
 		self.game.modes.remove(self.multiball)
+		self.game.modes.remove(self.ultimate_challenge)
 		self.game.modes.remove(self.low_priority_display)
 		self.game.modes.remove(self.mid_priority_display)
 		self.game.modes.remove(self.high_priority_display)
@@ -327,11 +329,13 @@ class JD_Modes(modes.Scoring_Mode):
 		else:
 			self.drive_mode_lamp('extraBall2','slow')
 
-		for mode in self.modes_not_attempted:
-			self.drive_mode_lamp(mode, 'off')
-		for mode in self.modes_attempted:
-			self.drive_mode_lamp(mode, 'on')
-		self.game.lamps.rightStartFeature.disable()
+
+		if self.state != 'ultimate_challenge':
+			for mode in self.modes_not_attempted:
+				self.drive_mode_lamp(mode, 'off')
+			for mode in self.modes_attempted:
+				self.drive_mode_lamp(mode, 'on')
+			self.game.lamps.rightStartFeature.disable()
 
 		if self.state == 'idle' or self.state == 'mode' or self.state == 'modes_complete':
 			if self.state == 'mode':
@@ -351,34 +355,39 @@ class JD_Modes(modes.Scoring_Mode):
 
 		if self.mystery_lit:
 			self.drive_mode_lamp('mystery', 'on')
+		else:
+			self.drive_mode_lamp('mystery', 'off')
 
 		if self.missile_award_lit:
 			self.drive_mode_lamp('airRade', 'medium')
+		else:
+			self.drive_mode_lamp('airRade', 'off')
 
 		if self.extra_balls_lit > 0:
 			self.enable_extra_ball_lamp()
 
-		if self.inner_loop_active:
-			self.game.lamps.perp2W.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			self.game.lamps.perp2R.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			self.game.lamps.perp2Y.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			self.game.lamps.perp2G.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-		else:
-			self.game.lamps.perp2W.disable()
-			self.game.lamps.perp2R.disable()
-			self.game.lamps.perp2Y.disable()
-			self.game.lamps.perp2G.disable()
-
-		if self.outer_loop_active:
-			self.game.lamps.perp4W.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			self.game.lamps.perp4R.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			self.game.lamps.perp4Y.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-			self.game.lamps.perp4G.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
-		else:
-			self.game.lamps.perp4W.disable()
-			self.game.lamps.perp4R.disable()
-			self.game.lamps.perp4Y.disable()
-			self.game.lamps.perp4G.disable()
+		if self.state != 'ultimate_challenge':
+			if self.inner_loop_active:
+				self.game.lamps.perp2W.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.game.lamps.perp2R.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.game.lamps.perp2Y.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.game.lamps.perp2G.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+			else:
+				self.game.lamps.perp2W.disable()
+				self.game.lamps.perp2R.disable()
+				self.game.lamps.perp2Y.disable()
+				self.game.lamps.perp2G.disable()
+	
+			if self.outer_loop_active:
+				self.game.lamps.perp4W.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.game.lamps.perp4R.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.game.lamps.perp4Y.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+				self.game.lamps.perp4G.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+			else:
+				self.game.lamps.perp4W.disable()
+				self.game.lamps.perp4R.disable()
+				self.game.lamps.perp4Y.disable()
+				self.game.lamps.perp4G.disable()
 
 
 	def rotate_modes(self, adder):
@@ -729,15 +738,13 @@ class JD_Modes(modes.Scoring_Mode):
 
 
 	def activate_mode(self, mode = None):
-		self.mode_timer.timer_update_callback = self.mode_list[self.mode].timer_update
 		self.game.modes.remove(self.play_intro)
 
 		# Put the ball back into play
 		self.popperR_eject()
 
 		if self.state == 'idle':
-			# Get the active mode
-			self.mode = self.modes_not_attempted[self.modes_not_attempted_ptr]
+			self.mode_timer.timer_update_callback = self.mode_list[self.mode].timer_update
 			# Pause multibal drop target mode if this mode uses the drop targets.
 			if self.mode == 'impersonator' or self.mode == 'safecracker':
 				self.multiball.drops.paused = True
@@ -763,11 +770,15 @@ class JD_Modes(modes.Scoring_Mode):
 			if self.num_extra_mode_balls > 0:
 				self.game.trough.launch_balls(self.num_extra_mode_balls, 'None')
 				self.num_extra_mode_balls = 0
+			self.update_lamps()
 			
 		elif self.state == 'pre_ultimate_challenge':
+			self.game.modes.remove(self.multiball)
+			self.game.modes.remove(self.crimescenes)
+			self.game.modes.remove(self.skill_shot)
 			# Disable missile award.  Save it so it can be reactivate later.
 			if self.missile_award_lit:
-				self.missile_award_lit_save = True
+				#self.missile_award_lit_save = True
 				self.missile_award_lit = False
 				self.drive_mode_lamp('airRade', 'off')
 		
@@ -779,9 +790,9 @@ class JD_Modes(modes.Scoring_Mode):
 			self.mystery_lit = True
 
 			# Start ultimate challenge!
-			# self.game.modes.add(self.ultimate_challenge)
+			self.game.modes.add(self.ultimate_challenge)
+			self.ultimate_challenge.begin()
 
-		self.update_lamps()
 
 	def setup_next_mode(self):
 		# Don't setup a mode if in multiball.
