@@ -49,6 +49,13 @@ class Attract(game.Mode):
 		pass
 
 	def mode_started(self):
+		self.ball_search_started = False
+		self.emptying_deadworld = False
+		if self.game.deadworld.num_balls_locked > 0:
+			self.game.deadworld.eject_balls(self.game.deadworld.num_balls_locked)
+			self.emptying_deadworld = True
+			self.delay(name='deadworld_empty', event_type=None, delay=10, handler=self.check_deadworld_empty)
+
 		# Blink the start button to notify player about starting a game.
 		self.game.lamps.startButton.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=False)
 		# Turn on minimal GI lamps
@@ -83,6 +90,7 @@ class Attract(game.Mode):
 
 		self.change_lampshow()
 		self.change_display(0)
+		self.ball_search_started = False
 
 	def mode_stopped(self):
 		pass
@@ -190,6 +198,7 @@ class Attract(game.Mode):
 		self.game.set_status("Volume Up : " + str(volume))
 		return True
 
+
 	# Start button starts a game if the trough is full.  Otherwise it
 	# initiates a ball search.
 	# This is probably a good place to add logic to detect completely lost balls.
@@ -209,12 +218,25 @@ class Attract(game.Mode):
 			self.game.add_player()
 			# Start the ball.  This includes ejecting a ball from the trough.
 			self.game.start_ball()
+			self.ball_search_started = False
 		else: 
-			
-			self.game.set_status("Ball Search!")
-			self.game.ball_search.perform_search(5)
-			self.game.deadworld.perform_ball_search()
+			if not self.ball_search_started and not self.emptying_deadworld:
+				self.delay(name='search_delay', event_type=None, delay=8.0, handler=self.search_delay)
+				self.ball_search_started = True
+				self.game.set_status("Ball Search!")
+				self.game.ball_search.perform_search(5)
+				self.game.deadworld.perform_ball_search()
 		return True
+
+	def search_delay(self):
+		self.ball_search_started = False
+
+	def check_deadworld_empty(self):
+		if self.game.deadworld.num_balls_locked > 0:
+			self.delay(name='deadworld_empty', event_type=None, delay=10, handler=self.check_deadworld_empty)
+		else:
+			self.emptying_deadworld = False
+			
 
 class BaseGameMode(game.Mode):
 	"""docstring for AttractMode"""
