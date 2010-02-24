@@ -59,10 +59,6 @@ class Deadworld(game.Mode):
 		if not self.performing_ball_search:
 			self.num_balls_to_eject -= 1
 			self.num_balls_locked -= 1
-			#self.game.set_status("1balls locked: " + str(self.num_balls_locked))
-		else:
-			self.performing_ball_search = 0
-			#self.game.set_status("2balls locked: " + str(self.num_balls_locked))
 			
 		
 	def sw_magnetOverRing_open(self,sw):
@@ -73,6 +69,7 @@ class Deadworld(game.Mode):
 	def crane_release(self):
 		self.game.coils.crane.disable()
 		self.game.coils.craneMagnet.disable()
+		self.performing_ball_search = 0
 		self.delay(name='crane_release_check', event_type=None, delay=1, handler=self.crane_release_check)
 
 
