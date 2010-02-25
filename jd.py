@@ -49,6 +49,7 @@ class Attract(game.Mode):
 		pass
 
 	def mode_started(self):
+		self.play_super_game = False
 		self.ball_search_started = False
 		self.emptying_deadworld = False
 		if self.game.deadworld.num_balls_locked > 0:
@@ -58,6 +59,8 @@ class Attract(game.Mode):
 
 		# Blink the start button to notify player about starting a game.
 		self.game.lamps.startButton.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=False)
+		# Blink the start button to notify player about starting a game.
+		self.game.lamps.superGame.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=False)
 		# Turn on minimal GI lamps
 		self.game.lamps.gi01.pulse(0)
 		self.game.lamps.gi02.disable()
@@ -228,6 +231,31 @@ class Attract(game.Mode):
 				self.game.deadworld.perform_ball_search()
 		return True
 
+	def sw_superGame_active(self, sw):
+		if self.game.trough.is_full():
+			self.play_super_game = True
+			self.game.lampctrl.save_state('temp')
+			# Stop the attract mode lampshows
+			self.cancel_delayed(name='lampshow')
+			self.game.lampctrl.stop_show()
+			# Remove attract mode from mode queue - Necessary?
+			self.game.modes.remove(self)
+			# Initialize game	
+			self.game.start_game()
+			# Add the first player
+			self.game.add_player()
+			# Start the ball.  This includes ejecting a ball from the trough.
+			self.game.start_ball()
+			self.ball_search_started = False
+		else: 
+			if not self.ball_search_started and not self.emptying_deadworld:
+				self.delay(name='search_delay', event_type=None, delay=8.0, handler=self.search_delay)
+				self.ball_search_started = True
+				self.game.set_status("Ball Search!")
+				self.game.ball_search.perform_search(5)
+				self.game.deadworld.perform_ball_search()
+		return True
+
 	def search_delay(self):
 		self.ball_search_started = False
 
@@ -265,6 +293,8 @@ class BaseGameMode(game.Mode):
 
 		# Create jd_modes, which handles all of the game rules
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7, font_jazz18)
+		if self.game.attract_mode.play_super_game:
+			self.jd_modes.state = 'pre_ultimate_challenge'
 
 		# Create mode to check for replay
 		self.replay = procgame.replay.Replay(self.game, 18)

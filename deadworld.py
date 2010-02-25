@@ -13,6 +13,7 @@ class Deadworld(game.Mode):
 		self.ball_eject_in_progress = 0
 		self.performing_ball_search = 0
 		self.add_switch_handler(name='globePosition2', event_type='active', delay=None, handler=self.crane_activate)
+		self.crane_delay_active = False
 	
 	def mode_started(self):
 		pass
@@ -56,10 +57,15 @@ class Deadworld(game.Mode):
 			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
 
 	def sw_craneRelease_active(self,sw):
-		if not self.performing_ball_search:
+		if not self.performing_ball_search and not self.crane_delay_active:
 			self.num_balls_to_eject -= 1
 			self.num_balls_locked -= 1
+			self.delay(name='crane_delay', event_type=None, delay=2, handler=self.end_crane_delay)
+			self.crane_delay_active = True
 		self.game.set_status("balls locked: " + str(self.num_balls_locked))
+
+	def end_crane_delay(self):
+		self.crane_delay_active = False
 			
 		
 	def sw_magnetOverRing_open(self,sw):

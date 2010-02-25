@@ -1,6 +1,7 @@
 from procgame import *
 import locale
 from chain_features import *
+from ultimate_challenge import *
 from multiball import *
 from crimescenes import *
 from airrade import *
@@ -23,6 +24,7 @@ class JD_Modes(modes.Scoring_Mode):
 		
 		# Instantiate sub-modes
 		self.play_intro = PlayIntro(self.game, self.priority+1)
+		self.play_ult_intro = UltimateIntro(self.game, self.priority+1)
 		self.info = Info(game, priority+20)
 		self.info.callback = self.info_callback
 		self.ultimate_challenge = UltimateChallenge(game, priority+10)
@@ -53,6 +55,9 @@ class JD_Modes(modes.Scoring_Mode):
 		self.low_priority_display = ModesDisplay(self.game, priority)
 		self.mid_priority_display = ModesDisplay(self.game, priority + 3)
 		self.high_priority_display = ModesDisplay(self.game, priority + 200)
+		self.low_priority_animation = ModesAnimation(self.game, priority)
+		self.mid_priority_animation = ModesAnimation(self.game, priority + 4)
+		self.high_priority_animation = ModesAnimation(self.game, priority + 210)
 
 		#self.game.sound.register_music('background', music_path+"mainSongLoop.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerSlower.mp3")
@@ -150,6 +155,9 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.modes.add(self.low_priority_display)
 		self.game.modes.add(self.mid_priority_display)
 		self.game.modes.add(self.high_priority_display)
+		self.game.modes.add(self.low_priority_animation)
+		self.game.modes.add(self.mid_priority_animation)
+		self.game.modes.add(self.high_priority_animation)
 
 		# Set flag for switch events the do something unique the first time they
 		# they are triggered.
@@ -168,6 +176,9 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.modes.remove(self.low_priority_display)
 		self.game.modes.remove(self.mid_priority_display)
 		self.game.modes.remove(self.high_priority_display)
+		self.game.modes.remove(self.low_priority_animation)
+		self.game.modes.remove(self.mid_priority_animation)
+		self.game.modes.remove(self.high_priority_animation)
 		if self.mode_active:
 			this_mode = self.mode_list[self.mode]
 			self.game.modes.remove(self.mode_list[self.mode])
@@ -316,6 +327,14 @@ class JD_Modes(modes.Scoring_Mode):
 			self.mid_priority_display.display(text,score)
 		elif priority == 'high':
 			self.high_priority_display.display(text,score)
+
+	def play_animation(self, anim, priority='low', repeat=False, hold=False):
+		if priority == 'low':
+			self.low_priority_animation.play(anim, repeat, hold)
+		elif priority == 'mid':
+			self.mid_priority_animation.play(anim, repeat, hold)
+		elif priority == 'high':
+			self.high_priority_animation.play(anim, repeat, hold)
 
 
 	def update_lamps(self):
@@ -614,9 +633,8 @@ class JD_Modes(modes.Scoring_Mode):
 				self.game.modes.add(self.play_intro)
 			elif self.state == 'pre_ultimate_challenge':
 				self.game.lamps.rightStartFeature.disable()
-				intro_instruction_layers = self.ultimate_challenge.get_instruction_layers()
-				self.play_intro.setup('ultimate_challenge', self.activate_mode, None, intro_instruction_layers)
-				self.game.modes.add(self.play_intro)
+				self.play_ult_intro.setup('fire', self.activate_mode)
+				self.game.modes.add(self.play_ult_intro)
 			else:
 				self.popperR_eject()
 		else:
@@ -702,7 +720,10 @@ class JD_Modes(modes.Scoring_Mode):
 	def award_extra_ball(self):
 		self.game.extra_ball()
 		self.extra_balls_lit -= 1
+		#Remove show_on_display call when animations are working.
 		self.show_on_display("Extra Ball!", 'None', 'high')
+		#anim = dmd.Animation().load("../shared/dmd/EBAnim.dmd")
+		#self.play_animation(anim, 'high', repeat=False, hold=False)
 		self.update_lamps()
 
 	def replay_callback(self):
@@ -738,12 +759,12 @@ class JD_Modes(modes.Scoring_Mode):
 
 
 	def activate_mode(self, mode = None):
-		self.game.modes.remove(self.play_intro)
 
 		# Put the ball back into play
 		self.popperR_eject()
 
 		if self.state == 'idle':
+			self.game.modes.remove(self.play_intro)
 			self.mode_timer.timer_update_callback = self.mode_list[self.mode].timer_update
 			# Pause multibal drop target mode if this mode uses the drop targets.
 			if self.mode == 'impersonator' or self.mode == 'safecracker':
@@ -773,6 +794,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.update_lamps()
 			
 		elif self.state == 'pre_ultimate_challenge':
+			self.game.modes.remove(self.play_ult_intro)
 			self.game.modes.remove(self.multiball)
 			self.game.modes.remove(self.crimescenes)
 			self.game.modes.remove(self.skill_shot)
@@ -951,3 +973,12 @@ class ModesDisplay(game.Mode):
 		else:
 			self.layer = dmd.GroupedLayer(128, 32, [self.score_layer])
 
+class ModesAnimation(game.Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game, priority):
+		super(ModesAnimation, self).__init__(game, priority)
+	
+	def play(self, anim, repeat=False, hold=False):
+		self.anim_layer = dmd.AnimatedLayer(anim.frames, repeat, hold)
+		self.layer = dmd.GroupedLayer(128, 32)
+		self.layer.layers += [self.anim_layer]
