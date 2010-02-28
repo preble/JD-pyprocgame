@@ -111,7 +111,7 @@ class Multiball(modes.Scoring_Mode):
 		# Use Virtual locks < 0 when the player has locked more balls than are
 		# physically locked.  This could happen when another player plays
 		# multiball and empties the locked balls.
-		if self.deadworld_mod_installed:
+		if self.deadworld_mod_installed and self.num_locks_lit > 0:
 			self.virtual_locks_needed = self.game.deadworld.num_balls_locked - self.num_balls_locked
 		else:
 			self.virtual_locks_needed = 0
@@ -121,7 +121,7 @@ class Multiball(modes.Scoring_Mode):
 			self.enable_lock()
 			self.display_text("Lock is Lit!")
 			self.num_balls_locked = self.game.deadworld.num_balls_locked
-			self.num_locks_lit = 0 - self.virtual_locks_needed
+			#self.num_locks_lit = 0 - self.virtual_locks_needed
 		elif self.num_balls_locked < self.num_locks_lit:
 			self.enable_lock()
 			self.display_text("Lock is Lit!")
@@ -228,15 +228,34 @@ class Multiball(modes.Scoring_Mode):
 		self.update_lamps()
 
 	def possibly_light_lock(self, mode):
+	
+
 		if self.state == 'load' and not self.paused:
 			# Prepare to lock
 			if self.num_locks_lit < 3:
 				if self.lock_level == 1:
 					self.num_locks_lit = 3
+					if self.deadworld_mod_installed:
+						self.virtual_locks_needed = \
+						self.game.deadworld.num_balls_locked
 				else:
 					self.num_locks_lit += 1
+					# Use calculations if deadwolrd is installed.
+
+					new_num_to_lock = self.num_locks_lit - self.num_balls_locked
+					extra_in_dw = self.game.deadworld.num_balls_locked - self.num_balls_locked
+					if extra_in_dw >= new_num_to_lock:
+						self.virtual_locks_needed = new_num_to_lock
+					else:
+						self.virtual_locks_needed = extra_in_dw
+
+					print "multiball variables"
+					print new_num_to_lock
+					print extra_in_dw
+					print self.virtual_locks_needed
+
 				# Don't enable locks if doing virtual locks.
-				if self.virtual_locks_needed == 0:
+				if self.virtual_locks_needed <= 0:
 					self.enable_lock()
 					self.display_text("Lock is Lit!")
 
@@ -247,6 +266,9 @@ class Multiball(modes.Scoring_Mode):
 			if self.virtual_locks_needed > 0:
 				self.num_balls_locked += 1
 				self.virtual_locks_needed -= 1
+				if self.virtual_locks_needed == 0 and \
+					self.num_balls_locked < self.num_locks_lit:
+					self.enable_lock()
 
 		elif self.state == 'multiball':
 			if not self.jackpot_lit:

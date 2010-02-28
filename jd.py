@@ -208,7 +208,7 @@ class Attract(game.Mode):
 	# Perhaps if the trough isn't full after a few ball search attempts, it logs a ball
 	# as lost?	
 	def sw_startButton_active(self, sw):
-		if self.game.trough.is_full():
+		if self.game.trough.is_full:
 			self.game.lampctrl.save_state('temp')
 			# Stop the attract mode lampshows
 			self.cancel_delayed(name='lampshow')
@@ -232,7 +232,7 @@ class Attract(game.Mode):
 		return True
 
 	def sw_superGame_active(self, sw):
-		if self.game.trough.is_full():
+		if self.game.trough.is_full:
 			self.play_super_game = True
 			self.game.lampctrl.save_state('temp')
 			# Stop the attract mode lampshows
