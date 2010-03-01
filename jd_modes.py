@@ -64,9 +64,11 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerFaster.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarkerEvenFaster.mp3")
 		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)LessSynthesizedLead.mp3")
-		self.game.sound.register_music('background', music_path+"mainSongDarker(161)DarkerMelody.mp3")
+		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)DarkerMelody.mp3")
+		self.game.sound.register_music('background', music_path+"brainsDarkMelody(161).aif")
 		#self.game.sound.register_music('background', music_path+"mainSongDarker(161)QuieterMelody.mp3")
-		self.game.sound.register_music('ball_launch', music_path+"darkerintro loop.mp3")
+		#self.game.sound.register_music('ball_launch', music_path+"darkerintro loop.mp3")
+		self.game.sound.register_music('ball_launch', music_path+"introloop(161).aif")
 		#self.game.sound.register_sound('ball_launch', music_path+"darkerintro loop.mp3")
 		self.game.sound.register_sound('outlane', sfx_path+"outlane.ogg")
 		self.game.sound.register_sound('inlane', sfx_path+"inlane.ogg")
@@ -74,7 +76,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.sound.register_sound('ball_launch', sfx_path+"balllaunchmotorcycle.ogg")
 		self.game.sound.register_sound('drop_target', sfx_path+"droptarget.ogg")
 		self.game.sound.register_sound('extra_ball_target', sfx_path+"extraballtargetlower.ogg")
-		self.game.sound.register_sound('shooterL_launch', sfx_path+"left_kickback.ogg")
+		self.game.sound.register_sound('shooterL_launch', sfx_path+"left kickback.ogg")
 		self.game.sound.register_sound('outer_loop', sfx_path+"loopflyby.ogg")
 		self.game.sound.register_sound('inner_loop', sfx_path+"loopflyby.ogg")
 		self.game.sound.register_sound('mystery', sfx_path+"questionmarktarget.ogg")
@@ -488,7 +490,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.delay(name='inner_loop', event_type=None, delay=3.0, handler=self.inner_loop_combo_handler )
 			self.show_on_display('inner loop: ' + str(self.inner_loop_combos), score, 'mid')
 			self.inner_loop_active = True
-			self.update_lamps()
+			self.game.update_lamps()
 
 	def sw_leftRollover_active(self, sw):
 		#See if ball came around right loop
@@ -502,7 +504,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.delay(name='outer_loop', event_type=None, delay=3.0, handler=self.outer_loop_combo_handler )
 			self.show_on_display('outer loop: ' + str(self.outer_loop_combos), score, 'mid')
 			self.outer_loop_active = True
-			self.update_lamps()
+			self.game.update_lamps()
 
 	def sw_dropTargetJ_active(self, sw):
 		self.game.sound.play('drop_target')
@@ -585,7 +587,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.coils.shooterR.pulse(50)
 			if self.ball_starting:
 				self.game.sound.stop_music()
-				self.game.sound.play_music('background')
+				self.game.sound.play_music('background', loops=-1)
 
 	
 
@@ -844,6 +846,7 @@ class JD_Modes(modes.Scoring_Mode):
 			if self.missile_award_lit:
 				self.drive_mode_lamp('airRade', 'off')
 				self.missile_award_lit_save = True
+				self.missile_award_lit = False
 
 	def multiball_ended(self):
 		# Make sure no other multiball is still active
