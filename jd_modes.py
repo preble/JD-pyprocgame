@@ -8,6 +8,7 @@ from airrade import *
 from skillshot import *
 from info import *
 from missile_award import *
+import os.path
 
 music_path = "./games/jd/sound/"
 sfx_path = "./games/jd/sound/FX/"
@@ -724,8 +725,10 @@ class JD_Modes(modes.Scoring_Mode):
 		self.extra_balls_lit -= 1
 		#Remove show_on_display call when animations are working.
 		#self.show_on_display("Extra Ball!", 'None', 'high')
-		anim = dmd.Animation().load("../shared/dmd/EBAnim.dmd")
-		self.play_animation(anim, 'high', repeat=False, hold=False)
+		filename = "../shared/dmd/EBAnim.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.play_animation(anim, 'high', repeat=False, hold=False)
 		self.update_lamps()
 
 	def replay_callback(self):
