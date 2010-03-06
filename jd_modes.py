@@ -723,9 +723,9 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.extra_ball()
 		self.extra_balls_lit -= 1
 		#Remove show_on_display call when animations are working.
-		self.show_on_display("Extra Ball!", 'None', 'high')
-		#anim = dmd.Animation().load("../shared/dmd/EBAnim.dmd")
-		#self.play_animation(anim, 'high', repeat=False, hold=False)
+		#self.show_on_display("Extra Ball!", 'None', 'high')
+		anim = dmd.Animation().load("../shared/dmd/EBAnim.dmd")
+		self.play_animation(anim, 'high', repeat=False, hold=False)
 		self.update_lamps()
 
 	def replay_callback(self):
@@ -982,6 +982,6 @@ class ModesAnimation(game.Mode):
 		super(ModesAnimation, self).__init__(game, priority)
 	
 	def play(self, anim, repeat=False, hold=False):
-		self.anim_layer = dmd.AnimatedLayer(anim.frames, repeat, hold)
+		self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=repeat, hold=hold)
 		self.layer = dmd.GroupedLayer(128, 32)
 		self.layer.layers += [self.anim_layer]
