@@ -122,6 +122,8 @@ class Multiball(modes.Scoring_Mode):
 			self.display_text("Lock is Lit!")
 			self.num_balls_locked = self.game.deadworld.num_balls_locked
 			#self.num_locks_lit = 0 - self.virtual_locks_needed
+		elif self.virtual_locks_needed > 0:
+			self.enable_virtual_lock()
 		elif self.num_balls_locked < self.num_locks_lit:
 			self.enable_lock()
 			self.display_text("Lock is Lit!")
@@ -162,13 +164,19 @@ class Multiball(modes.Scoring_Mode):
 	def enable_lock(self):
 		self.game.deadworld.enable_lock()
 		self.game.coils.flasherGlobe.schedule(schedule=0x0000AAAA, cycle_seconds=2, now=True)
-		self.lock_enabled = 1
+		self.lock_enabled = True
 		switch_num = self.game.switches['leftRampEnter'].number
 		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
 		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, True)
 		switch_num = self.game.switches['leftRampEnterAlt'].number
 		#self.game.install_switch_rule_coil_pulse(switch_num, 'closed_debounced', 'diverter', 255, True, True)
 		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, True)
+		
+	def enable_virtual_lock(self):
+		self.game.deadworld.enable_lock()
+		self.game.coils.flasherGlobe.schedule(schedule=0x0000AAAA, cycle_seconds=2, now=True)
+		# Make sure deadworld will eject a ball if one happens to enter.
+		self.lock_enabled = False
 		
 	def multiball_launch_callback(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
@@ -257,6 +265,9 @@ class Multiball(modes.Scoring_Mode):
 				# Don't enable locks if doing virtual locks.
 				if self.virtual_locks_needed <= 0:
 					self.enable_lock()
+					self.display_text("Lock is Lit!")
+				else:
+					self.enable_virtual_lock()
 					self.display_text("Lock is Lit!")
 
 			self.update_lamps()
