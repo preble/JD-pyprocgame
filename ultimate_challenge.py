@@ -11,12 +11,12 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.name = 'Ultimate Challenge'
 		self.modes = ['fire','fear','mortis','death']
 		self.mode_fire = Fire(game, self.priority+1)
-		self.mode_fear = Fire(game, self.priority+1)
-		self.mode_mortis = Fire(game, self.priority+1)
+		self.mode_fear = Fear(game, self.priority+1)
+		self.mode_mortis = Mortis(game, self.priority+1)
 		self.mode_death = Fire(game, self.priority+1)
 
 	def mode_started(self):
-		self.active_mode = 'fire'
+		self.active_mode = 'mortis'
 		self.mode_list = {}
 		self.mode_list['fire'] = self.mode_fire
 		self.mode_list['fear'] = self.mode_fear
@@ -35,6 +35,17 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.game.modes.remove(self.mode_death)
 
 	def begin(self):
+		self.game.lamps.rightStartFeature.disable()
+		self.game.lamps.ultChallenge.pulse(0)
+		self.game.lamps.gi01.disable()
+		self.game.lamps.gi02.disable()
+		self.game.lamps.gi03.disable()
+		self.game.lamps.gi04.disable()
+		self.game.lamps.dropTargetJ.disable()
+		self.game.lamps.dropTargetU.disable()
+		self.game.lamps.dropTargetD.disable()
+		self.game.lamps.dropTargetG.disable()
+		self.game.lamps.dropTargetE.disable()
 		self.game.modes.add(self.mode_list[self.active_mode])
 
 	def register_callback_function(self, function):
@@ -68,8 +79,16 @@ class UltimateChallenge(modes.Scoring_Mode):
 		if self.game.trough.num_balls_in_play == 0:
 			if self.active_mode == 'fire':
 				self.game.modes.remove(self.mode_fire)
-				self.active_mode == 'fear'
+				self.active_mode = 'mortis'
+				self.game.modes.add(self.mode_mortis)
+			elif self.active_mode == 'mortis':
+				self.game.modes.remove(self.mode_mortis)
+				self.active_mode = 'fear'
 				self.game.modes.add(self.mode_fear)
+			elif self.active_mode == 'fear':
+				self.game.modes.remove(self.mode_fear)
+				self.active_mode = 'fire'
+				self.game.modes.add(self.mode_fire)
 			self.game.trough.drain_callback = self.game.base_game_mode.ball_drained_callback
 			self.game.enable_flippers(True)
 
@@ -259,10 +278,7 @@ class Fire(modes.Scoring_Mode):
 		return True
 
 	def finish(self):
-		self.game.lamps.gi01.disable()
-		self.game.lamps.gi02.disable()
-		self.game.lamps.gi03.disable()
-		self.game.lamps.gi04.disable()
+		self.game.coils.flasherFire.disable()
 		self.game.enable_flippers(False)
 		self.update_lamps()
 		self.complete = True
@@ -279,56 +295,65 @@ class Fear(modes.Scoring_Mode):
 		super(Fear, self).__init__(game, priority)
 		self.complete = False
 		self.mystery_lit = True
+		self.countdown_layer = dmd.TextLayer(127, 1, self.game.fonts['tiny7'], "right")
+		self.name_layer = dmd.TextLayer(1, 1, self.game.fonts['tiny7'], "left").set_text('Fear')
+		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['num_14x10'], "center")
+		self.status_layer = dmd.TextLayer(128/2, 26, self.game.fonts['tiny7'], "center")
+		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
 
 	def mode_started(self):
+		self.state = 'ramps'
+		self.ramp_shots_required = 4
+		self.ramp_shots_hit = 0
+		self.active_ramp = 'left'
+		self.timer = 20
 		self.mystery_lit = True
-		self.game.coils.flasherFire.schedule(schedule=0x80808080, cycle_seconds=0, now=True)
-		self.targets = [1,1,1,1,1]
-		self.lamp_colors = ['G', 'Y', 'R', 'W']
 		self.update_lamps()
 		self.complete = False
-		if self.game.deadworld.num_balls_locked == 1:
-			balls_to_launch = 4
-		elif self.game.deadworld.num_balls_locked == 2:
-			balls_to_launch = 3
-		else:
-			balls_to_launch = 5
-		if balls_to_launch != 5:
-			self.game.deadworld.eject_balls(self.game.deadworld.num_balls_locked)
-		self.game.trough.launch_balls(balls_to_launch, self.launch_callback)
+		self.game.trough.launch_balls(1, self.launch_callback)
+		self.game.coils.flasherFear.schedule(schedule=0x80808080, cycle_seconds=0, now=True)
+		self.already_collected = False
+		self.delay(name='countdown', event_type=None, delay=1, handler=self.decrement_timer)
 
 	def launch_callback(self):
-		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
-		self.game.ball_save.start(num_balls_to_save=6, time=ball_save_time, now=False, allow_multiple_saves=True)
+		ball_save_time = 10
+		self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=False, allow_multiple_saves=True)
+		pass
 
 	def mode_stopped(self):
 		self.game.coils.flasherFire.disable()
 
-	def check_for_completion(self):
-		self.update_status()
-		if self.shots == self.shots_required_for_completion:
-			self.completed = True
-			self.game.score(50000)
-			print "% 10.3f Pursuit calling callback" % (time.time())
-			self.callback()
-
 	def update_lamps(self):
-		for i in range(0,5):
-			for j in range(0,4):
-				lampname = 'perp' + str(i+1) + self.lamp_colors[j]
-				if self.targets[i]:
-					print lampname + 'on'
-					self.drive_mode_lamp(lampname, 'medium')
-				else:
-					print lampname + 'off'
-					self.drive_mode_lamp(lampname, 'off')
-		if self.complete:
-			self.game.coils.flasherFire.disable()
-
 		if self.mystery_lit:
 			self.drive_mode_lamp('mystery', 'on')
 		else:
 			self.drive_mode_lamp('mystery', 'off')
+
+		if self.state == 'finished':
+			self.game.coils.flasherFear.disable()
+			self.game.coils.flasherPursuitR.disable()
+			self.game.coils.flasherPursuitL.disable()
+			self.game.lamps.pickAPrize.disable()
+			self.game.lamps.awardSafecracker.disable()
+			self.game.lamps.awardBadImpersonator.disable()
+			self.game.lamps.multiballJackpot.disable()
+		elif self.state == 'ramps':
+			if self.active_ramp == 'left':
+				self.game.coils.flasherPursuitL.schedule(schedule=0x00030003, cycle_seconds=0, now=True)
+				self.game.coils.flasherPursuitR.disable()
+			else:
+				self.game.coils.flasherPursuitR.schedule(schedule=0x00030003, cycle_seconds=0, now=True)
+				self.game.coils.flasherPursuitL.disable()
+		else:
+			if self.game.switches.dropTargetD.is_inactive():
+				self.game.lamps.dropTargetD.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+			else:
+				self.game.lamps.dropTargetD.disable()
+				self.game.lamps.pickAPrize.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+				self.game.lamps.awardSafecracker.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+				self.game.lamps.awardBadImpersonator.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+				self.game.lamps.multiballJackpot.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+			
 
 			
 	def drive_mode_lamp(self, lampname, style='on'):
@@ -346,9 +371,8 @@ class Fear(modes.Scoring_Mode):
 	def sw_mystery_active(self, sw):
 		self.game.sound.play('mystery')
 		if self.mystery_lit:
+			self.timer = 20
 			self.mystery_lit = False
-			self.game.ball_save.start(num_balls_to_save=6, time=10, now=True, allow_multiple_saves=True)
-			self.game.set_status('+10 second ball saver')
 		return True
 
 	def sw_leftRampToLock_active(self, sw):
@@ -356,67 +380,252 @@ class Fear(modes.Scoring_Mode):
 		return True
 
 
+	def sw_leftRampExit_active(self, sw):
+		if self.state == 'ramps':
+			if self.active_ramp == 'left':
+				self.ramp_shots_hit += 1
+				self.ramp_shot_hit()
+
+		return True
+
+	def sw_rightRampExit_active(self, sw):
+		if self.state == 'ramps':
+			if self.active_ramp == 'right':
+				self.ramp_shots_hit += 1
+				self.ramp_shot_hit()
+		return True
+
+	def sw_popperR_active_for_300ms(self, sw):
+		return True
+
+	def ramp_shot_hit(self):
+		if self.ramp_shots_hit == self.ramp_shots_required:
+			self.state = 'subway'
+		else:
+			self.switch_ramps()
+		self.timer = 20
+		self.update_lamps()
+
+	def switch_ramps(self):
+		if self.active_ramp == 'left':
+			self.active_ramp = 'right'
+		else:
+			self.active_ramp = 'left'
+
+	def sw_dropTargetD_inactive_for_400ms(self, sw):
+		self.game.coils.tripDropTarget.pulse(60)
+
+	def sw_dropTargetJ_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetU_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetD_active_for_250ms(self,sw):
+		if self.state == 'ramps':
+			self.drop_targets()
+		else:
+			self.update_lamps()
+
+	def sw_dropTargetG_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetE_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def drop_targets(self):
+		self.game.coils.resetDropTarget.pulse(40)
+		return True
+
+	def sw_subwayEnter1_closed(self, sw):
+		self.finish()
+		self.cancel_delayed(['grace', 'countdown'])
+		self.already_collected = True
+		return True
+	
+	# Ball might jump over first switch.  Use 2nd switch as a catchall.
+	def sw_subwayEnter2_closed(self, sw):
+		if not self.already_collected:
+			self.banner_layer.set_text('Well Done!')
+			self.finish()
+			self.cancel_delayed(['grace', 'countdown'])
+		return True
+	
+
+	def finish(self, success = True):
+		self.state = 'finished'
+		self.game.enable_flippers(False)
+		self.update_lamps()
+		if success:
+			self.complete = True
+			self.complete_callback()
+		
+		# Call callback back to ult-challenge.
+		# in ult-challenge, change trough callback so that mode can 
+		# transition when all balls drain.  It should keep track of 
+		# original callback so it can replace it while modes are active.
+
+	def mode_tick(self):
+		score = self.game.current_player().score
+		if score == 0:
+			self.score_layer.set_text('00')
+		else:
+			self.score_layer.set_text(locale.format("%d",score,True))
+
+	def decrement_timer(self):
+		if self.timer > 0:
+			self.timer -= 1
+			self.delay(name='countdown', event_type=None, delay=1, handler=self.decrement_timer)
+			self.countdown_layer.set_text(str(self.timer))
+		else:
+			self.finish(False)
+
+class Mortis(modes.Scoring_Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game, priority):
+		super(Mortis, self).__init__(game, priority)
+		self.complete = False
+		self.mystery_lit = True
+
+	def mode_started(self):
+		self.state = 'ramps'
+		self.shots_required = [2, 2, 2, 2, 2]
+		self.update_lamps()
+		self.complete = False
+		self.game.trough.launch_balls(2, self.launch_callback)
+		self.game.coils.flasherMortis.schedule(schedule=0x80808080, cycle_seconds=0, now=True)
+		self.already_collected = False
+
+	def launch_callback(self):
+		ball_save_time = 20
+		self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=False, allow_multiple_saves=True)
+		pass
+
+	def mode_stopped(self):
+		self.game.coils.flasherMortis.disable()
+
+	def update_lamps(self):
+		self.drive_shot_lamp(0, 'mystery')
+		self.drive_shot_lamp(1, 'perp1W')
+		self.drive_shot_lamp(1, 'perp1R')
+		self.drive_shot_lamp(1, 'perp1Y')
+		self.drive_shot_lamp(1, 'perp1G')
+		self.drive_shot_lamp(2, 'perp3W')
+		self.drive_shot_lamp(2, 'perp3R')
+		self.drive_shot_lamp(2, 'perp3Y')
+		self.drive_shot_lamp(2, 'perp3G')
+		self.drive_shot_lamp(3, 'perp5W')
+		self.drive_shot_lamp(3, 'perp5R')
+		self.drive_shot_lamp(3, 'perp5Y')
+		self.drive_shot_lamp(3, 'perp5G')
+		self.drive_shot_lamp(4, 'stopMeltdown')
+
+	def drive_shot_lamp(self, index, lampname):
+		if self.shots_required[index] > 1:
+			self.game.lamps[lampname].schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+		elif self.shots_required[index] > 0:
+			self.game.lamps[lampname].schedule(schedule=0x55555555, cycle_seconds=0, now=True)
+		else:
+			self.game.lamps[lampname].disable()
+			
+
+			
+	def drive_mode_lamp(self, lampname, style='on'):
+		if style == 'slow':
+			self.game.lamps[lampname].schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
+		if style == 'medium':
+			self.game.lamps[lampname].schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
+		if style == 'fast':
+			self.game.lamps[lampname].schedule(schedule=0x55555555, cycle_seconds=0, now=True)
+		elif style == 'on':
+			self.game.lamps[lampname].pulse(0)
+		elif style == 'off':
+			self.game.lamps[lampname].disable()
+
+	def sw_mystery_active(self, sw):
+		self.switch_hit(0)
+		return True
+
 	def sw_topRightOpto_active(self, sw):
 		#See if ball came around outer left loop
 		if self.game.switches.leftRollover.time_since_change() < 1:
-			self.switch_hit(0)
-
-		#See if ball came around inner left loop
-		elif self.game.switches.topCenterRollover.time_since_change() < 1:
 			self.switch_hit(1)
-
 		return True
 
 	def sw_popperR_active_for_300ms(self, sw):
 		self.switch_hit(2)
 		return True
 
-	def sw_leftRollover_active(self, sw):
-		#See if ball came around right loop
-		if self.game.switches.topRightOpto.time_since_change() < 1.5:
-			self.switch_hit(3)
-		return True
-
-	def sw_topCenterRollover_active(self, sw):
-		#See if ball came around right loop 
-		#Give it 2 seconds as ball trickles this way.  Might need to adjust.
-		if self.game.switches.topRightOpto.time_since_change() < 2:
-			self.switch_hit(3)
-		return True
-
 	def sw_rightRampExit_active(self, sw):
+		self.switch_hit(3)
+		return True
+
+	def sw_captiveBall3_active(self, sw):
 		self.switch_hit(4)
 		return True
 
-	def switch_hit(self, num):
-		if self.targets[num]:
-			self.targets[num] = 0
-			self.target_hit(num)
-			if self.all_targets_hit():
-				self.finish()
-			self.update_lamps()
-			
-
-	def target_hit(self, num):
-		pass
-
-	def all_targets_hit(self):
-		for i in range(0,5):
-			if self.targets[i]:
-				return False
+	def sw_leftRampToLock_active(self, sw):
+		self.game.deadworld.eject_balls(1)
 		return True
 
-	def finish(self):
-		self.game.lamps.gi01.disable()
-		self.game.lamps.gi02.disable()
-		self.game.lamps.gi03.disable()
-		self.game.lamps.gi04.disable()
+
+	def switch_hit(self, index):
+		if self.shots_required[index] > 0:
+			self.shots_required[index] -= 1
+			self.update_lamps()
+			self.check_for_completion()
+
+	def sw_dropTargetJ_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetU_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetD_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetG_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def sw_dropTargetE_active_for_250ms(self,sw):
+		self.drop_targets()
+
+	def drop_targets(self):
+		self.game.coils.resetDropTarget.pulse(40)
+		return True
+
+	def check_for_completion(self):
+		for i in range(0,5):
+			if self.shots_required[i] > 0:
+				return False
+		self.finish()
+
+	def finish(self, success = True):
+		self.state = 'finished'
 		self.game.enable_flippers(False)
-		self.update_lamps()
-		self.complete = True
-		self.complete_callback()
+
+		self.game.lamps.perp1W.disable()
+		self.game.lamps.perp1R.disable()
+		self.game.lamps.perp1Y.disable()
+		self.game.lamps.perp1G.disable()
+		self.game.lamps.perp3W.disable()
+		self.game.lamps.perp3R.disable()
+		self.game.lamps.perp3Y.disable()
+		self.game.lamps.perp3G.disable()
+		self.game.lamps.perp5W.disable()
+		self.game.lamps.perp5R.disable()
+		self.game.lamps.perp5Y.disable()
+		self.game.lamps.perp5G.disable()
+		self.game.lamps.mystery.disable()
+		self.game.lamps.stopMeltdown.disable()
+		self.game.coils.flasherMortis.disable()
+
+		if success:
+			self.complete = True
+			self.complete_callback()
 		
 		# Call callback back to ult-challenge.
 		# in ult-challenge, change trough callback so that mode can 
 		# transition when all balls drain.  It should keep track of 
 		# original callback so it can replace it while modes are active.
+
