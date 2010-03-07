@@ -369,7 +369,7 @@ class JD_Modes(modes.Scoring_Mode):
 					self.drive_mode_lamp(self.modes_not_attempted[self.modes_not_attempted_ptr],'slow')
 			self.drive_mode_lamp('ultChallenge','off') 
 		elif self.state == 'ultimate_challenge':
-			self.drive_mode_lamp('ultChallenge','slow') 
+			self.drive_mode_lamp('ultChallenge','on') 
 		elif self.state == 'pre_ultimate_challenge':
 			self.drive_mode_lamp('ultChallenge','slow') 
 			if not self.any_mb_active():
@@ -804,6 +804,9 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.modes.remove(self.crimescenes)
 			self.game.modes.remove(self.skill_shot)
 			# Disable missile award.  Save it so it can be reactivate later.
+
+			self.mystery_lit = False
+
 			if self.missile_award_lit:
 				#self.missile_award_lit_save = True
 				self.missile_award_lit = False
@@ -812,9 +815,6 @@ class JD_Modes(modes.Scoring_Mode):
 			# Change state to indicate ultimate challenge is active
 			self.game.set_status('challenge in progress')
 			self.state = 'ultimate_challenge'
-
-			# Light mystery to start the finale
-			self.mystery_lit = True
 
 			# Start ultimate challenge!
 			self.game.modes.add(self.ultimate_challenge)

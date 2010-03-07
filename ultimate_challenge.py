@@ -35,17 +35,6 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.game.modes.remove(self.mode_death)
 
 	def begin(self):
-		self.game.lamps.rightStartFeature.disable()
-		self.game.lamps.ultChallenge.pulse(0)
-		self.game.lamps.gi01.disable()
-		self.game.lamps.gi02.disable()
-		self.game.lamps.gi03.disable()
-		self.game.lamps.gi04.disable()
-		self.game.lamps.dropTargetJ.disable()
-		self.game.lamps.dropTargetU.disable()
-		self.game.lamps.dropTargetD.disable()
-		self.game.lamps.dropTargetG.disable()
-		self.game.lamps.dropTargetE.disable()
 		self.game.modes.add(self.mode_list[self.active_mode])
 
 	def register_callback_function(self, function):
@@ -65,7 +54,7 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.countdown_layer.set_text(str(timer))
 
 	def update_lamps(self):
-		self.game.lamps['ultChallenge'].pulse(0)
+		pass
 
 	def sw_shooterL_active_for_200ms(self, sw):
 		self.game.coils.shooterL.pulse()
@@ -106,10 +95,23 @@ class UltimateIntro(game.Mode):
 		self.update_gi(False, 'all')
 		# Disable the flippers
 		self.game.enable_flippers(enable=False)
+		self.game.lamps.rightStartFeature.disable()
+		self.game.lamps.ultChallenge.pulse(0)
+		# Leave GI off for Ultimate Challenge
+		#self.game.lamps.gi01.disable()
+		#self.game.lamps.gi02.disable()
+		#self.game.lamps.gi03.disable()
+		#self.game.lamps.gi04.disable()
+		self.game.lamps.dropTargetJ.disable()
+		self.game.lamps.dropTargetU.disable()
+		self.game.lamps.dropTargetD.disable()
+		self.game.lamps.dropTargetG.disable()
+		self.game.lamps.dropTargetE.disable()
 
 	def mode_stopped(self):
 		self.cancel_delayed('intro')
-		self.update_gi(True, 'all')
+		# Leave GI off for Ultimate Challenge
+		# self.update_gi(True, 'all')
 		# Enable the flippers
 		self.game.enable_flippers(enable=True)
 
@@ -485,7 +487,6 @@ class Mortis(modes.Scoring_Mode):
 	def __init__(self, game, priority):
 		super(Mortis, self).__init__(game, priority)
 		self.complete = False
-		self.mystery_lit = True
 
 	def mode_started(self):
 		self.state = 'ramps'
@@ -498,7 +499,7 @@ class Mortis(modes.Scoring_Mode):
 
 	def launch_callback(self):
 		ball_save_time = 20
-		self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=False, allow_multiple_saves=True)
+		self.game.ball_save.start(num_balls_to_save=2, time=ball_save_time, now=False, allow_multiple_saves=True)
 		pass
 
 	def mode_stopped(self):
