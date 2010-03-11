@@ -1,6 +1,7 @@
 import procgame
 from procgame import *
 from random import *
+import os.path
 
 sound_path = "./games/jd/sound/FX/"
 
@@ -42,7 +43,7 @@ class Crimescenes(modes.Scoring_Mode):
                                                  [0,1,2,3,4], [0,1,2,3,4] ]
 			self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
 		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
-		self.block_war = BlockWar(game, priority+1)
+		self.block_war = BlockWar(game, priority+5)
 		self.total_levels = 0
 
 	def reset(self):
@@ -56,6 +57,7 @@ class Crimescenes(modes.Scoring_Mode):
 		self.level = 0
 		self.mode = 'idle'
 		self.targets = [1,0,0,0,0]
+		self.update_lamps()
 
 	def mode_started(self):
 		self.reset()
@@ -222,7 +224,7 @@ class Crimescenes(modes.Scoring_Mode):
 			self.switch_hit(0)
 
 		#See if ball came around inner left loop
-		elif self.game.switches.topCenterRollover.time_since_change() < 1:
+		elif self.game.switches.topCenterRollover.time_since_change() < 1.5:
 			self.switch_hit(1)
 
 	def sw_popperR_active_for_300ms(self, sw):
@@ -408,7 +410,13 @@ class BlockWar(game.Mode):
 		super(BlockWar, self).__init__(game, priority)
 		self.countdown_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
-		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
+		filename = "./games/jd/dmd/blockwars.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=3)
+			self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer, self.countdown_layer, self.banner_layer])
+		else:
+			self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
 		self.game.sound.register_sound('block_war_target', sound_path+'droptarget.ogg')
 	
 	def mode_started(self):

@@ -2,6 +2,7 @@ import procgame
 import locale
 import time
 from procgame import *
+import os.path
 
 class ModeCompletedHurryup(game.Mode):
 	"""docstring for AttractMode"""
@@ -167,6 +168,10 @@ class Blackout(ChainFeature):
 		self.game.lamps.blackoutJackpot.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 		self.shots = 0
 		self.update_status()
+		filename = "./games/jd/dmd/blackout.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.game.base_game_mode.jd_modes.play_animation(anim, 'high', repeat=False, hold=False, frame_time=3)
 
 	def update_status(self):
 		if self.shots > self.shots_required_for_completion:
@@ -235,6 +240,10 @@ class Sniper(ChainFeature):
 	def sw_popperR_active_for_300ms(self, sw):
 		self.shots += 1
 		self.game.score(10000)
+		filename = "./games/jd/dmd/dredd_shoot_at_sniper.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.game.base_game_mode.jd_modes.play_animation(anim, 'high', repeat=False, hold=False, frame_time=5)
 		self.check_for_completion()
 
 	def check_for_completion(self):

@@ -293,8 +293,6 @@ class BaseGameMode(game.Mode):
 
 		# Create jd_modes, which handles all of the game rules
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7, font_jazz18)
-		if self.game.attract_mode.play_super_game:
-			self.jd_modes.state = 'pre_ultimate_challenge'
 
 		# Create mode to check for replay
 		self.replay = procgame.replay.Replay(self.game, 18)
@@ -313,6 +311,11 @@ class BaseGameMode(game.Mode):
 		# Load the player data saved from the previous ball.
 		# It will be empty if this is the first ball.
 		self.jd_modes.update_info_record(self.game.get_player_record('JD_MODES'))
+		if self.game.attract_mode.play_super_game:
+			self.jd_modes.multiball.jackpot_collected = True
+			self.jd_modes.crimescenes.complete = True
+			self.jd_modes.modes_not_attempted = []
+		self.jd_modes.begin_processing()
 
 		# Set up ball save params to be passed into launch_balls.
 		ball_save_time = self.game.user_settings['Gameplay']['New ball ballsave time']
