@@ -112,16 +112,20 @@ class Attract(game.Mode):
 		if index == 0:
 			ret_delay = self.setup_intro_display()
 		elif index == 1:
-			ret_delay = self.setup_intro_display()
+			ret_delay = self.setup_judges_display()
 		elif index == 2:
-			ret_delay = self.setup_scores_display()
-		elif index == 3:
 			ret_delay = self.setup_intro_display()
+		elif index == 3:
+			ret_delay = self.setup_scores_display()
 		elif index == 4:
+			ret_delay = self.setup_intro_display()
+		elif index == 5:
+			ret_delay = self.setup_judges_display()
+		elif index == 6:
 			ret_delay = self.setup_credits_display()
 		else: 
 			ret_delay = self.setup_game_over_display()
-		if index >= 4:
+		if index >= 6:
 			new_index = 0
 		else:
 			new_index = index + 1			
@@ -153,6 +157,13 @@ class Attract(game.Mode):
 		self.credits_sound_1 = dmd.TextLayer(1, 22, font_tiny7, "left").set_text("Music: Jonathan Coultan")
 		self.credits_layer = dmd.GroupedLayer(128, 32, [self.credits_1, self.credits_2, self.credits_sound_0, self.credits_sound_1])
 		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.credits_intro}, {'seconds':2.0, 'layer':self.credits_layer}])
+		return 4
+
+	def setup_judges_display(self):
+		filename = "./games/jd/dmd/judgesincrystals.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.layer = dmd.AnimatedLayer(frames=anim.frames, repeat=False, frame_time=3)
 		return 4
 
 	def setup_game_over_display(self):
