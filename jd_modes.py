@@ -692,7 +692,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_shooterR_inactive_for_300ms(self,sw):
 		self.game.sound.play('ball_launch')
 		filename = "./games/jd/dmd/bike_across_screen.dmd"
-		if os.path.isfile(filename):
+		if os.path.isfile(filename) and self.ball_starting:
 			anim = dmd.Animation().load(filename)
 			self.play_animation(anim, 'high', repeat=False, hold=False, frame_time=2)
 
