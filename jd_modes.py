@@ -72,18 +72,19 @@ class JD_Modes(modes.Scoring_Mode):
 		#self.game.sound.register_music('ball_launch', music_path+"darkerintro loop.mp3")
 		self.game.sound.register_music('ball_launch', music_path+"introloop(161).aif")
 		#self.game.sound.register_sound('ball_launch', music_path+"darkerintro loop.mp3")
-		self.game.sound.register_sound('outlane', sfx_path+"outlane.ogg")
-		self.game.sound.register_sound('inlane', sfx_path+"inlane.ogg")
-		self.game.sound.register_sound('meltdown', sfx_path+"captiveball.ogg")
-		self.game.sound.register_sound('ball_launch', sfx_path+"balllaunchmotorcycle.ogg")
-		self.game.sound.register_sound('drop_target', sfx_path+"droptarget.ogg")
-		self.game.sound.register_sound('extra_ball_target', sfx_path+"extraballtargetlower.ogg")
-		self.game.sound.register_sound('shooterL_launch', sfx_path+"left kickback.ogg")
-		self.game.sound.register_sound('outer_loop', sfx_path+"loopflyby.ogg")
-		self.game.sound.register_sound('inner_loop', sfx_path+"loopflyby.ogg")
-		self.game.sound.register_sound('mystery', sfx_path+"questionmarktarget.ogg")
+		self.game.sound.register_sound('outlane', sfx_path+"Outlane.wav")
+		self.game.sound.register_sound('inlane', sfx_path+"Inlane.wav")
+		self.game.sound.register_sound('meltdown', sfx_path+"CaptiveBall.wav")
+		self.game.sound.register_sound('ball_launch', sfx_path+"BallLaunchMotorcycle.wav")
+		self.game.sound.register_sound('drop_target', sfx_path+"DropTarget.wav")
+		self.game.sound.register_sound('extra_ball_target', sfx_path+"ExtraBallTargetLower.wav")
+		self.game.sound.register_sound('shooterL_launch', sfx_path+"LeftKickBack.wav")
+		self.game.sound.register_sound('outer_loop', sfx_path+"BallLaunchMotorcycle.wav")
+		self.game.sound.register_sound('inner_loop', sfx_path+"BallLaunchMotorcycle.wav")
+		self.game.sound.register_sound('mystery', sfx_path+"Question Mark.wav")
 		self.game.sound.register_sound('right_ramp', sfx_path+"rightrampflyby.ogg")
-		self.game.sound.register_sound('slingshot', sfx_path+"slingshot.ogg")
+		self.game.sound.register_sound('left_ramp', sfx_path+"LoopFlyBy.wav")
+		self.game.sound.register_sound('slingshot', sfx_path+"Slingshot.wav")
 		#self.game.sound.register_sound('outlane', sfx_path+"darkerintro loop.mp3")
 
 	def reset(self):
@@ -534,7 +535,8 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_dropTargetU_active(self, sw):
 		self.game.sound.play('drop_target')
 	def sw_dropTargetD_active(self, sw):
-		self.game.sound.play('drop_target')
+		#self.game.sound.play('drop_target')
+		pass
 	def sw_dropTargetG_active(self, sw):
 		self.game.sound.play('drop_target')
 	def sw_dropTargetE_active(self, sw):
@@ -621,7 +623,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.game.coils.shooterL.pulse(50)
 
 	def sw_leftRampExit_active(self, sw):
-		self.game.sound.play('right_ramp')
+		self.game.sound.play('left_ramp')
 
 	def sw_rightRampExit_active(self, sw):
 		self.game.sound.play('right_ramp')
@@ -1029,7 +1031,7 @@ class GameIntro(game.Mode):
 	def __init__(self, game, priority):
 		super(GameIntro, self).__init__(game, priority)
 		self.line_layers = []
-		self.line_layers.append(dmd.TextLayer(128/2, 4, self.game.fonts['tiny7'], "center").set_text("PLACEHOLDER"))
+		self.line_layers.append(dmd.TextLayer(128/2, 4, self.game.fonts['tiny7'], "center").set_text("PLACEHOLDER", blink_frames = 2))
 		self.line_layers.append(dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center").set_text("FOR"))
 		self.line_layers.append(dmd.TextLayer(128/2, 22, self.game.fonts['tiny7'], "center").set_text("GAME INSTRUCTIONS"))
 		self.layer = dmd.GroupedLayer(128, 32, self.line_layers)
