@@ -44,6 +44,8 @@ class Attract(game.Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game):
 		super(Attract, self).__init__(game, 1)
+		self.display_order = [0,1,2,3,4,5,6,7,8,9]
+		self.display_index = 0
 
 	def mode_topmost(self):
 		pass
@@ -106,58 +108,76 @@ class Attract(game.Mode):
 		self.game.lampctrl.play_show(self.game.lampshow_keys[0], repeat=True)
 		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
 
-	def change_display(self, index=0):
+	def sw_flipperLwL_active(self, sw):
+		self.change_display(offset=-1)
+
+	def sw_flipperLwR_active(self, sw):
+		self.change_display(offset=1)
+
+	def change_display(self, index=None, offset=0):
 		# Cancel delay just in case it is still active from earlier.
+		if index != None:
+			self.display_index = index
+
+		self.display_index += offset
+		if self.display_index >= len(self.display_order):
+			self.display_index = 0
+		elif self.display_index < 0:
+			self.display_index = int(len(self.display_order) - 1)
+
 		self.cancel_delayed('display')
-		if index == 0:
-			ret_delay = self.setup_intro_display()
-		elif index == 1:
-			ret_delay = self.setup_judges_display()
-		elif index == 2:
-			ret_delay = self.setup_intro_display()
-		elif index == 3:
-			ret_delay = self.setup_scores_display()
-		elif index == 4:
-			ret_delay = self.setup_intro_display()
-		elif index == 5:
-			ret_delay = self.setup_judges_display()
-		elif index == 6:
-			ret_delay = self.setup_credits_display()
-		else: 
-			ret_delay = self.setup_game_over_display()
-		if index >= 6:
+		ret_delay = self.setup_display(self.display_order[self.display_index])
+		if self.display_index == len(self.display_order) - 1:
 			new_index = 0
 		else:
-			new_index = index + 1			
+			new_index = self.display_index + 1
 		self.delay(name='display', event_type=None, delay=ret_delay, handler=self.change_display, param=new_index)
 
-	def setup_intro_display(self):
-		self.press_start = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Press Start")
-		self.proc_banner = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("pyprocgame")
-		self.game_title = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Judge Dredd")
-		self.splash = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
-		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.splash}, {'seconds':2.0, 'layer':self.proc_banner}, {'seconds':2.0, 'layer':self.game_title}, {'seconds':2.0, 'layer':self.press_start}, {'seconds':2.0, 'layer':None}])
-		self.layer.opaque = True
-		return 10
+	def setup_display(self, index=0):
+		if index < 5:
+			ret_val = self.setup_intro_display(index)
+		elif index < 7:
+			ret_val = self.setup_score_display(index-5)
+		elif index < 9:
+			ret_val = self.setup_credits_display(index-7)
+		else:
+			ret_val = self.setup_judges_display()
+		return ret_val
 
-	def setup_scores_display(self):
-		self.hs_intro = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("High Scores")
-		self.gc0 = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:")
-		self.gc1 = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'])
-		self.gc2 = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']))
-		self.gc_layer = dmd.GroupedLayer(128, 32, [self.gc0, self.gc1, self.gc2])
-		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.hs_intro}, {'seconds':2.0, 'layer':self.gc_layer}])
-		return 4
+	def setup_intro_display(self, index=0):
+		if index == 0:
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Press Start",2)
+		elif index == 1:
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("pyprocgame",2)
+		elif index == 2:
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Judge Dredd",2)
+		elif index == 3:
+			self.layer = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
+		elif index == 4:
+			self.layer = None
+		return 2
 
-	def setup_credits_display(self):
-		self.credits_intro = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Credits")
-		self.credits_1 = dmd.TextLayer(1, 1, font_tiny7, "left").set_text("Rules: Gerry Stellenberg")
-		self.credits_2 = dmd.TextLayer(1, 8, font_tiny7, "left").set_text("Tools/Framework: Adam Preble")
-		self.credits_sound_0 = dmd.TextLayer(1, 15, font_tiny7, "left").set_text("Sound/Music: Rob Keller")
-		self.credits_sound_1 = dmd.TextLayer(1, 22, font_tiny7, "left").set_text("Music: Jonathan Coultan")
-		self.credits_layer = dmd.GroupedLayer(128, 32, [self.credits_1, self.credits_2, self.credits_sound_0, self.credits_sound_1])
-		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':2.0, 'layer':self.credits_intro}, {'seconds':2.0, 'layer':self.credits_layer}])
-		return 4
+	def setup_score_display(self, index):
+		
+		if index == 0:
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("High Scores", 2)
+		else:
+			self.gc0 = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:", 2)
+			self.gc1 = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'], 2)
+			self.gc2 = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']), 2)
+			self.layer = dmd.GroupedLayer(128, 32, [self.gc0, self.gc1, self.gc2])
+		return 2
+
+	def setup_credits_display(self, index):
+		if index == 0:
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Credits",2)
+		else:
+			self.credits_1 = dmd.TextLayer(1, 1, font_tiny7, "left").set_text("Rules: Gerry Stellenberg")
+			self.credits_2 = dmd.TextLayer(1, 8, font_tiny7, "left").set_text("Tools/Framework: Adam Preble")
+			self.credits_sound_0 = dmd.TextLayer(1, 15, font_tiny7, "left").set_text("Sound/Music: Rob Keller")
+			self.credits_sound_1 = dmd.TextLayer(1, 22, font_tiny7, "left").set_text("Music: Jonathan Coultan")
+			self.layer = dmd.GroupedLayer(128, 32, [self.credits_1, self.credits_2, self.credits_sound_0, self.credits_sound_1])
+		return 2
 
 	def setup_judges_display(self):
 		filename = "./games/jd/dmd/judgesincrystals.dmd"
@@ -584,7 +604,7 @@ class Game(game.GameController):
 		
 		#self.sound.register_sound('bonus', shared_sound_path+'coin.wav') # Used as bonus is counting up.
 		#self.sound.register_sound('bonus', shared_sound_path+'exp_smoother.wav') # Used as bonus is counting up.
-		self.sound.register_sound('bonus', sound_path+'droptarget.ogg') # Used as bonus is counting up.
+		self.sound.register_sound('bonus', sound_path+'DropTarget.wav') # Used as bonus is counting up.
 		
 		# Setup fonts
 		self.fonts = {}
@@ -679,7 +699,10 @@ class Game(game.GameController):
 		self.deadworld.mode_stopped()
 		# Restart attract mode lampshows
 		self.modes.add(self.attract_mode)
-		self.attract_mode.change_display(99)
+
+		#self.attract_mode.change_display(99)
+		# Change to game_over index
+		self.attract_mode.change_display(0)
 
 		# Handle stats for last ball here
 		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
