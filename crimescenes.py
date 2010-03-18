@@ -417,7 +417,7 @@ class BlockWar(game.Mode):
 			self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer, self.countdown_layer, self.banner_layer])
 		else:
 			self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
-		self.game.sound.register_sound('block_war_target', sound_path+'droptarget.ogg')
+		self.game.sound.register_sound('block_war_target', sound_path+'DropTarget.wav')
 	
 	def mode_started(self):
 		self.banner_layer.set_text("Block War!", 3)
