@@ -15,7 +15,8 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.mode_mortis = Mortis(game, self.priority+1)
 		self.mode_death = Death(game, self.priority+1)
 		self.mode_celebration = Celebration(game, self.priority+1)
-		self.active_mode = 'fire'
+		#self.active_mode = 'fire'
+		self.active_mode = 'celebration'
 		self.mode_list = {}
 		self.mode_list['fire'] = self.mode_fire
 		self.mode_list['fear'] = self.mode_fear
@@ -879,9 +880,10 @@ class Celebration(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Celebration, self).__init__(game, priority)
+		self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", False)
 
 	def mode_started(self):
-		self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", True).set_text('Celebration Multiball!', 3)
+		self.layer.set_text('Celebration Multiball!', 3)
 
 		# Call callback now to set up drain callback, which will decide
 		# when multiball should end... probably when 1 ball is left.
@@ -898,7 +900,8 @@ class Celebration(modes.Scoring_Mode):
 		self.game.trough.launch_balls(balls_to_launch, self.launch_callback)
 
 	def launch_callback(self):
-		ball_save_time = 30
+		#ball_save_time = 30
+		ball_save_time = 3 # for mode debug
 		self.game.ball_save.start(num_balls_to_save=6, time=ball_save_time, now=False, allow_multiple_saves=True)
 		pass
 
