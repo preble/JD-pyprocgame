@@ -209,6 +209,7 @@ class Multiball(modes.Scoring_Mode):
 					# Impossible for trough logic to do it itself, as is.
 					self.game.trough.num_balls_in_play += 2
 				else:
+					self.game.deadworld.eject_balls(1)
 					self.game.ball_save.start_lamp()
 					# Was 3 (for 4 ball MB), now 2 for 3 ball MB.
 					self.game.trough.launch_balls(2, self.multiball_launch_callback)
@@ -221,6 +222,8 @@ class Multiball(modes.Scoring_Mode):
 					self.game.trough.num_balls_locked += 1
 					# Use stealth launch so another ball isn't counted in play.
 					self.game.trough.launch_balls(1,'None',stealth=True)
+				else:
+					self.game.deadworld.eject_balls(1)
 				
 			# When not yet multiball, launch a new ball each time
 			# one is locked.
@@ -229,10 +232,12 @@ class Multiball(modes.Scoring_Mode):
 				self.game.trough.num_balls_locked += 1
 				# Use stealth launch so another ball isn't counted in play.
 				self.game.trough.launch_balls(1,'None',stealth=True)
+			else:
+				self.game.deadworld.eject_balls(1)
 
 		else:
-			if self.deadworld_mod_installed:
-				self.game.deadworld.eject_balls(1)
+			#if self.deadworld_mod_installed:
+			self.game.deadworld.eject_balls(1)
 		self.update_lamps()
 
 	def possibly_light_lock(self, mode):

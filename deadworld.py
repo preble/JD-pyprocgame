@@ -35,9 +35,8 @@ class Deadworld(game.Mode):
 		self.lock_enabled = 0
 
 	def sw_leftRampToLock_active(self, sw):
-		if self.deadworld_mod_installed:
-			self.num_balls_locked += 1
-			self.game.set_status("balls locked: " + str(self.num_balls_locked))
+		#if self.deadworld_mod_installed:
+		self.num_balls_locked += 1
 
 	def eject_balls(self,num):
 		if not self.num_balls_to_eject:
@@ -52,9 +51,9 @@ class Deadworld(game.Mode):
 
 	def perform_ball_eject(self):
 		self.game.coils.globeMotor.pulse(0)
-		if self.deadworld_mod_installed:
-			switch_num = self.game.switches['globePosition2'].number
-			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
+		#if self.deadworld_mod_installed:
+		switch_num = self.game.switches['globePosition2'].number
+		self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
 
 	def sw_craneRelease_active(self,sw):
 		if not self.performing_ball_search and not self.crane_delay_active:
@@ -62,7 +61,6 @@ class Deadworld(game.Mode):
 			self.num_balls_locked -= 1
 			self.delay(name='crane_delay', event_type=None, delay=2, handler=self.end_crane_delay)
 			self.crane_delay_active = True
-		self.game.set_status("balls locked: " + str(self.num_balls_locked))
 
 	def end_crane_delay(self):
 		self.crane_delay_active = False
