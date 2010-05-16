@@ -160,7 +160,7 @@ class Attract(game.Mode):
 	def setup_score_display(self, index):
 		
 		if index == 0:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("High Scores", 2)
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("High Scores", 2)
 		else:
 			self.gc0 = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:", 2)
 			self.gc1 = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'], 2)
@@ -170,7 +170,7 @@ class Attract(game.Mode):
 
 	def setup_credits_display(self, index):
 		if index == 0:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Credits",2)
+			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Credits",2)
 		else:
 			self.credits_1 = dmd.TextLayer(1, 1, font_tiny7, "left").set_text("Rules: Gerry Stellenberg")
 			self.credits_2 = dmd.TextLayer(1, 8, font_tiny7, "left").set_text("Tools/Framework: Adam Preble")
@@ -544,9 +544,9 @@ class Game(game.GameController):
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
 		self.dmd = dmd.DisplayController(self, width=128, height=32, message_font=font_tiny7)
-		self.keyboard_handler = procgame.keyboard.KeyboardHandler()
-		self.keyboard_events_enabled = True
-		self.get_keyboard_events = self.keyboard_handler.get_keyboard_events
+		self.desktop = procgame.desktop.Desktop()
+		self.get_keyboard_events = self.desktop.get_keyboard_events
+		self.dmd.alt_frame_handler = self.desktop.draw
 
 	def save_settings(self):
 		self.write_settings(settings_path)
