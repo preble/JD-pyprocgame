@@ -1028,7 +1028,8 @@ class JD_Modes(modes.Scoring_Mode):
 	def video_mode_complete(self, success):
 		self.game.modes.remove(self.video_mode)
 		self.game.coils.shooterL.pulse()
-		self.light_extra_ball()
+		if success:
+			self.light_extra_ball()
 		
 	
 class ModesDisplay(game.Mode):
