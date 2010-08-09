@@ -121,6 +121,14 @@ class Pursuit(ChainFeature):
 		self.game.coils.flasherPursuitL.disable()
 		self.game.coils.flasherPursuitR.disable()
 
+	# Award shot if ball diverted for multiball.  Ensure it was a fast
+	# shot rather than one that just trickles in.
+	def sw_leftRampToLock_active(self, sw):
+		if self.game.switches.leftRampEnter.time_since_change() < 0.5:
+			self.shots += 1
+			self.game.score(10000)
+			self.check_for_completion()
+
 	def sw_leftRampExit_active(self, sw):
 		self.shots += 1
 		self.game.score(10000)
@@ -600,6 +608,14 @@ class ManhuntMillions(ChainFeature):
 
 	def mode_stopped(self):
 		self.game.coils.flasherPursuitL.disable()
+
+	# Award shot if ball diverted for multiball.  Ensure it was a fast
+	# shot rather than one that just trickles in.
+	def sw_leftRampToLock_active(self, sw):
+		if self.game.switches.leftRampEnter.time_since_change() < 0.5:
+			self.shots += 1
+			self.game.score(10000)
+			self.check_for_completion()
 
 	def sw_leftRampExit_active(self, sw):
 		self.shots += 1
