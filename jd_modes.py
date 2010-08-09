@@ -8,6 +8,7 @@ from airrade import *
 from skillshot import *
 from info import *
 from missile_award import *
+from shooting_gallery import *
 import os.path
 
 music_path = "./games/jd/sound/"
@@ -41,6 +42,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.mode_manhunt = ManhuntMillions(game, priority+1)
 		self.mode_stakeout = Stakeout(game, priority+1)
 		self.crimescenes = Crimescenes(game, priority+1)
+		self.crimescenes.get_block_war_multiplier = self.get_num_modes_completed
 		self.crimescenes.crimescenes_completed = self.crimescenes_completed
 		self.crimescenes.mb_start_callback = self.multiball_started
 		self.crimescenes.mb_end_callback = self.multiball_ended
@@ -116,6 +118,8 @@ class JD_Modes(modes.Scoring_Mode):
 		self.drive_mode_lamp('mystery', 'off')
 		for judge in self.judges_not_attempted:
 			self.game.coils['flasher' + judge].disable()
+		self.video_mode_lit = True
+		self.cow_video_mode_lit = False
 
 		# disable auto-plunging for the start of ball - Force player to hit the
 		# right Fire button.
@@ -224,6 +228,8 @@ class JD_Modes(modes.Scoring_Mode):
 		info_record['ultimate_challenge'] = self.ultimate_challenge.get_info_record()
 		info_record['num_hurryups_collected'] = self.num_hurryups_collected
 		info_record['num_extra_mode_balls'] = self.num_extra_mode_balls
+		info_record['video_mode_lit'] = self.video_mode_lit
+		info_record['cow_video_mode_lit'] = self.cow_video_mode_lit
 		if self.hold_bonus_x:
 			info_record['bonus_x'] = self.bonus_x
 		else:
@@ -234,6 +240,8 @@ class JD_Modes(modes.Scoring_Mode):
 		if len(info_record) > 0:
 			self.state = info_record['state']
 			self.mode= info_record['mode']
+			self.cow_video_mode_lit = info_record['cow_video_mode_lit']
+			self.video_mode_lit = info_record['video_mode_lit']
 			self.modes_attempted = info_record['modes_attempted']
 			self.modes_completed = info_record['modes_completed']
 			self.modes_just_attempted = info_record['modes_just_attempted']
@@ -258,6 +266,8 @@ class JD_Modes(modes.Scoring_Mode):
 		else:	
 			self.crimescenes.update_info_record({})
 			self.missile_award_mode.update_info_record({})
+			self.video_mode_lit = True
+			self.cow_video_mode_lit = False
 		
 		#Call externally to start.
 		#self.begin_processing()
@@ -365,8 +375,6 @@ class JD_Modes(modes.Scoring_Mode):
 				self.drive_mode_lamp(mode, 'off')
 			for mode in self.modes_attempted:
 				self.drive_mode_lamp(mode, 'on')
-
-		self.game.set_status(self.state)
 
 		if self.state == 'idle' or self.state == 'mode' or self.state == 'modes_complete':
 			if self.state == 'mode':
@@ -594,12 +602,20 @@ class JD_Modes(modes.Scoring_Mode):
 		elif self.missile_award_lit:
 			self.drive_mode_lamp('airRade', 'off')
 			self.missile_award_lit = False
-			self.game.modes.add(self.missile_award_mode)
 			if self.state == 'mode':
 				self.mode_timer.pause(True)
-		else:
+			if self.video_mode_lit:
+				self.video_mode = ShootingGallery(self.game, "games/jd/dmd/jdpeople.dmd", "games/jd/dmd/cows.dmd", "games/jd/dmd/scopeandshot.dmd", self.cow_video_mode_lit)
+				self.video_mode.on_complete = self.video_mode_complete	
+				self.game.modes.add(self.video_mode)
+				self.video_mode_lit = False
+			else:
+				self.game.modes.add(self.missile_award_mode)
+		elif self.game.switches.topRampExit.time_since_change() < 5:
 			self.missile_award_lit = True
 			self.drive_mode_lamp('airRade', 'medium')
+			self.game.coils.shooterL.pulse()
+		else:
 			self.game.coils.shooterL.pulse()
 
 	def sw_shooterL_inactive_for_200ms(self, sw):
@@ -624,12 +640,16 @@ class JD_Modes(modes.Scoring_Mode):
 		elif not self.any_mb_active() and self.missile_award_mode.active:
 			self.game.coils.shooterL.pulse(50)
 
+	def sw_leftRampEnter_active(self, sw):
+		self.game.coils.flasherGlobe.schedule(0x33333, cycle_seconds=1, now=False)
+		self.game.coils.flasherCursedEarth.schedule(0x33333, cycle_seconds=1, now=False)
 	def sw_leftRampExit_active(self, sw):
 		self.game.sound.play('left_ramp')
+		self.game.score(2000)
 
 	def sw_rightRampExit_active(self, sw):
 		self.game.sound.play('right_ramp')
-		self.game.coils.flashersRtRamp.schedule(0x333, cycle_seconds=1, now=False)
+		self.game.coils.flashersRtRamp.schedule(0x33333, cycle_seconds=1, now=False)
 		self.game.score(2000)
 	
 	def sw_slingL_active(self, sw):
@@ -643,10 +663,11 @@ class JD_Modes(modes.Scoring_Mode):
 	def sw_popperL_active_for_200ms(self, sw):
 		if self.present_hurryup_selection:
 			self.game.ball_search.disable()
-			self.award_selection.awards = ['100000 points','crimescenes']
-			self.award_selection.callback = self.award_selection_award
-			self.game.modes.add(self.award_selection)
+			#self.award_selection.awards = ['100000 points','crimescenes']
+			#self.award_selection.callback = self.award_selection_award
+			#self.game.modes.add(self.award_selection)
 			self.game.modes.remove(self.mode_completed_hurryup)
+			self.award_selection_award('crimescenes')
 		else:
 			self.flash_then_pop('flashersLowerLeft', 'popperL', 50)
 
@@ -661,6 +682,7 @@ class JD_Modes(modes.Scoring_Mode):
 				self.play_intro.setup(self.modes_not_attempted[self.modes_not_attempted_ptr], self.activate_mode, self.modes_not_attempted[0], intro_instruction_layers)
 				self.game.modes.add(self.play_intro)
 				self.intro_playing = True
+				self.game.lamps.rightStartFeature.disable()
 			elif self.state == 'pre_ultimate_challenge':
 				self.game.lamps.rightStartFeature.disable()
 				self.play_ult_intro.setup('fire', self.activate_mode)
@@ -780,7 +802,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.show_on_display('Replay', 'None', 'mid')
 
 	def award_selection_award(self, award):
-		self.game.modes.remove(self.award_selection)
+		#self.game.modes.remove(self.award_selection)
 		self.game.ball_search.enable()
 		if award == 'all' or award == '100000 points':
 			self.game.score(100000)
@@ -961,6 +983,9 @@ class JD_Modes(modes.Scoring_Mode):
                        self.crimescenes.complete and \
                        len(self.modes_not_attempted) == 0
 
+	def get_num_modes_completed(self):
+		return self.num_modes_completed
+
 	def mode_complete(self, successful=False):
 		self.multiball.drops.paused = False
 
@@ -999,6 +1024,12 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def any_mb_active(self):
 		return self.multiball.is_active() or self.crimescenes.is_mb_active()
+
+	def video_mode_complete(self, success):
+		self.game.modes.remove(self.video_mode)
+		self.game.coils.shooterL.pulse()
+		self.light_extra_ball()
+		
 	
 class ModesDisplay(game.Mode):
 	"""docstring for AttractMode"""
