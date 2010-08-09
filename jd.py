@@ -537,16 +537,12 @@ class BaseGameMode(game.Mode):
 		return False
 
 
-class Game(game.GameController):
+class Game(game.BasicGame):
 	"""docstring for Game"""
 	def __init__(self, machineType):
 		super(Game, self).__init__(machineType)
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
-		self.dmd = dmd.DisplayController(self, width=128, height=32, message_font=font_tiny7)
-		self.keyboard_handler = procgame.keyboard.KeyboardHandler()
-		self.keyboard_events_enabled = True
-		self.get_keyboard_events = self.keyboard_handler.get_keyboard_events
 
 	def save_settings(self):
 		self.write_settings(settings_path)
@@ -573,20 +569,19 @@ class Game(game.GameController):
 
 		self.setup_ball_search()
 
-		self.score_display = scoredisplay.ScoreDisplay(self, 0)
 		self.score_display.set_left_players_justify(self.user_settings['Display']['Left side score justify'])
 
 		# Instantiate basic game features
 		self.attract_mode = Attract(self)
 		self.base_game_mode = BaseGameMode(self)
 		self.deadworld = Deadworld(self, 20, self.settings['Machine']['Deadworld mod installed'])
-		self.ball_save = procgame.ballsave.BallSave(self, self.lamps.drainShield, 'shooterR')
+		self.ball_save = procgame.modes.BallSave(self, self.lamps.drainShield, 'shooterR')
 
 		trough_switchnames = []
 		for i in range(1,7):
 			trough_switchnames.append('trough' + str(i))
 		early_save_switchnames = ['outlaneR', 'outlaneL']
-		self.trough = procgame.trough.Trough(self,trough_switchnames,'trough6','trough', early_save_switchnames, 'shooterR', self.drain_callback)
+		self.trough = procgame.modes.Trough(self,trough_switchnames,'trough6','trough', early_save_switchnames, 'shooterR', self.drain_callback)
 		self.deadworld_test = DeadworldTest(self,200,font_tiny7)
 
 		# Setup and instantiate service mode
@@ -635,7 +630,6 @@ class Game(game.GameController):
 		super(Game, self).reset()
 
 		# Add the basic modes to the mode queue
-		self.modes.add(self.score_display)
 		self.modes.add(self.attract_mode)
 		self.modes.add(self.ball_search)
 		self.modes.add(self.deadworld)
@@ -717,18 +711,10 @@ class Game(game.GameController):
 			self.game_data['Audits']['Avg Score'] = self.calc_number_average(self.game_data['Audits']['Games Played'], self.game_data['Audits']['Avg Score'], self.players[i].score)
 		self.save_game_data()
 		
-	def dmd_event(self):
-		"""Called by the GameController when a DMD event has been received."""
-		self.dmd.update()
-
 	def set_status(self, text):
 		self.dmd.set_message(text, 3)
 		print(text)
 	
-	def score(self, points):
-		p = self.current_player()
-		p.score += points
-
 	def extra_ball(self):
 		p = self.current_player()
 		p.extra_balls += 1
@@ -753,7 +739,7 @@ class Game(game.GameController):
 		# shouldn't be necessary to search the deadworld.  (unless a ball jumps
 		# onto the ring rather than entering through the feeder.)
 		special_handler_modes = []
-		self.ball_search = procgame.ballsearch.BallSearch(self, priority=100, \
+		self.ball_search = procgame.modes.BallSearch(self, priority=100, \
                                      countdown_time=10, coils=self.ballsearch_coils, \
                                      reset_switches=self.ballsearch_resetSwitches, \
                                      stop_switches=self.ballsearch_stopSwitches, \
