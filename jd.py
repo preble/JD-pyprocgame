@@ -326,7 +326,7 @@ class BaseGameMode(game.Mode):
 		self.jd_modes = JD_Modes(self.game, 8, font_tiny7, font_jazz18)
 
 		# Create mode to check for replay
-		self.replay = procgame.replay.Replay(self.game, 18)
+		self.replay = procgame.modes.Replay(self.game, 18)
 		self.game.modes.add(self.replay)
 		self.replay.replay_callback = self.jd_modes.replay_callback
 		self.jd_modes.replay = self.replay
