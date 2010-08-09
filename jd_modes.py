@@ -366,6 +366,8 @@ class JD_Modes(modes.Scoring_Mode):
 			for mode in self.modes_attempted:
 				self.drive_mode_lamp(mode, 'on')
 
+		self.game.set_status(self.state)
+
 		if self.state == 'idle' or self.state == 'mode' or self.state == 'modes_complete':
 			if self.state == 'mode':
 				self.drive_mode_lamp(self.mode,'slow')
@@ -903,15 +905,16 @@ class JD_Modes(modes.Scoring_Mode):
 				self.drive_mode_lamp('airRade', 'medium')
 
 	def mode_over(self):
-		self.game.modes.remove(self.mode_list[self.mode])
-		self.mode_timer.stop()
-		self.mode_active = False
-		this_mode = self.mode_list[self.mode]
-		success = this_mode.completed
-		if self.state == 'mode':
-			self.mode_complete(success)	
-		elif self.state == 'ultimate_challenge':
+		if self.state == 'ultimate_challenge':
 			self.ultimate_challenge_complete()	
+		else:
+			self.game.modes.remove(self.mode_list[self.mode])
+			self.mode_timer.stop()
+			self.mode_active = False
+			this_mode = self.mode_list[self.mode]
+			success = this_mode.completed
+			if self.state == 'mode':
+				self.mode_complete(success)	
 
 	def hurryup_collected(self):
 
@@ -988,6 +991,8 @@ class JD_Modes(modes.Scoring_Mode):
 			self.multiball.drops.animated_reset(.1)
 
 	def ultimate_challenge_complete(self):
+		self.state = 'idle'
+		self.game.modes.remove(self.ultimate_challenge)	
 		self.reset_modes()
 		self.crimescenes.reset()
 		self.multiball.reset_jackpot_collected()
