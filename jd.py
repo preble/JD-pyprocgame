@@ -36,6 +36,7 @@ font_07x4 = dmd.Font(fonts_path+"Font07x4.dmd")
 font_07x5 = dmd.Font(fonts_path+"Font07x5.dmd")
 font_09Bx7 = dmd.Font(fonts_path+"Font09Bx7.dmd")
 
+#lampshow_files = ["./games/jd/lamps/attract_show_test.lampshow"]
 lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", \
                   "./games/jd/lamps/attract_show_vert.lampshow" \
                  ]
@@ -46,6 +47,17 @@ class Attract(game.Mode):
 		super(Attract, self).__init__(game, 1)
 		self.display_order = [0,1,2,3,4,5,6,7,8,9]
 		self.display_index = 0
+
+#		commands = []
+#		commands += [pinproc.aux_command_disable()]
+#		for i in range(0,32):
+#			commands += [pinproc.aux_command_output_primary(i,0)]
+#		commands += [pinproc.aux_command_delay(1000)]
+#		commands += [pinproc.aux_command_jump(1)]
+#		self.game.proc.aux_send_commands(0,commands)
+#		commands = []
+#		commands += [pinproc.aux_command_jump(1)]
+#		self.game.proc.aux_send_commands(0,commands)
 
 	def mode_topmost(self):
 		pass
@@ -193,16 +205,16 @@ class Attract(game.Mode):
 
 	# Eject any balls that get stuck before returning to the trough.
 	def sw_popperL_active_for_500ms(self, sw): # opto!
-		self.game.coils.popperL.pulse(20)
+		self.game.coils.popperL.pulse(40)
 
 	def sw_popperR_active_for_500ms(self, sw): # opto!
-		self.game.coils.popperR.pulse(20)
+		self.game.coils.popperR.pulse(40)
 
 	def sw_shooterL_active_for_500ms(self, sw):
-		self.game.coils.shooterL.pulse(20)
+		self.game.coils.shooterL.pulse(40)
 
 	def sw_shooterR_active_for_500ms(self, sw):
-		self.game.coils.shooterR.pulse(20)
+		self.game.coils.shooterR.pulse(40)
 
 	# Enter service mode when the enter button is pushed.
 	def sw_enter_active(self, sw):
