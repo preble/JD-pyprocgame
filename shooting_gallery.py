@@ -28,6 +28,7 @@ class ShootingGallery(game.Mode):
 		self.speed_factor = 1
 
 		self.mode = 'active'
+		self.success = False
 
 		self.intro_active = True
 		self.intro()
@@ -227,10 +228,12 @@ class ShootingGallery(game.Mode):
 			self.update_scope_pos()
 
 	def sw_fireL_active(self, sw):
-		self.shoot()
+		if not self.intro_active:
+			self.shoot()
 
 	def sw_fireR_active(self, sw):
-		self.shoot()
+		if not self.intro_active:
+			self.shoot()
 
 	def update_scope_pos(self):
 		self.scope_layer.frame = self.scope_and_shot_anim.frames[self.scope_pos]
