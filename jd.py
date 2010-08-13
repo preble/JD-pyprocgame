@@ -555,8 +555,8 @@ class JDPlayer(game.Player):
 
 class Game(game.BasicGame):
 	"""docstring for Game"""
-	def __init__(self, machineType):
-		super(Game, self).__init__(machineType)
+	def __init__(self, machine_type):
+		super(Game, self).__init__(machine_type)
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
 	
@@ -766,11 +766,11 @@ class Game(game.BasicGame):
 		
 def main():
 	config = yaml.load(open(machine_config_path, 'r'))
-	machineType = config['PRGame']['machineType']
+	machine_type = config['PRGame']['machineType']
 	config = 0
 	game = None
 	try:
-	 	game = Game(machineType)
+	 	game = Game(machine_type)
 		game.setup()
 		game.run_loop()
 	finally:
