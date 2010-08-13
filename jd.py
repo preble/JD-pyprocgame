@@ -536,6 +536,10 @@ class BaseGameMode(game.Mode):
 		self.game.score(100)
 		return False
 
+class JDPlayer(game.Player):
+	def __init__(self, name):
+		super(JDPlayer, self).__init__(name)
+		self.info_record = {}
 
 class Game(game.BasicGame):
 	"""docstring for Game"""
@@ -543,7 +547,10 @@ class Game(game.BasicGame):
 		super(Game, self).__init__(machineType)
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
-
+	
+	def create_player(self, name):
+		return JDPlayer(name)
+	
 	def save_settings(self):
 		self.write_settings(settings_path)
 
