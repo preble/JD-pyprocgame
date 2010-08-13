@@ -601,6 +601,12 @@ class Game(game.BasicGame):
 			trough_switchnames.append('trough' + str(i))
 		early_save_switchnames = ['outlaneR', 'outlaneL']
 		self.trough = procgame.modes.Trough(self,trough_switchnames,'trough6','trough', early_save_switchnames, 'shooterR', self.drain_callback)
+
+		# Link ball_save to trough
+		self.trough.ball_save_callback = self.ball_save.launch_callback
+		self.trough.num_balls_to_save = self.ball_save.get_num_balls_to_save
+		self.ball_save.trough_enable_ball_save = self.trough.enable_ball_save
+
 		self.deadworld_test = DeadworldTest(self,200,font_tiny7)
 
 		# Setup and instantiate service mode
