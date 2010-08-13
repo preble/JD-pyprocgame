@@ -73,6 +73,7 @@ class Multiball(modes.Scoring_Mode):
 	def jackpot(self):
 		self.game.score(100000)
 		self.update_lamps()
+		self.num_left_ramp_shots_needed += 1
 		#self.jackpot_callback()
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
@@ -190,6 +191,8 @@ class Multiball(modes.Scoring_Mode):
 		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def sw_leftRampToLock_active(self, sw):
+		if not self.lock_enabled:
+			self.possibly_light_lock('sneaky')
 		if self.lock_enabled:
 			self.game.coils.flasherGlobe.schedule(schedule=0xAAAAAAAA, cycle_seconds=2, now=True)
 			self.num_balls_locked += 1
@@ -241,8 +244,10 @@ class Multiball(modes.Scoring_Mode):
 		self.update_lamps()
 
 	def possibly_light_lock(self, mode):
-	
-
+		dw_balls_locked_adj = 0
+		if mode == 'sneaky':
+			dw_balls_locked_adj = 1
+			
 		if self.state == 'load' and not self.paused:
 			# Prepare to lock
 			if self.num_locks_lit < 3:
@@ -250,13 +255,14 @@ class Multiball(modes.Scoring_Mode):
 					self.num_locks_lit = 3
 					if self.deadworld_mod_installed:
 						self.virtual_locks_needed = \
-						self.game.deadworld.num_balls_locked
+						(self.game.deadworld.num_balls_locked -
+							dw_balls_locked_adj)
 				else:
 					self.num_locks_lit += 1
 					# Use calculations if deadwolrd is installed.
 
 					new_num_to_lock = self.num_locks_lit - self.num_balls_locked
-					extra_in_dw = self.game.deadworld.num_balls_locked - self.num_balls_locked
+					extra_in_dw = (self.game.deadworld.num_balls_locked - dw_balls_locked_adj) - self.num_balls_locked
 					if extra_in_dw >= new_num_to_lock:
 						self.virtual_locks_needed = new_num_to_lock
 					else:

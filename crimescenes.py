@@ -44,6 +44,7 @@ class Crimescenes(modes.Scoring_Mode):
 			self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
 		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
 		self.block_war = BlockWar(game, priority+5)
+		self.get_block_war_multiplier = None
 		self.total_levels = 0
 
 	def reset(self):
@@ -264,9 +265,13 @@ class Crimescenes(modes.Scoring_Mode):
 					self.level_complete()
 				self.update_lamps()
 		elif self.mode == 'block_war':
+			if self.get_block_war_multiplier != None:
+				block_war_multiplier = self.get_block_war_multiplier() + 1
+			else:
+				block_war_multiplier = 1
 			if self.bw_shots_required[num] > 0:
 				self.bw_shots_required[num] -= 1
-				self.block_war.switch_hit(num)
+				self.block_war.switch_hit(num, block_war_multiplier)
 			if self.all_bw_shots_hit():
 				self.finish_level_complete()
 			else:
@@ -410,31 +415,36 @@ class BlockWar(game.Mode):
 		super(BlockWar, self).__init__(game, priority)
 		self.countdown_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
+		self.score_reason_layer = dmd.TextLayer(128/2, 7, self.game.fonts['07x5'], "center")
+		self.score_value_layer = dmd.TextLayer(128/2, 17, self.game.fonts['07x5'], "center")
 		filename = "./games/jd/dmd/blockwars.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=3)
-			self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer, self.countdown_layer, self.banner_layer])
+			self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer, self.countdown_layer, self.banner_layer, self.score_reason_layer, self.score_value_layer])
 		else:
-			self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
+			self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer, self.score_reason_layer, self.score_value_layer])
 		self.game.sound.register_sound('block_war_target', sound_path+'DropTarget.wav')
 	
 	def mode_started(self):
 		self.banner_layer.set_text("Block War!", 3)
 
-	def switch_hit(self, shot_index):
-		self.game.score(5000)
+	def switch_hit(self, shot_index, multiplier):
+		score = 5000 * multiplier
+		self.score_reason_layer.set_text("Jackpot", 2)
+		self.score_value_layer.set_text(str(score), 2)
+		self.game.score(score)
 		self.game.sound.play('block_war_target')
-		if shot_index == 0:
-			self.banner_layer.set_text("Pow!", 2)
-		if shot_index == 1:
-			self.banner_layer.set_text("Bam!", 2)
-		if shot_index == 2:
-			self.banner_layer.set_text("Boom!", 2)
-		if shot_index == 3:
-			self.banner_layer.set_text("Zowie!", 2)
-		if shot_index == 4:
-			self.banner_layer.set_text("Poof!", 2)
+		#if shot_index == 0:
+		#	self.banner_layer.set_text("Pow!", 2)
+		#if shot_index == 1:
+		#	self.banner_layer.set_text("Bam!", 2)
+		#if shot_index == 2:
+		#	self.banner_layer.set_text("Boom!", 2)
+		#if shot_index == 3:
+		#	self.banner_layer.set_text("Zowie!", 2)
+		#if shot_index == 4:
+		#	self.banner_layer.set_text("Poof!", 2)
 
 	def bonus_hit(self):
 		self.banner_layer.set_text("Yahoo!!!", 2)
