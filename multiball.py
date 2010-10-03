@@ -240,9 +240,6 @@ class Multiball(modes.Scoring_Mode):
 			if self.num_balls_locked == 3:
 				self.disable_lock()
 				if self.deadworld_mod_installed:
-					# Tell the ball tracker 2 balls are being unlocked.
-					# This 3rd one is never logged as physically locked.
-					self.game.trough.num_balls_locked -= 2
 					self.game.deadworld.eject_balls(3)
 					#commenting out launch, use 3 ball MB.
 					#self.game.trough.launch_balls(1, self.multiball_launch_callback)
@@ -261,8 +258,6 @@ class Multiball(modes.Scoring_Mode):
 			elif self.num_balls_locked == self.num_locks_lit:
 				self.disable_lock()
 				if self.deadworld_mod_installed:
-					# Tell the trough another ball is physically locked
-					self.game.trough.num_balls_locked += 1
 					# Use stealth launch so another ball isn't counted in play.
 					self.game.ball_save.callback = None
 					self.game.trough.launch_balls(1,None,stealth=True)
@@ -272,8 +267,6 @@ class Multiball(modes.Scoring_Mode):
 			# When not yet multiball, launch a new ball each time
 			# one is locked.
 			elif self.deadworld_mod_installed:
-				# Tell the trough another ball is physically locked
-				self.game.trough.num_balls_locked += 1
 				# Use stealth launch so another ball isn't counted in play.
 				self.game.ball_save.callback = None
 				self.game.trough.launch_balls(1,None,stealth=True)

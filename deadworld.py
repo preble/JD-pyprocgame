@@ -11,7 +11,6 @@ class Deadworld(game.Mode):
 		self.num_player_balls_locked = 0
 		self.num_balls_to_eject = 0
 		self.ball_eject_in_progress = 0
-		self.performing_ball_search = 0
 		self.crane_delay_active = False
 		self.setting_up_eject = False
 	
@@ -51,15 +50,22 @@ class Deadworld(game.Mode):
 	def sw_leftRampToLock_active(self, sw):
 		#if self.deadworld_mod_installed:
 		self.num_balls_locked += 1
+		self.game.trough.num_balls_locked += 1
 
 	def eject_balls(self,num):
 		if not self.num_balls_to_eject:
 			self.perform_ball_eject()
 		self.num_balls_to_eject += num
+
+		# Tell the trough the balls aren't locked anymore so 
+		# it can count properly.
+		self.game.trough.num_balls_locked -= num
+		# Error check.
+		if self.game.trough.num_balls_locked < 0:
+			self.game.trough.num_balls_locked = 0
 		self.ball_eject_in_progress = 1
 		
 	def perform_ball_search(self):
-		self.performing_ball_search = 1
 		self.perform_ball_eject()
 		self.ball_eject_in_progress = 1
 
@@ -82,11 +88,14 @@ class Deadworld(game.Mode):
 			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
 
 	def sw_craneRelease_active(self,sw):
-		if not self.performing_ball_search and not self.crane_delay_active:
-			self.num_balls_to_eject -= 1
-			self.num_balls_locked -= 1
+		if not self.crane_delay_active:
 			self.delay(name='crane_delay', event_type=None, delay=2, handler=self.end_crane_delay)
 			self.crane_delay_active = True
+			self.num_balls_to_eject -= 1
+			self.num_balls_locked -= 1
+			# error check
+			if self.num_balls_locked < 0:
+				self.num_balls_locked = 0
 
 	def end_crane_delay(self):
 		self.crane_delay_active = False
@@ -109,7 +118,6 @@ class Deadworld(game.Mode):
 
 		self.game.coils.craneMagnet.disable()
 		self.game.coils.crane.disable()
-		self.performing_ball_search = 0
 		self.delay(name='crane_release_check', event_type=None, delay=1, handler=self.crane_release_check)
 
 
