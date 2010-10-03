@@ -1,6 +1,8 @@
 import procgame
 from procgame import *
 
+voice_path = "./games/jd/sound/Voice/"
+
 class Bonus(game.Mode):
 	"""docstring for Bonus"""
 	def __init__(self, game, priority, font_big, font_small):
@@ -13,6 +15,7 @@ class Bonus(game.Mode):
 		self.layer = dmd.GroupedLayer(128, 32, [self.title_layer,self.element_layer, self.value_layer])
 		self.timer = 0
 		self.delay_time = 1
+		self.game.sound.register_sound('drain', voice_path+"drain/jd - prepare to be judged.wav")
 
 	def mode_started(self):
 		# Disable the flippers
@@ -23,6 +26,7 @@ class Bonus(game.Mode):
 		self.game.enable_flippers(enable=True)
 
 	def compute(self, base, x, exit_function):
+		self.game.sound.play('drain')
 		self.exit_function = exit_function
 		self.elements = []
 		self.value = []

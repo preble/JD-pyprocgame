@@ -1,6 +1,7 @@
 import sys
 sys.path.append(sys.path[0]+'/../..') # Set the path so we can find procgame.  We are assuming (stupidly?) that the first member is our directory.
 import procgame
+import tools
 import pinproc
 from deadworld import *
 from info import *
@@ -8,6 +9,7 @@ from bonus import *
 from tilt import *
 from jd_modes import *
 from procgame import *
+from tools import *
 from threading import Thread
 from random import *
 import string
@@ -26,6 +28,7 @@ game_data_template_path = "./games/jd/config/game_data_template.yaml"
 settings_template_path = "./games/jd/config/settings_template.yaml"
 fonts_path = "../shared/dmd/"
 shared_sound_path = "../shared/sound/"
+voice_path = "./games/jd/sound/Voice/attract/"
 sound_path = "./games/jd/sound/FX/"
 music_path = "./games/jd/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
@@ -47,22 +50,23 @@ class Attract(game.Mode):
 		super(Attract, self).__init__(game, 1)
 		self.display_order = [0,1,2,3,4,5,6,7,8,9]
 		self.display_index = 0
-
-#		commands = []
-#		commands += [pinproc.aux_command_disable()]
-#		for i in range(0,32):
-#			commands += [pinproc.aux_command_output_primary(i,0)]
-#		commands += [pinproc.aux_command_delay(1000)]
-#		commands += [pinproc.aux_command_jump(1)]
-#		self.game.proc.aux_send_commands(0,commands)
-#		commands = []
-#		commands += [pinproc.aux_command_jump(1)]
-#		self.game.proc.aux_send_commands(0,commands)
+		self.game.sound.register_sound('attract', voice_path+'jd - dont do drugs.wav')
+		self.game.sound.register_sound('attract', voice_path+'jd - gaze into the fist of dredd.wav')
+		self.game.sound.register_sound('attract', voice_path+'jd - i am the law.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge death - i have come to bring law to the city my law.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge death - i have come to bring you the law of death.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge death - i have come to stop this world again.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge death - my name is death i have come to judge you.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge death - the crime is life.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge death - the sentence is death.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge fire - for you the party is over.wav')
+		self.game.sound.register_sound('attract', voice_path+'judge fire - let the flames of justice cleanse you.wav')
 
 	def mode_topmost(self):
 		pass
 
 	def mode_started(self):
+		print self.game.logging_enabled
 		self.play_super_game = False
 		self.ball_search_started = False
 		self.emptying_deadworld = False
@@ -84,30 +88,105 @@ class Attract(game.Mode):
 			if self.game.switches[name].is_active():
 				self.game.coils[name].pulse()
 
-
-		# Set up schedules for random lamp blinking
-		#lamp_schedules = []
-		#for i in range(0,32):
-		#	lamp_schedules.append(0xffff0000 >> i)
-		#	# Handle wrap condition.  This code keeps 16 consecutive bits set.
-		#	if i > 16:
-		#		lamp_schedules[i] = (lamp_schedules[i] | (0xffff << (32-(i-16)))) & 0xffffffff
-
-		# Randomize the order of the lamp schedules
-		#shuffle(lamp_schedules)
-		#i = 0
-		## Write the lamp schedules to the lamps.  Obviously don't want to include
-		## the front cabinet buttons or GIs.
-		#for lamp in self.game.lamps:
-		#	if lamp.name.find('gi0', 0) == -1 and \
-                #           lamp.name != 'startButton' and lamp.name != 'buyIn' and \
-                #           lamp.name != 'superGame':
-		#		lamp.schedule(schedule=lamp_schedules[i%32], cycle_seconds=0, now=False)
-		#		i += 1
-
 		self.change_lampshow()
-		self.change_display(0)
 		self.ball_search_started = False
+
+		self.jd_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Judge Dredd")
+		self.proc_splash_layer = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
+		self.pyprocgame_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("pyprocgame")
+		self.press_start_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Press Start")
+		self.scores_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("High Scores")
+		self.gc0_layer = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:")
+		self.gc1_layer = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'])
+		self.gc2_layer = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']))
+		self.scores_grouped_layer = dmd.GroupedLayer(128, 32, [self.gc0_layer, self.gc1_layer, self.gc2_layer])
+
+		gen = dmd.MarkupFrameGenerator()
+		credits_frame = gen.frame_for_markup("""
+
+
+#CREDITS#
+
+[Rules:]
+[Gerry Stellenberg]
+
+[Tools and Framework:]
+[Adam Preble]
+
+[Sound and Music:]
+[Rob Keller]
+[Jonathan Coultan]
+
+[Dots:]
+[Travis Highrise]
+
+[P.ROC:]
+[www.]
+[pinballcontrollers.]
+[com]
+
+[pyprocgame:]
+[pyprocgame.pindev.org]
+""")
+
+		self.credits_layer = dmdpan.PanningLayer(width=128, height=32, frame=credits_frame, origin=(0,0), translate=(0,1), bounce=False)
+
+		filename = "./games/jd/dmd/guntech.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.guntech_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=False, frame_time=4)
+		else:
+			self.guntech_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("GunTech")
+
+		filename = "./games/jd/dmd/darkjudges_no_bg.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.judges_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=4)
+		else:
+			self.judges_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Judges")
+
+		filename = "./games/jd/dmd/longwalk.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.longwalk_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=False, frame_time=7)
+		else:
+			self.longwalk_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Game Over")
+
+		self.pre_game_display()
+
+	def pre_game_display(self):
+		self.layer = dmd.ScriptedLayer(128,32, [\
+			{'seconds':3.0, 'layer':self.jd_layer},
+			{'seconds':3.0, 'layer':self.proc_splash_layer},
+			{'seconds':3.0, 'layer':self.pyprocgame_layer},
+			{'seconds':3.0, 'layer':self.press_start_layer},
+			{'seconds':3.0, 'layer':self.scores_layer},
+			{'seconds':3.0, 'layer':self.scores_grouped_layer},
+#			{'seconds':3.0, 'layer':self.credits_intro_layer},
+			{'seconds':17.0, 'layer':self.credits_layer},
+			{'seconds':3.0, 'layer':self.judges_layer},
+			{'seconds':5.0, 'layer':self.guntech_layer}])
+
+	def post_game_display(self):
+		self.layer = dmd.ScriptedLayer(128,32, [\
+			{'seconds':3.0, 'layer':self.jd_layer},
+			{'seconds':3.0, 'layer':self.proc_splash_layer},
+			{'seconds':3.0, 'layer':self.pyprocgame_layer},
+			{'seconds':3.0, 'layer':self.press_start_layer},
+			{'seconds':3.0, 'layer':self.scores_layer},
+			{'seconds':3.0, 'layer':self.scores_grouped_layer},
+#			{'seconds':3.0, 'layer':self.credits_intro_layer},
+			{'seconds':17.0, 'layer':self.credits_layer},
+			{'seconds':3.0, 'layer':self.judges_layer},
+			{'seconds':5.0, 'layer':self.guntech_layer},
+			{'seconds':3.0, 'layer':None}])
+
+
+	def game_over_display(self):
+		self.layer = dmd.ScriptedLayer(128,32, [\
+			{'seconds':6.0, 'layer':self.longwalk_layer},
+			{'seconds':3.0, 'layer':None}])
+		self.delay(name='dmd', event_type=None, delay=9, handler=self.post_game_display)
 
 	def mode_stopped(self):
 		pass
@@ -120,30 +199,17 @@ class Attract(game.Mode):
 		self.game.lampctrl.play_show(self.game.lampshow_keys[0], repeat=True)
 		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
 
+	def sw_fireL_active(self, sw):
+		self.game.sound.play('attract')
+
+	def sw_fireR_active(self, sw):
+		self.game.sound.play('attract')
+
 	def sw_flipperLwL_active(self, sw):
-		self.change_display(offset=-1)
+		self.layer.force_next(False)
 
 	def sw_flipperLwR_active(self, sw):
-		self.change_display(offset=1)
-
-	def change_display(self, index=None, offset=0):
-		# Cancel delay just in case it is still active from earlier.
-		if index != None:
-			self.display_index = index
-
-		self.display_index += offset
-		if self.display_index >= len(self.display_order):
-			self.display_index = 0
-		elif self.display_index < 0:
-			self.display_index = int(len(self.display_order) - 1)
-
-		self.cancel_delayed('display')
-		ret_delay = self.setup_display(self.display_order[self.display_index])
-		if self.display_index == len(self.display_order) - 1:
-			new_index = 0
-		else:
-			new_index = self.display_index + 1
-		self.delay(name='display', event_type=None, delay=ret_delay, handler=self.change_display, param=new_index)
+		self.layer.force_next(True)
 
 	def setup_display(self, index=0):
 		if index < 5:
@@ -156,52 +222,7 @@ class Attract(game.Mode):
 			ret_val = self.setup_judges_display()
 		return ret_val
 
-	def setup_intro_display(self, index=0):
-		if index == 0:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Press Start",2)
-		elif index == 1:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("pyprocgame",2)
-		elif index == 2:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Judge Dredd",2)
-		elif index == 3:
-			self.layer = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
-		elif index == 4:
-			self.layer = None
-		return 2
 
-	def setup_score_display(self, index):
-		
-		if index == 0:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("High Scores", 2)
-		else:
-			self.gc0 = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:", 2)
-			self.gc1 = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'], 2)
-			self.gc2 = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']), 2)
-			self.layer = dmd.GroupedLayer(128, 32, [self.gc0, self.gc1, self.gc2])
-		return 2
-
-	def setup_credits_display(self, index):
-		if index == 0:
-			self.layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Credits",2)
-		else:
-			self.credits_1 = dmd.TextLayer(1, 1, font_tiny7, "left").set_text("Rules: Gerry Stellenberg")
-			self.credits_2 = dmd.TextLayer(1, 8, font_tiny7, "left").set_text("Tools/Framework: Adam Preble")
-			self.credits_sound_0 = dmd.TextLayer(1, 15, font_tiny7, "left").set_text("Sound/Music: Rob Keller")
-			self.credits_sound_1 = dmd.TextLayer(1, 22, font_tiny7, "left").set_text("Music: Jonathan Coultan")
-			self.layer = dmd.GroupedLayer(128, 32, [self.credits_1, self.credits_2, self.credits_sound_0, self.credits_sound_1])
-		return 2
-
-	def setup_judges_display(self):
-		filename = "./games/jd/dmd/judgesincrystals.dmd"
-		if os.path.isfile(filename):
-			anim = dmd.Animation().load(filename)
-			self.layer = dmd.AnimatedLayer(frames=anim.frames, repeat=False, frame_time=3)
-		return 4
-
-	def setup_game_over_display(self):
-		self.game_over_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center").set_text("Game Over")
-		self.layer = dmd.ScriptedLayer(128, 32, [{'seconds':3.0, 'layer':self.game_over_layer}, {'seconds':3.0, 'layer':None}])
-		return 6
 
 	# Eject any balls that get stuck before returning to the trough.
 	def sw_popperL_active_for_500ms(self, sw): # opto!
@@ -251,7 +272,7 @@ class Attract(game.Mode):
 	# Perhaps if the trough isn't full after a few ball search attempts, it logs a ball
 	# as lost?	
 	def sw_startButton_active(self, sw):
-		if self.game.trough.is_full:
+		if self.game.trough.is_full():
 			self.game.lampctrl.save_state('temp')
 			# Stop the attract mode lampshows
 			self.cancel_delayed(name='lampshow')
@@ -275,7 +296,7 @@ class Attract(game.Mode):
 		return True
 
 	def sw_superGame_active(self, sw):
-		if self.game.trough.is_full:
+		if self.game.trough.is_full():
 			self.play_super_game = True
 			self.game.lampctrl.save_state('temp')
 			# Stop the attract mode lampshows
@@ -308,12 +329,73 @@ class Attract(game.Mode):
 		else:
 			self.emptying_deadworld = False
 			
+# Workaround to deal with latency of flipper rule programming.
+# Need to make sure flippers deativate when the flipper buttons are
+# released.  The flipper rules will automatically activate the flippers
+# if the buttons are held while the enable ruler is programmed, but 
+# if the buttons are released immediately after that, the deactivation
+# would be missed without this workaround.
+class FlipperWorkaroundMode(game.Mode):
+	"""docstring for AttractMode"""
+	def __init__(self, game):
+		super(FlipperWorkaroundMode, self).__init__(game, 2)
+		self.flipper_enable_workaround_active = False
+
+	def enable_flippers(self, enable=True):
+		if enable:
+			self.flipper_enable_workaround_active = True
+			self.delay(name='flipper_workaround', event_type=None, delay=0.1, handler=self.end_flipper_workaround)
+
+	def end_flipper_workaround(self):
+		self.flipper_enable_workaround_active = False
+
+	#def sw_flipperLwL_active(self, sw):
+	#	if self.flipper_enable_workaround_active:
+	#		self.game.coils['flipperLwLMain'].pulse(34)
+	#		self.game.coils['flipperLwLHold'].pulse(0)
+
+	def sw_flipperLwL_inactive(self, sw):
+		if self.flipper_enable_workaround_active:
+			self.game.coils['flipperLwLMain'].disable()
+			self.game.coils['flipperLwLHold'].disable()
+
+	#def sw_flipperLwR_active(self, sw):
+	#	if self.flipper_enable_workaround_active:
+	#		self.game.coils['flipperLwRMain'].pulse(34)
+	#		self.game.coils['flipperLwRHold'].pulse(0)
+
+	def sw_flipperLwR_inactive(self, sw):
+		if self.flipper_enable_workaround_active:
+			self.game.coils['flipperLwRMain'].disable()
+			self.game.coils['flipperLwRHold'].disable()
+
+	#def sw_flipperUpL_active(self, sw):
+	#	if self.flipper_enable_workaround_active:
+	#		self.game.coils['flipperUpLMain'].pulse(34)
+	#		self.game.coils['flipperUpLHold'].pulse(0)
+
+	def sw_flipperUpL_inactive(self, sw):
+		if self.flipper_enable_workaround_active:
+			self.game.coils['flipperUpLMain'].disable()
+			self.game.coils['flipperUpLHold'].disable()
+
+	#def sw_flipperUpR_active(self, sw):
+	#	if self.flipper_enable_workaround_active:
+	#		self.game.coils['flipperUpRMain'].pulse(34)
+	#		self.game.coils['flipperUpRHold'].pulse(0)
+
+	def sw_flipperUpR_inactive(self, sw):
+		if self.flipper_enable_workaround_active:
+			self.game.coils['flipperUpRMain'].disable()
+			self.game.coils['flipperUpRHold'].disable()
+
 
 class BaseGameMode(game.Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game):
 		super(BaseGameMode, self).__init__(game, 2)
 		self.tilt = Tilt(self.game, 1000, font_jazz18, font_tiny7, 'tilt', 'slamTilt')
+		self.flipper_enable_workaround_active = False
 
 	def mode_started(self):
 
@@ -360,14 +442,9 @@ class BaseGameMode(game.Mode):
 			self.jd_modes.modes_not_attempted = []
 		self.jd_modes.begin_processing()
 
-		# Set up ball save params to be passed into launch_balls.
-		ball_save_time = self.game.user_settings['Gameplay']['New ball ballsave time']
-		ball_save_repeats = self.game.user_settings['Gameplay']['New ball repeating ballsave']
-		ball_save_start_now = False # Ball save should start when the ball is plunged.
-
 		# Put the ball into play and start tracking it.
 		# self.game.coils.trough.pulse(40)
-		self.game.trough.launch_balls(1, self.ball_launch_callback)
+		self.game.trough.launch_balls(1)
 
 		# Enable ball search in case a ball gets stuck during gameplay.
 		self.game.ball_search.enable()
@@ -380,9 +457,6 @@ class BaseGameMode(game.Mode):
 		# handler.
 		self.game.trough.drain_callback = self.ball_drained_callback
 
-	def ball_launch_callback(self):
-		self.game.ball_save.start_lamp()
-	
 	def mode_stopped(self):
 		
 		# Ensure flippers are disabled
@@ -559,6 +633,7 @@ class Game(game.BasicGame):
 		super(Game, self).__init__(machine_type)
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
+		self.logging_enabled = False
 	
 	def create_player(self, name):
 		return JDPlayer(name)
@@ -593,6 +668,7 @@ class Game(game.BasicGame):
 		# Instantiate basic game features
 		self.attract_mode = Attract(self)
 		self.base_game_mode = BaseGameMode(self)
+		self.flipper_workaround_mode = FlipperWorkaroundMode(self)
 		self.deadworld = Deadworld(self, 20, self.settings['Machine']['Deadworld mod installed'])
 		self.ball_save = procgame.modes.BallSave(self, self.lamps.drainShield, 'shooterR')
 
@@ -660,6 +736,7 @@ class Game(game.BasicGame):
 		self.modes.add(self.deadworld)
 		self.modes.add(self.ball_save)
 		self.modes.add(self.trough)
+		self.modes.add(self.flipper_workaround_mode)
 
 
 		self.ball_search.disable()
@@ -720,8 +797,8 @@ class Game(game.BasicGame):
 		self.modes.add(self.attract_mode)
 
 		#self.attract_mode.change_display(99)
-		# Change to game_over index
-		self.attract_mode.change_display(0)
+		# setup display sequence in Attract.
+		self.attract_mode.game_over_display()
 
 		# Handle stats for last ball here
 		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
@@ -769,6 +846,10 @@ class Game(game.BasicGame):
                                      reset_switches=self.ballsearch_resetSwitches, \
                                      stop_switches=self.ballsearch_stopSwitches, \
                                      special_handler_modes=special_handler_modes)
+
+	def enable_flippers(self, enable=True):
+		super(Game, self).enable_flippers(enable)
+		self.flipper_workaround_mode.enable_flippers(enable)
 		
 def main():
 	config = yaml.load(open(machine_config_path, 'r'))

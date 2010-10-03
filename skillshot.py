@@ -2,6 +2,7 @@ import procgame
 import locale
 from procgame import *
 	
+voice_path = "./games/jd/sound/Voice/skillshot/"
 class SkillShot(game.Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
@@ -11,6 +12,12 @@ class SkillShot(game.Mode):
 		self.layer = dmd.GroupedLayer(128, 32, [self.text_layer, self.award_layer])
 		self.time = 0
 		self.awards = ['award1','award2']
+
+		self.game.sound.register_sound('good shot', voice_path+'great shot.wav')
+		self.game.sound.register_sound('good shot', voice_path+'incredible shot.wav')
+		self.game.sound.register_sound('good shot', voice_path+'wow thats awesome.wav')
+		self.game.sound.register_sound('good shot', voice_path+'jd - do it again.wav')
+		self.game.sound.register_sound('good shot', voice_path+'jd - excellent.wav')
 	
 	def mode_started(self):
 		self.shots_hit = 0
@@ -27,6 +34,8 @@ class SkillShot(game.Mode):
 		self.game.lamps.perp4G.schedule(schedule=0x00ff00ff, cycle_seconds=0, now=True)
 
 	def award(self):
+		self.game.sound.stop('good shot')
+		self.game.sound.play('good shot')
 		self.shots_hit += 1
 		self.game.score(self.shots_hit * 5000)
 		self.text_layer.set_text("Skill Shot!",3)

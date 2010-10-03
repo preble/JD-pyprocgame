@@ -1,9 +1,11 @@
 import procgame
 from procgame import *
 from random import *
+import locale
 import os.path
 
 sound_path = "./games/jd/sound/FX/"
+voice_path = "./games/jd/sound/Voice/crimescenes/"
 
 class Crimescenes(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
@@ -47,9 +49,23 @@ class Crimescenes(modes.Scoring_Mode):
 		self.get_block_war_multiplier = None
 		self.total_levels = 0
 
+		for i in range(1,17):
+			keyname = 'block complete ' + str(i)
+			filename = 'block ' + str(i) + ' neutralized.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
+			filename = 'block ' + str(i) + ' pacified.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
+			filename = 'block ' + str(i) + ' secured.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
+			
+		keyname = 'crime'
+		for i in range(1,17):
+			filename = 'crime ' + str(i) + '.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
+
 	def reset(self):
 		self.bonus_num = 1
-		self.extra_ball_levels = 2
+		self.extra_ball_levels = 4
 		self.complete = False
 		self.bw_shots = 1
 		self.bw_shots_required = [1,1,1,1,1]
@@ -66,6 +82,9 @@ class Crimescenes(modes.Scoring_Mode):
 	def mode_stopped(self):
 		if self.mode == 'bonus':
 			self.cancel_delayed('bonus_target')
+			self.game.modes.remove(self.block_war)
+		if self.mode == 'block_war':
+			self.game.modes.remove(self.block_war)
 		for i in range(1,6):
 			for j in range(0,4):
 				lampname = 'perp' + str(i) + self.lamp_colors[j]
@@ -263,6 +282,8 @@ class Crimescenes(modes.Scoring_Mode):
 				self.targets[num] = 0
 				if self.all_targets_off():
 					self.level_complete()
+				else:
+					self.game.sound.play('crime')
 				self.update_lamps()
 		elif self.mode == 'block_war':
 			if self.get_block_war_multiplier != None:
@@ -329,7 +350,7 @@ class Crimescenes(modes.Scoring_Mode):
 					self.light_extra_ball_function()
 					break
 			if (self.level % 4) == 3:
-				# ensure flippers are enable.  
+				# ensure flippers are enabled.  
 				# This is a workaround for when a mode is 
 				# starting (flippers disable during
 				# intro) just before block wars is started.
@@ -341,11 +362,23 @@ class Crimescenes(modes.Scoring_Mode):
 				self.game.trough.launch_balls(1, self.block_war_start_callback)
 				self.mb_start_callback()
 			else:
+				self.display_level_complete(self.level,10000)
 				self.level += self.num_levels_to_advance
+				self.game.sound.play('block complete ' + str(self.level))
 				self.init_level(self.level)
 				#Play sound, lamp show, etc
 
+	def display_level_complete(self, level, points):
+		self.title_layer = dmd.TextLayer(128/2, 7, self.game.fonts['07x5'], "center").set_text("Advance Crimescene", 1.5);
+		self.level_layer = dmd.TextLayer(128/2, 14, self.game.fonts['07x5'], "center").set_text("Level " + str(level + 1) + " complete", 1.5);
+		self.award_layer = dmd.TextLayer(128/2, 21, self.game.fonts['07x5'], "center").set_text("Award: " + locale.format("%d",points,True) + " points", 1.5);
+		self.layer = dmd.GroupedLayer(128, 32, [self.title_layer, self.level_layer, self.award_layer])
+		
+
 	def is_mb_active(self):
+		print "Crimescenes: is_mb_active()"
+		print self.mode == 'blockwar' or self.mode == 'bonus'
+		print "mode is " + self.mode
 		return self.mode == 'block_war' or self.mode == 'bonus'
 
 	def block_war_start_callback(self):
@@ -360,7 +393,7 @@ class Crimescenes(modes.Scoring_Mode):
 			self.bonus_dir = 'down'
 
 		if self.bonus_dir == 'down' and self.bonus_num == 1:
-			self.mode = 'levels'
+			self.mode = 'block_war'
 			self.level += 1
 			self.init_level(self.level)
 		else:
@@ -425,9 +458,16 @@ class BlockWar(game.Mode):
 		else:
 			self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer, self.score_reason_layer, self.score_value_layer])
 		self.game.sound.register_sound('block_war_target', sound_path+'DropTarget.wav')
+		self.game.sound.register_sound('block war start', voice_path+'riot in sector 13.wav')
+		self.game.sound.register_sound('block war start', voice_path+'rioting reported.wav')
+		keyname = 'block war start'
+		for i in range(1,5):
+			filename = 'war ' + str(i) + '.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
 	
 	def mode_started(self):
 		self.banner_layer.set_text("Block War!", 3)
+		self.game.sound.play('block war start')
 
 	def switch_hit(self, shot_index, multiplier):
 		score = 5000 * multiplier

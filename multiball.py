@@ -1,6 +1,8 @@
 import procgame
 from procgame import *
 
+voice_path = "./games/jd/sound/Voice/multiball/"
+
 class Multiball(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority, deadworld_mod_installed, font):
@@ -23,7 +25,27 @@ class Multiball(modes.Scoring_Mode):
 		self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=priority+1, prefix='dropTarget', letters='JUDGE')
 		self.jackpot_collected = False
 		self.game.lampctrl.register_show('jackpot', "./games/jd/lamps/jackpot.lampshow")
-	
+		self.game.sound.register_sound('jackpot is lit', voice_path + 'jackpot is lit.wav')
+		self.game.sound.register_sound('jackpot', voice_path + 'jackpot - excited.wav')
+		self.game.sound.register_sound('jackpot', voice_path + 'jaackpott.wav')
+		self.game.sound.register_sound('shoot the left ramp', voice_path + 'shoot the left ramp.wav')
+		self.game.sound.register_sound('shoot the left ramp', voice_path + 'jd - shoot the left ramp.wav')
+		self.game.sound.register_sound('again', voice_path + 'again.wav')
+		self.game.sound.register_sound('locks lit', voice_path + 'jd - lets lock em up.wav')
+		self.game.sound.register_sound('ball 1 locked', voice_path + 'jd - ball 1 captured.wav')
+		self.game.sound.register_sound('ball 2 locked', voice_path + 'jd - ball 2 locked.wav')
+		self.game.sound.register_sound('multiball', voice_path + 'calling all units the gang has escaped.wav')
+		self.game.sound.register_sound('multiball', voice_path + 'escape from detention block aa23.wav')
+		self.delay(name='voice instructions', event_type=None, delay=10, handler=self.voice_instructions)
+
+	def voice_instructions(self):
+		self.delay(name='voice instructions', event_type=None, delay=10, handler=self.voice_instructions)
+		if self.state == 'multiball': 
+			if self.jackpot_lit:
+				self.game.sound.play('shoot the subway')
+			else:
+				self.game.sound.play('shoot the left ramp')
+
 	def mode_started(self):
 		self.game.coils.globeMotor.disable()
 		self.game.deadworld.initialize()
@@ -40,6 +62,7 @@ class Multiball(modes.Scoring_Mode):
 		self.update_lamps()
 
 	def mode_stopped(self):
+		self.cancel_delayed(name='voice instructions')
 		self.game.coils.flasherGlobe.disable()
 		self.game.modes.remove(self.drops)
 
@@ -50,6 +73,7 @@ class Multiball(modes.Scoring_Mode):
 		return self.state == 'multiball'
 
 	def end_multiball(self):
+		self.cancel_delayed(name='trip_check')
 		self.game.coils.flasherGlobe.disable()
 		self.state = 'load'
 		self.end_callback()
@@ -61,6 +85,7 @@ class Multiball(modes.Scoring_Mode):
 		self.update_lamps()
 
 	def start_multiball(self):
+		self.game.sound.play('multiball')
 		self.num_balls_locked = 0
 		self.state = 'multiball'
 		self.display_text("Multiball!")
@@ -69,6 +94,11 @@ class Multiball(modes.Scoring_Mode):
 		self.num_left_ramp_shots_needed = 1
 		self.jackpot_lit = False
 		self.update_lamps()
+
+	def trip_check(self):
+		if self.game.switches.dropTargetD.is_inactive():
+			self.game.coils.tripDropTarget.pulse(40)
+			self.delay(name='trip_check', event_type=None, delay=.400, handler=self.trip_check)
 
 	def jackpot(self):
 		self.game.score(100000)
@@ -79,10 +109,12 @@ class Multiball(modes.Scoring_Mode):
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
 		if self.jackpot_lit:
 			self.game.coils.tripDropTarget.pulse(40)
+			self.delay(name='trip_check', event_type=None, delay=.400, handler=self.trip_check)
 
 	def sw_subwayEnter2_active(self,sw):
 		if self.jackpot_lit:
 			self.display_text("Jackpot!")
+			self.game.sound.play('jackpot')
 			self.jackpot_lit = False
 			self.delay(name='jackpot', event_type=None, delay=1.5, handler=self.jackpot)
 			self.num_left_ramp_shots_hit = 0
@@ -163,6 +195,7 @@ class Multiball(modes.Scoring_Mode):
 		self.game.install_switch_rule_coil_schedule(switch_num, 'closed_debounced', 'diverter', 0x00000fff, 1, True, True, False)
 
 	def enable_lock(self):
+		self.game.sound.play('locks lit')
 		self.game.deadworld.enable_lock()
 		self.game.coils.flasherGlobe.schedule(schedule=0x0000AAAA, cycle_seconds=2, now=True)
 		self.lock_enabled = True
@@ -183,11 +216,13 @@ class Multiball(modes.Scoring_Mode):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
 		# Balls launched are already in play.
 		local_num_balls_to_save = self.game.trough.num_balls_in_play
+		self.game.ball_save.callback = None
 		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def start_ballsave(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
 		local_num_balls_to_save = self.game.trough.num_balls_in_play + 2
+		self.game.ball_save.callback = None
 		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
 
 	def sw_leftRampToLock_active(self, sw):
@@ -197,6 +232,11 @@ class Multiball(modes.Scoring_Mode):
 			self.game.coils.flasherGlobe.schedule(schedule=0xAAAAAAAA, cycle_seconds=2, now=True)
 			self.num_balls_locked += 1
 			self.display_text("Ball " + str(self.num_balls_locked) + " Locked!")
+			if self.num_balls_locked == 1:
+				self.game.sound.play('ball 1 locked')
+			elif self.num_balls_locked == 2:
+				self.game.sound.play('ball 2 locked')
+
 			if self.num_balls_locked == 3:
 				self.disable_lock()
 				if self.deadworld_mod_installed:
@@ -224,7 +264,8 @@ class Multiball(modes.Scoring_Mode):
 					# Tell the trough another ball is physically locked
 					self.game.trough.num_balls_locked += 1
 					# Use stealth launch so another ball isn't counted in play.
-					self.game.trough.launch_balls(1,'None',stealth=True)
+					self.game.ball_save.callback = None
+					self.game.trough.launch_balls(1,None,stealth=True)
 				else:
 					self.game.deadworld.eject_balls(1)
 				
@@ -234,7 +275,8 @@ class Multiball(modes.Scoring_Mode):
 				# Tell the trough another ball is physically locked
 				self.game.trough.num_balls_locked += 1
 				# Use stealth launch so another ball isn't counted in play.
-				self.game.trough.launch_balls(1,'None',stealth=True)
+				self.game.ball_save.callback = None
+				self.game.trough.launch_balls(1,None,stealth=True)
 			else:
 				self.game.deadworld.eject_balls(1)
 
@@ -297,8 +339,12 @@ class Multiball(modes.Scoring_Mode):
 				self.num_left_ramp_shots_hit += 1
 				if self.num_left_ramp_shots_hit == self.num_left_ramp_shots_needed:
 					self.jackpot_lit = True
+					self.game.sound.play('jackpot is lit')
+				else:
+					self.game.sound.play('again')
 				if self.game.switches.dropTargetD.is_inactive():
-					self.game.coils.tripDropTarget.pulse(50)
+					self.game.coils.tripDropTarget.pulse(40)
+					self.delay(name='trip_check', event_type=None, delay=.400, handler=self.trip_check)
 		self.update_lamps()
 
 	def update_lamps(self):

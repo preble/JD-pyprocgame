@@ -8,9 +8,11 @@ import time
 import yaml
 import random
 
+voice_path = "./games/jd/sound/Voice/shooting_gallery/"
+
 class ShootingGallery(game.Mode):
-	def __init__(self, game, gallery_filename, cows_filename, scope_filename, cow_mode):
-		super(ShootingGallery, self).__init__(game, 1)
+	def __init__(self, game, priority, gallery_filename, cows_filename, scope_filename, cow_mode):
+		super(ShootingGallery, self).__init__(game, priority)
 		self.gallery_images_anim = dmd.Animation().load(gallery_filename)
 		self.cow_images_anim = dmd.Animation().load(cows_filename)
 		#self.image_frames = dmd.GroupedFrameToList( self.gallery_images_anim.frames[0], 6, 2 )
@@ -19,6 +21,19 @@ class ShootingGallery(game.Mode):
 		self.cow_image_frames = self.cow_images_anim.frames[0].create_frames_from_grid( 4, 1 )
 
 		self.scope_and_shot_anim = dmd.Animation().load(scope_filename)
+		self.on_complete = None
+
+		keyname = 'bad guy shot'
+		for i in range(1,6):
+			filename = 'man shot ' + str(i) + '.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
+
+		keyname = 'good guy shot'
+		for i in range(1,3):
+			filename = 'mother ' + str(i) + '.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
+
+	def mode_started(self):
 		self.gallery_index = 0
 		self.scope_pos = 0
 		self.states = ['empty', 'empty', 'empty', 'empty']
@@ -32,10 +47,11 @@ class ShootingGallery(game.Mode):
 
 		self.intro_active = True
 		self.intro()
-		self.on_complete = None
 
 	def intro(self):
+		print "hi"
 		self.game.enable_flippers(enable=False)
+		print "hi2"
 		self.status_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center", opaque=False).set_text("Video Mode")
 #		self.status_layer.composite_op = 'blacksrc'
 		self.intro_layer_0 = dmd.GroupedLayer(128, 32, [self.status_layer])
@@ -59,10 +75,8 @@ class ShootingGallery(game.Mode):
 		anim = dmd.Animation().load("games/jd/dmd/gun_powerup.dmd")
 		self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, frame_time=5)
 		self.anim_layer.composite_op = 'blacksrc'
-		self.intro_layer_3 = dmd.GroupedLayer(128, 32, [self.anim_layer])
 
-		self.status_layer_4 = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center", opaque=False).set_text("Video Mode").set_text("Ready...")
-		self.intro_layer_4 = dmd.GroupedLayer(128, 32, [self.anim_layer, self.status_layer_4])
+		self.intro_layer_4 = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center", opaque=False).set_text("Video Mode").set_text("Ready...")
 
 		self.status_layer_5 = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center", opaque=False).set_text("Video Mode").set_text("Begin!")
 		self.intro_layer_5 = dmd.GroupedLayer(128, 32, [self.anim_layer, self.status_layer_5])
@@ -71,7 +85,6 @@ class ShootingGallery(game.Mode):
 			{'seconds':3.0, 'layer':self.intro_layer_0},
 			{'seconds':3.0, 'layer':self.intro_layer_1},
 			{'seconds':3.0, 'layer':self.intro_layer_2},
-			{'seconds':3.0, 'layer':self.intro_layer_3},
 			{'seconds':3.0, 'layer':self.intro_layer_4},
 			{'seconds':3.0, 'layer':self.intro_layer_5}])
 
@@ -245,6 +258,7 @@ class ShootingGallery(game.Mode):
 			self.states[self.scope_pos] = 'shot'
 			self.result_layer.set_text("Good Shot",1)
 			self.num_enemies_shot += 1
+			self.game.sound.play('bad guy shot')
 		elif self.states[self.scope_pos] == 'empty':
 			self.delay(name='empty_shot', event_type=None, delay=0.5, handler=self.empty_shot, param=self.scope_pos)
 		elif self.states[self.scope_pos] == 'friend':
@@ -263,6 +277,7 @@ class ShootingGallery(game.Mode):
 		self.shot_layers[position].blink_frames = 0
 
 	def friend_shot(self, position):
+		self.game.sound.play('good guy shot')
 		self.mode = 'complete'
 		self.status_layer.set_text("Failed!")
 		self.cancel_delayed('empty_shot')

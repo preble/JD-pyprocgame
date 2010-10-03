@@ -12,11 +12,25 @@ class Deadworld(game.Mode):
 		self.num_balls_to_eject = 0
 		self.ball_eject_in_progress = 0
 		self.performing_ball_search = 0
-		self.add_switch_handler(name='globePosition2', event_type='active', delay=None, handler=self.crane_activate)
 		self.crane_delay_active = False
+		self.setting_up_eject = False
 	
 	def mode_started(self):
 		pass
+
+	def sw_globePosition2_active(self, sw):
+		if self.game.user_settings['Machine']['Deadworld fast eject']:
+			if self.setting_up_eject:
+				self.setting_up_eject = False
+				self.delay(name='crane_restart_delay', event_type=None, delay=0.8, handler=self.crane_start)
+				switch_num = self.game.switches['globePosition2'].number
+				self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
+		else:
+			self.crane_activate()
+
+	def crane_activate(self):
+		if self.ball_eject_in_progress:
+			self.game.coils.crane.pulse(0)
 
 	def mode_stopped(self):
 		self.game.coils.globeMotor.disable()
@@ -50,10 +64,22 @@ class Deadworld(game.Mode):
 		self.ball_eject_in_progress = 1
 
 	def perform_ball_eject(self):
-		self.game.coils.globeMotor.pulse(0)
-		#if self.deadworld_mod_installed:
-		switch_num = self.game.switches['globePosition2'].number
-		self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
+		if self.game.user_settings['Machine']['Deadworld fast eject']:
+			# If globe not in position to start (globePosition2),
+			# it needs to get there first.
+			if self.game.switches['globePosition2'].is_inactive():
+				self.setting_up_eject = True
+			else:
+				self.delay(name='crane_restart_delay', event_type=None, delay=1.8, handler=self.crane_start)
+				switch_num = self.game.switches['globePosition2'].number
+				self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
+		
+			self.delay(name='globe_restart_delay', event_type=None, delay=1, handler=self.globe_start)
+		else:
+			self.game.coils.globeMotor.pulse(0)
+			#if self.deadworld_mod_installed:
+			switch_num = self.game.switches['globePosition2'].number
+			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
 
 	def sw_craneRelease_active(self,sw):
 		if not self.performing_ball_search and not self.crane_delay_active:
@@ -71,26 +97,43 @@ class Deadworld(game.Mode):
 			self.game.coils.craneMagnet.pulse(0)
 			self.delay(name='crane_release', event_type=None, delay=2, handler=self.crane_release)
 
+	def globe_start(self):
+		self.game.coils.globeMotor.pulse(0)
+
+	def crane_start(self):
+		self.game.coils.crane.pulse(0)
+
 	def crane_release(self):
-		self.game.coils.crane.disable()
+		if self.game.user_settings['Machine']['Deadworld fast eject']:
+			self.delay(name='globe_restart_delay', event_type=None, delay=1, handler=self.globe_start)
+
 		self.game.coils.craneMagnet.disable()
+		self.game.coils.crane.disable()
 		self.performing_ball_search = 0
 		self.delay(name='crane_release_check', event_type=None, delay=1, handler=self.crane_release_check)
 
 
 	def crane_release_check(self):
 		if self.num_balls_to_eject > 0:
-			self.perform_ball_eject()
+			# Only restart if not in fast mode.  Fast mode will just
+			# keep going until finished.
+			if self.game.user_settings['Machine']['Deadworld fast eject']:
+				self.delay(name='crane_restart_delay', event_type=None, delay=0.8, handler=self.crane_start)
+			else:
+				self.perform_ball_eject()
 		else:
+			self.game.coils.crane.disable()
 			if self.num_balls_locked > 0:
 				self.game.coils.globeMotor.pulse(0)
+			else:
+				self.game.coils.globeMotor.disable()
+
+
+			# Finish up by turning off flag and disabling globe
+			# switch rule.
 			self.ball_eject_in_progress = 0
 			switch_num = self.game.switches['globePosition2'].number
 			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, False)
-
-	def crane_activate(self,sw):
-		if self.ball_eject_in_progress:
-			self.game.coils.crane.pulse(0)
 
 	def get_num_balls_locked(self):
 		return self.num_balls_locked - self.num_balls_to_eject

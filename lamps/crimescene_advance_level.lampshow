@@ -64,3 +64,9 @@ advanceCrimeLevel     |   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
 tankRight             |    .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
 #superGame             |
 #startButton           |
+coil:flashersLowerLeft  | .       .       .       .       .       .   
+coil:flasherCursedEarth |  .       .       .       .       .       .  
+coil:flasherGlobe       |   .       .       .       .       .       . 
+coil:flashersRtRamp     |    .       .       .       .       .       .
+coil:flasherPursuitL    |     .       .       .       .       .       .
+coil:flasherPursuitR    |      .       .       .       .       .       .

@@ -15,8 +15,8 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.mode_mortis = Mortis(game, self.priority+1)
 		self.mode_death = Death(game, self.priority+1)
 		self.mode_celebration = Celebration(game, self.priority+1)
-		#self.active_mode = 'fire'
-		self.active_mode = 'celebration'
+		self.active_mode = 'fire'
+		#self.active_mode = 'celebration'
 		self.mode_list = {}
 		self.mode_list['fire'] = self.mode_fire
 		self.mode_list['fear'] = self.mode_fear

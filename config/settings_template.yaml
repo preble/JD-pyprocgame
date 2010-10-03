@@ -8,6 +8,9 @@ Machine:
   'Deadworld mod installed':
     options: [true, false]
     default: false
+  'Deadworld fast eject':
+    options: [true, false]
+    default: true
   'Initial volume':
     options: [0.1,1.0]
     increments: 0.1
@@ -67,15 +70,15 @@ Gameplay:
     options: [true, false]
   'New ball ballsave time':
     options: [6,8,10,12,15]
-    default: 12
+    default: 10
   'New ball repeating ballsave':
     options: [false, true]
   'Multiball ballsave time':
-    options: [15,20,25,30,35]
-    default: 25
+    options: [5,10,15,20,25,30,35]
+    default: 10
   'Block Wars ballsave time':
-    options: [10,15,20,25,30]
-    default: 15
+    options: [5,10,15,20,25,30]
+    default: 10
   'Time per chain feature':
     options: [25,30,35,40,45]
     default: 30
