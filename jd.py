@@ -107,10 +107,6 @@ class Attract(game.Mode):
 		self.press_start_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Press Start", seconds=None, blink_frames=1)
 		self.scores_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("High Scores")
 		self.scores_layer.transition = dmd.PushTransition(direction='north')
-		self.gc0_layer = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:")
-		self.gc1_layer = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'])
-		self.gc2_layer = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']))
-		self.scores_grouped_layer = dmd.GroupedLayer(128, 32, [self.gc0_layer, self.gc1_layer, self.gc2_layer])
 
 		gen = dmd.MarkupFrameGenerator()
 		credits_frame = gen.frame_for_markup("""
