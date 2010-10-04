@@ -97,7 +97,6 @@ class JD_Modes(modes.Scoring_Mode):
 		self.game.sound.register_sound('ball saved', voice_path+"who told you to stop.wav")
 		self.game.sound.register_sound('ball saved', voice_path+"you may judge again.wav")
 		self.game.sound.register_sound('ball saved', voice_path+"you may judge again 2.wav")
-		self.game.sound.register_sound('ball saved', voice_path+"jd - i can do better than this.wav")
 		self.game.sound.register_sound('ball saved', voice_path+"jd - never do that again.wav")
 		keyname = 'curse'
 		for i in range(1,12):
@@ -525,11 +524,19 @@ class JD_Modes(modes.Scoring_Mode):
 		if not self.any_mb_active() and not self.info_on:
 			self.start_info()
 
+	def sw_subwayEnter2_active(self, sw):
+		filename = "./games/jd/dmd/subway.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.play_animation(anim, 'low', repeat=False, hold=False, frame_time=1)
+
 	def sw_topRightOpto_active(self, sw):
 		#See if ball came around inner left loop
 		if self.game.switches.topCenterRollover.time_since_change() < 1.5:
 			self.game.sound.play('inner_loop')
 			self.inner_loop_combos += 1
+			if self.inner_loop_combos > self.game.current_player().inner_loops:
+				self.game.current_player().inner_loops = self.inner_loop_combos
 			self.inner_loops_hit += 1
 			score = 10000 * (self.inner_loop_combos)
 			self.game.score(score)
@@ -548,6 +555,8 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.game.switches.topRightOpto.time_since_change() < 1:
 			self.game.sound.play('outer_loop')
 			self.outer_loops_hit += 1
+			if self.outer_loop_combos > self.game.current_player().outer_loops:
+				self.game.current_player().outer_loops = self.outer_loop_combos
 			self.outer_loop_combos += 1
 			score = 1000 * (self.outer_loop_combos)
 			self.game.score(score)
@@ -798,7 +807,7 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.game.ball == self.game.balls_per_game:
 			if self.replay.replay_achieved[0]:
 				text = 'Highest Score'
-				score = str(self.game.game_data['High Scores']['Grand Champion']['name']) + locale.format("%d",self.game.game_data['High Scores']['Grand Champion']['score'],True)
+				score = str(self.game.game_data['ClassicHighScoreData'][0]['inits']) + locale.format("%d",self.game.game_data['ClassicHighScoreData'][0]['score'],True)
 			else:
 				text = 'Replay'
 				score = locale.format("%d",self.replay.replay_scores[0],True)

@@ -91,11 +91,24 @@ class Attract(game.Mode):
 		self.change_lampshow()
 		self.ball_search_started = False
 
+		filename = "./games/jd/dmd/cityscape.dmd"
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.cityscape_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=1)
+		else:
+			self.cityscape_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("CityScape")
+
 		self.jd_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Judge Dredd")
+		self.jd_layer.transition = dmd.PushTransition(direction='south')
+
+
 		self.proc_splash_layer = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
+		self.proc_splash_layer.transition = dmd.PushTransition(direction='south')
 		self.pyprocgame_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("pyprocgame")
-		self.press_start_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Press Start")
+		self.pyprocgame_layer.transition = dmd.PushTransition(direction='west')
+		self.press_start_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Press Start", seconds=None, blink_frames=1)
 		self.scores_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("High Scores")
+		self.scores_layer.transition = dmd.PushTransition(direction='north')
 		self.gc0_layer = dmd.TextLayer(128/2, 3, font_tiny7, "center").set_text("Grand Champion:")
 		self.gc1_layer = dmd.TextLayer(128/2, 12, font_tiny7, "center").set_text(self.game.game_data['High Scores']['Grand Champion']['name'])
 		self.gc2_layer = dmd.TextLayer(128/2, 21, font_tiny7, "center").set_text(str(self.game.game_data['High Scores']['Grand Champion']['score']))
@@ -127,6 +140,9 @@ class Attract(game.Mode):
 
 [pyprocgame:]
 [pyprocgame.pindev.org]
+
+[Special thanks to:]
+[Rob Anthony]
 """)
 
 		self.credits_layer = dmdpan.PanningLayer(width=128, height=32, frame=credits_frame, origin=(0,0), translate=(0,1), bounce=False)
@@ -155,37 +171,55 @@ class Attract(game.Mode):
 		self.pre_game_display()
 
 	def pre_game_display(self):
-		self.layer = dmd.ScriptedLayer(128,32, [\
-			{'seconds':3.0, 'layer':self.jd_layer},
-			{'seconds':3.0, 'layer':self.proc_splash_layer},
-			{'seconds':3.0, 'layer':self.pyprocgame_layer},
-			{'seconds':3.0, 'layer':self.press_start_layer},
-			{'seconds':3.0, 'layer':self.scores_layer},
-			{'seconds':3.0, 'layer':self.scores_grouped_layer},
-#			{'seconds':3.0, 'layer':self.credits_intro_layer},
-			{'seconds':17.0, 'layer':self.credits_layer},
-			{'seconds':3.0, 'layer':self.judges_layer},
-			{'seconds':5.0, 'layer':self.guntech_layer}])
+		script = [{'seconds':3.0, 'layer':self.jd_layer},
+		          {'seconds':4.0, 'layer':self.cityscape_layer},
+			  {'seconds':3.0, 'layer':self.proc_splash_layer},
+			  {'seconds':3.0, 'layer':self.pyprocgame_layer},
+			  {'seconds':3.0, 'layer':self.press_start_layer},
+			  {'seconds':3.0, 'layer':self.scores_layer}]
+
+		for frame in highscore.generate_highscore_frames(self.game.highscore_categories):
+			new_layer = dmd.FrameLayer(frame=frame)
+			new_layer.transition = dmd.PushTransition(direction='north')
+			script.append({'seconds':2.0, 'layer':new_layer})
+
+		script.append({'seconds':20.0, 'layer':self.credits_layer})
+		script.append({'seconds':3.0, 'layer':self.judges_layer})
+		script.append({'seconds':4.0, 'layer':self.cityscape_layer})
+
+		self.layer = dmd.ScriptedLayer(width=128, height=32, script=script)
 
 	def post_game_display(self):
-		self.layer = dmd.ScriptedLayer(128,32, [\
-			{'seconds':3.0, 'layer':self.jd_layer},
-			{'seconds':3.0, 'layer':self.proc_splash_layer},
-			{'seconds':3.0, 'layer':self.pyprocgame_layer},
-			{'seconds':3.0, 'layer':self.press_start_layer},
-			{'seconds':3.0, 'layer':self.scores_layer},
-			{'seconds':3.0, 'layer':self.scores_grouped_layer},
-#			{'seconds':3.0, 'layer':self.credits_intro_layer},
-			{'seconds':17.0, 'layer':self.credits_layer},
-			{'seconds':3.0, 'layer':self.judges_layer},
-			{'seconds':5.0, 'layer':self.guntech_layer},
-			{'seconds':3.0, 'layer':None}])
+		script = list()
 
+		for frame in highscore.generate_highscore_frames(self.game.highscore_categories):
+			new_layer = dmd.FrameLayer(frame=frame)
+			new_layer.transition = dmd.PushTransition(direction='north')
+			script.append({'seconds':2.0, 'layer':new_layer})
+
+		script.append({'seconds':3.0, 'layer':self.jd_layer})
+		script.append({'seconds':4.0, 'layer':self.cityscape_layer})
+		script.append({'seconds':3.0, 'layer':self.proc_splash_layer})
+		script.append({'seconds':3.0, 'layer':self.pyprocgame_layer})
+		script.append({'seconds':3.0, 'layer':self.scores_layer})
+		script.append({'seconds':20.0, 'layer':self.credits_layer})
+		script.append({'seconds':3.0, 'layer':self.judges_layer})
+		script.append({'seconds':4.0, 'layer':self.cityscape_layer})
+		script.append({'seconds':3.0, 'layer':None})
+
+		self.layer = dmd.ScriptedLayer(width=128, height=32, script=script)
 
 	def game_over_display(self):
-		self.layer = dmd.ScriptedLayer(128,32, [\
-			{'seconds':6.0, 'layer':self.longwalk_layer},
-			{'seconds':3.0, 'layer':None}])
+		script = [{'seconds':6.0, 'layer':self.longwalk_layer},
+			{'seconds':3.0, 'layer':None}]
+
+		for frame in highscore.generate_highscore_frames(self.game.highscore_categories):
+			new_layer = dmd.FrameLayer(frame=frame)
+			new_layer.transition = dmd.PushTransition(direction='north')
+			script.append({'seconds':2.0, 'layer':new_layer})
+
+		self.layer = dmd.ScriptedLayer(width=128, height=32, script=script)
+
 		self.delay(name='dmd', event_type=None, delay=9, handler=self.post_game_display)
 
 	def mode_stopped(self):
@@ -623,6 +657,10 @@ class BaseGameMode(game.Mode):
 		return False
 
 class JDPlayer(game.Player):
+
+	inner_loops = 0
+	outer_loops = 0
+
 	def __init__(self, name):
 		super(JDPlayer, self).__init__(name)
 		self.info_record = {}
@@ -642,7 +680,7 @@ class Game(game.BasicGame):
 		self.write_settings(settings_path)
 
 	def save_game_data(self):
-		self.write_game_data(game_data_path)
+		super(Game, self).save_game_data(game_data_path)
 		
 	def setup(self):
 		"""docstring for setup"""
@@ -721,6 +759,43 @@ class Game(game.BasicGame):
 			self.lampctrl.register_show(key, file)
 			key_ctr += 1
 
+		# High Score stuff
+		self.highscore_categories = []
+		
+		cat = highscore.HighScoreCategory()
+		# because we don't have a game_data template:
+		cat.scores = [highscore.HighScore(score=50,inits='GSS'),\
+				  highscore.HighScore(score=40,inits='ASP'),\
+				  highscore.HighScore(score=30,inits='JRP'),\
+				  highscore.HighScore(score=20,inits='JAG'),\
+				  highscore.HighScore(score=10,inits='JTW')]
+		cat.game_data_key = 'ClassicHighScoreData'
+		self.highscore_categories.append(cat)
+		
+		cat = highscore.HighScoreCategory()
+		cat.game_data_key = 'InnerLoopsHighScoreData'
+		# because we don't have a game_data template:
+		cat.scores = [highscore.HighScore(score=2,inits='GSS')]
+		cat.titles = ['Inner Loop Champ']
+		cat.score_for_player = lambda player: player.inner_loops
+		cat.score_suffix_singular = ' loop'
+		cat.score_suffix_plural = ' loops'
+		self.highscore_categories.append(cat)
+		
+		cat = highscore.HighScoreCategory()
+		cat.game_data_key = 'OuterLoopsHighScoreData'
+		# because we don't have a game_data template:
+		cat.scores = [highscore.HighScore(score=2,inits='GSS')]
+		cat.titles = ['Outer Loop Champ']
+		cat.score_for_player = lambda player: player.outer_loops
+		cat.score_suffix_singular = ' loop'
+		cat.score_suffix_plural = ' loops'
+		self.highscore_categories.append(cat)
+		
+		for category in self.highscore_categories:
+			category.load_from_game(self)
+		
+
 		# Instead of resetting everything here as well as when a user
 		# initiated reset occurs, do everything in self.reset() and call it
 		# now and during a user initiated reset.
@@ -794,6 +869,16 @@ class Game(game.BasicGame):
 		#self.modes.add(self.attract_mode)
 		self.deadworld.mode_stopped()
 		# Restart attract mode lampshows
+
+		# High Score Stuff
+		seq_manager = highscore.EntrySequenceManager(game=self, priority=2)
+		seq_manager.finished_handler = self.highscore_entry_finished
+		seq_manager.logic = highscore.CategoryLogic(game=self, categories=self.highscore_categories)
+		self.modes.add(seq_manager)
+
+	def highscore_entry_finished(self, mode):
+		self.modes.remove(mode)
+
 		self.modes.add(self.attract_mode)
 
 		#self.attract_mode.change_display(99)
@@ -812,7 +897,7 @@ class Game(game.BasicGame):
 		for i in range(0,len(self.players)):
 			self.game_data['Audits']['Avg Score'] = self.calc_number_average(self.game_data['Audits']['Games Played'], self.game_data['Audits']['Avg Score'], self.players[i].score)
 		self.save_game_data()
-		
+
 	def set_status(self, text):
 		self.dmd.set_message(text, 3)
 		print(text)
