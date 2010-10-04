@@ -11,12 +11,13 @@ Audits:
   Games Played: 0
   Games Started: 0
   Balls Played: 0
-High Scores:
-  Block War Champ: {name: HHHHHH, score: 100000}
-  Grand Champion: {name: AAAAAA, score: 500000}
-  High Score 1: {name: BBBBBB, score: 400000}
-  High Score 2: {name: CCCCCC, score: 300000}
-  High Score 3: {name: DDDDDD, score: 200000}
-  High Score 4: {name: EEEEEE, score: 100000}
-  Inner Loop Champ: {name: GGGGGG, score: 2}
-  Outer Loop Champ: {name: FFFFFF, score: 2}
+ClassicHighScoreData:
+- {date: 'Sun Oct  3 17:38:46 2010', inits: GSS, score: 500000}
+- {date: 'Sun Oct  3 17:44:49 2010', inits: ASP, score: 400000}
+- {date: 'Sun Oct  3 16:22:47 2010', inits: JRP, score: 300000}
+- {date: 'Sun Oct  3 15:04:27 2010', inits: JAT, score: 200000}
+- {date: 'Sun Oct  3 22:05:01 2010', inits: JTW, score: 100000}
+InnerLoopsHighScoreData:
+- {date: 'Sun Oct  3 17:38:46 2010', inits: GSS, score: 2}
+OuterLoopsHighScoreData:
+- {date: 'Sun Oct  3 17:38:46 2010', inits: ASP, score: 2}
