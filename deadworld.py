@@ -21,7 +21,7 @@ class Deadworld(game.Mode):
 		if self.game.user_settings['Machine']['Deadworld fast eject']:
 			if self.setting_up_eject:
 				self.setting_up_eject = False
-				self.delay(name='crane_restart_delay', event_type=None, delay=0.8, handler=self.crane_start)
+				self.delay(name='crane_restart_delay', event_type=None, delay=0.9, handler=self.crane_start)
 				switch_num = self.game.switches['globePosition2'].number
 				self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
 		else:
@@ -43,6 +43,9 @@ class Deadworld(game.Mode):
 	def enable_lock(self):
 		self.lock_enabled = 1
 		self.game.coils.globeMotor.pulse(0)
+		# Make sure globe disable rule is off.
+		switch_num = self.game.switches['globePosition2'].number
+		self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, False)
 
 	def disable_lock(self):
 		self.lock_enabled = 0
@@ -70,19 +73,23 @@ class Deadworld(game.Mode):
 		self.ball_eject_in_progress = 1
 
 	def perform_ball_eject(self):
+		# Make sure globe is turning
+		self.game.coils.globeMotor.pulse(0)
+
 		if self.game.user_settings['Machine']['Deadworld fast eject']:
 			# If globe not in position to start (globePosition2),
 			# it needs to get there first.
 			if self.game.switches['globePosition2'].is_inactive():
 				self.setting_up_eject = True
+				switch_num = self.game.switches['globePosition2'].number
+				self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, False)
 			else:
-				self.delay(name='crane_restart_delay', event_type=None, delay=1.8, handler=self.crane_start)
+				self.delay(name='crane_restart_delay', event_type=None, delay=1.9, handler=self.crane_start)
 				switch_num = self.game.switches['globePosition2'].number
 				self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
 		
 			self.delay(name='globe_restart_delay', event_type=None, delay=1, handler=self.globe_start)
 		else:
-			self.game.coils.globeMotor.pulse(0)
 			#if self.deadworld_mod_installed:
 			switch_num = self.game.switches['globePosition2'].number
 			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, True)
@@ -120,13 +127,12 @@ class Deadworld(game.Mode):
 		self.game.coils.crane.disable()
 		self.delay(name='crane_release_check', event_type=None, delay=1, handler=self.crane_release_check)
 
-
 	def crane_release_check(self):
 		if self.num_balls_to_eject > 0:
 			# Only restart if not in fast mode.  Fast mode will just
 			# keep going until finished.
 			if self.game.user_settings['Machine']['Deadworld fast eject']:
-				self.delay(name='crane_restart_delay', event_type=None, delay=0.8, handler=self.crane_start)
+				self.delay(name='crane_restart_delay', event_type=None, delay=0.9, handler=self.crane_start)
 			else:
 				self.perform_ball_eject()
 		else:
@@ -136,16 +142,10 @@ class Deadworld(game.Mode):
 			else:
 				self.game.coils.globeMotor.disable()
 
-
-			# Finish up by turning off flag and disabling globe
-			# switch rule.
 			self.ball_eject_in_progress = 0
-			switch_num = self.game.switches['globePosition2'].number
-			self.game.install_switch_rule_coil_disable(switch_num, 'closed_debounced', 'globeMotor', True, False)
 
 	def get_num_balls_locked(self):
 		return self.num_balls_locked - self.num_balls_to_eject
-
 
 class DeadworldTest(service.ServiceModeSkeleton):
 	"""Coil Test"""
