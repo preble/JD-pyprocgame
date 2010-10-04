@@ -1,7 +1,6 @@
 import sys
 sys.path.append(sys.path[0]+'/../..') # Set the path so we can find procgame.  We are assuming (stupidly?) that the first member is our directory.
 import procgame
-import tools
 import pinproc
 from deadworld import *
 from info import *
@@ -9,7 +8,6 @@ from bonus import *
 from tilt import *
 from jd_modes import *
 from procgame import *
-from tools import *
 from threading import Thread
 from random import *
 import string
@@ -145,7 +143,7 @@ class Attract(game.Mode):
 [Rob Anthony]
 """)
 
-		self.credits_layer = dmdpan.PanningLayer(width=128, height=32, frame=credits_frame, origin=(0,0), translate=(0,1), bounce=False)
+		self.credits_layer = dmd.PanningLayer(width=128, height=32, frame=credits_frame, origin=(0,0), translate=(0,1), bounce=False)
 
 		filename = "./games/jd/dmd/guntech.dmd"
 		if os.path.isfile(filename):

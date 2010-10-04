@@ -10,8 +10,6 @@ from info import *
 from missile_award import *
 from shooting_gallery import *
 import os.path
-import tools
-from tools import *
 
 voice_path = "./games/jd/sound/Voice/"
 music_path = "./games/jd/sound/"
@@ -1182,7 +1180,7 @@ class GameIntro(game.Mode):
 
 """)
 
-		self.layer = dmdpan.PanningLayer(width=128, height=32, frame=instructions, origin=(0,0), translate=(0,1), bounce=False)
+		self.layer = dmd.PanningLayer(width=128, height=32, frame=instructions, origin=(0,0), translate=(0,1), bounce=False)
 		self.delay(name='finish', event_type=None, delay=25.0, handler=self.finish )
 
 	def finish(self):
