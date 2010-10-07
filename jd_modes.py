@@ -4,6 +4,7 @@ from chain_features import *
 from ultimate_challenge import *
 from multiball import *
 from crimescenes import *
+from boring import *
 from airrade import *
 from skillshot import *
 from info import *
@@ -28,6 +29,7 @@ class JD_Modes(modes.Scoring_Mode):
 		# Instantiate sub-modes
 		self.game_intro = GameIntro(self.game, self.priority+1)
 		self.play_intro = PlayIntro(self.game, self.priority+1)
+		self.boring = Boring(self.game, self.priority+1)
 		self.play_ult_intro = UltimateIntro(self.game, self.priority+1)
 		self.info = Info(game, priority+20)
 		self.info.callback = self.info_callback
@@ -198,6 +200,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def mode_stopped(self):
 
 		# Remove modes from the mode Q
+		self.game.modes.remove(self.boring)
 		self.game.modes.remove(self.skill_shot)
 		self.game.modes.remove(self.crimescenes)
 		self.game.modes.remove(self.multiball)
@@ -299,9 +302,10 @@ class JD_Modes(modes.Scoring_Mode):
 			self.crimescenes.end_mb()
 
 	def ball_save_callback(self):
-		self.game.sound.play('ball saved')
-		self.show_on_display("Ball Saved!", None, 'mid')
-		self.skill_shot.skill_shot_expired()
+		if not self.any_mb_active():
+			self.game.sound.play('ball saved')
+			self.show_on_display("Ball Saved!", None, 'mid')
+			self.skill_shot.skill_shot_expired()
 
 	# Award missile award indicated by award param.
 	def award_missile_award(self, award):
@@ -758,6 +762,7 @@ class JD_Modes(modes.Scoring_Mode):
 
 		if self.ball_starting:
 			self.game.ball_save.callback = self.ball_save_callback
+			self.game.modes.add(self.boring)
 
 		if os.path.isfile(filename) and self.ball_starting:
 			anim = dmd.Animation().load(filename)
@@ -1129,9 +1134,13 @@ class ModesAnimation(game.Mode):
 		super(ModesAnimation, self).__init__(game, priority)
 	
 	def play(self, anim, repeat=False, hold=False, frame_time=1):
-		self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=repeat, hold=hold, frame_time=frame_time)
-		self.layer = dmd.GroupedLayer(128, 32)
-		self.layer.layers += [self.anim_layer]
+		self.layer = dmd.AnimatedLayer(frames=anim.frames, repeat=repeat, hold=hold, frame_time=frame_time)
+
+		#filename = "./games/jd/dmd/train1.dmd"
+		#train_anim = dmd.Animation().load(filename)
+		#obs_frame = train_anim.frames[0]
+		#self.layer.transition = dmd.ObscuredWipeTransition(obscuring_frame=obs_frame, composite_op='blacksrc', direction='east')
+		#self.layer.transition.progress_per_frame=1.0/100.0
 
 class GameIntro(game.Mode):
 	"""docstring for AttractMode"""

@@ -3,6 +3,7 @@ import locale
 import time
 from procgame import *
 import os.path
+import random
 
 sound_path = "./games/jd/sound/FX/"
 voice_path = "./games/jd/sound/Voice/"
@@ -14,6 +15,15 @@ class ModeCompletedHurryup(game.Mode):
 		self.countdown_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.banner_layer])
+		full_voice_path = voice_path + 'hurryup/'
+		filename = 'wow thats awesome.wav'
+		self.game.sound.register_sound('collected', full_voice_path+filename)
+		filename = 'great shot.wav'
+		self.game.sound.register_sound('collected', full_voice_path+filename)
+		filename = 'incredible shot.wav'
+		self.game.sound.register_sound('collected', full_voice_path+filename)
+		filename = 'jd - excellent.wav'
+		self.game.sound.register_sound('collected', full_voice_path+filename)
 	
 	def mode_started(self):
 		self.banner_layer.set_text("HURRY-UP!", 3)
@@ -46,6 +56,7 @@ class ModeCompletedHurryup(game.Mode):
 	
 	def sw_subwayEnter1_closed(self, sw):
 		self.collected()
+		self.game.sound.play('collected')
 		self.cancel_delayed(['grace', 'countdown', 'trip_check'])
 		self.already_collected = True
 		self.banner_layer.set_text('Well Done!')
@@ -108,7 +119,11 @@ class ModeTimer(game.Mode):
 			self.timer_update(self.timer)
 		else:
 			print "% 10.3f Timer calling callback" % (time.time())
+			self.failed()
 			self.callback()
+
+	def failed(self):
+		pass
 
 	def timer_update(self, time):
 		pass
@@ -223,12 +238,24 @@ class Pursuit(ChainFeature):
 		self.game.sound.register_sound('good shot', full_voice_path+filename)
 		filename = 'jd - excellent.wav'
 		self.game.sound.register_sound('good shot', full_voice_path+filename)
+		filename = 'jd - in pursuit 1.wav'
+		self.game.sound.register_sound('in pursuit', full_voice_path+filename)
+		filename = 'jd - in pursuit 2.wav'
+		self.game.sound.register_sound('in pursuit', full_voice_path+filename)
+		filename = 'suspects apprehended.wav'
+		self.game.sound.register_sound('complete', full_voice_path+filename)
+		filename = 'suspects got away.wav'
+		self.game.sound.register_sound('failed', full_voice_path+filename)
 
 	def mode_started(self):
 		self.shots = 0
 		self.update_status()
 		self.update_lamps()
 		self.game.sound.play('pursuit intro')
+		self.delay(name='response', event_type=None, delay=5, handler=self.response)
+
+	def response(self):
+		self.game.sound.play('in pursuit')
 
 	def update_lamps(self):
 		self.game.coils.flasherPursuitL.schedule(schedule=0x00030003, cycle_seconds=0, now=True)
@@ -262,13 +289,19 @@ class Pursuit(ChainFeature):
 		self.check_for_completion()
 
 	def check_for_completion(self):
-		self.game.sound.play('good shot')
 		self.update_status()
 		if self.shots == self.shots_required_for_completion:
+			self.game.sound.play('complete')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Pursuit calling callback" % (time.time())
 			self.callback()
+		else:
+			self.game.sound.play('good shot')
+
+	def failed(self):
+		self.game.sound.play('failed')
+			
 
 	def get_instruction_layers(self):
 		font = self.game.fonts['jazz18']
@@ -301,11 +334,7 @@ class Blackout(ChainFeature):
 		self.update_lamps()
 
 	def update_status(self):
-		if self.shots > self.shots_required_for_completion:
-			extra_shots = self.shots - self.shots_required_for_completion
-			status = 'Shots made: ' + str(extra_shots) + ' extra'
-		else:
-			status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
 		self.status_layer.set_text(status)
 		
 
@@ -343,7 +372,7 @@ class Blackout(ChainFeature):
 		font_small = self.game.fonts['tiny7']
 		layer1 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
 		layer21 = dmd.TextLayer(128/2, 7, font, "center").set_text(self.name)
-		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot center ramps " + str(self.shots_required_for_completion) + " times")
+		layer22 = dmd.TextLayer(128/2, 24, font_small, "center").set_text("Shoot center ramp")
 		instruction_layers = [[layer1], [layer21, layer22]]
 		return instruction_layers
 
@@ -361,6 +390,27 @@ class Sniper(ChainFeature):
 		self.status_layer = dmd.TextLayer(127, 26, self.game.fonts['tiny7'], "right")
 		self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer,self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
 
+		full_voice_path = voice_path + 'sniper/'
+		filename = 'jd - missed him.wav'
+		self.game.sound.register_sound('miss', full_voice_path+filename)
+		filename = 'jd - drokk.wav'
+		self.game.sound.register_sound('miss', full_voice_path+filename)
+		filename = 'jd - grud.wav'
+		self.game.sound.register_sound('miss', full_voice_path+filename)
+		filename = 'jd - sniper neutralized.wav'
+		self.game.sound.register_sound('hit', full_voice_path+filename)
+		filename = 'jd - take that punk.wav'
+		self.game.sound.register_sound('hit', full_voice_path+filename)
+		filename = 'gunshot.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		time = random.randint(2,7)
+		self.delay(name='gunshot', event_type=None, delay=time, handler=self.gunshot)
+	def gunshot(self):
+		time = random.randint(2,7)
+		self.delay(name='gunshot', event_type=None, delay=time, handler=self.gunshot)
+		self.game.sound.play('shot')
+
+
 	def mode_started(self):
 		self.shots = 0
 		self.update_status()
@@ -372,6 +422,7 @@ class Sniper(ChainFeature):
 
 	def mode_stopped(self):
 		self.game.lamps.awardSniper.disable()
+		self.cancel_delayed('gunshot')
 
 	def update_lamps(self):
 		self.game.lamps.awardSniper.schedule(schedule=0x00FF00FF, cycle_seconds=0, now=True)
@@ -388,10 +439,13 @@ class Sniper(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == 2:
+			self.game.sound.play('hit')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Sniper calling callback" % (time.time())
 			self.callback()
+		else:
+			self.game.sound.play('miss')
 
 	def get_instruction_layers(self):
 		font = self.game.fonts['jazz18']
@@ -599,6 +653,10 @@ class Impersonator(ChainFeature):
 			filename = 'boo ' + str(i) + '.wav'
 			self.game.sound.register_sound('bi - boo', full_voice_path+filename)
 
+		for i in range(1,5):
+			filename = 'Shut Up ' + str(i) + '.aif'
+			self.game.sound.register_sound('bi - shutup', full_voice_path+filename)
+
 		filename = 'bad impersonation in progress.wav'
 		self.game.sound.register_sound('bad impersonator', full_voice_path+filename)
 
@@ -615,16 +673,22 @@ class Impersonator(ChainFeature):
 		self.update_status()
 		self.update_lamps()
 		self.game.sound.play('bad impersonator')
-		self.delay(name='song_restart', event_type=None, delay=3, handler=self.song_restart)
-		self.delay(name='boo_restart', event_type=None, delay=10, handler=self.boo_restart)
+		self.delay(name='song_restart', event_type=None, delay=2, handler=self.song_restart)
+		self.delay(name='boo_restart', event_type=None, delay=5, handler=self.boo_restart)
+		self.delay(name='shutup_restart', event_type=None, delay=4, handler=self.shutup_restart)
 
 	def song_restart(self):
 		self.game.sound.play('bi - song')
-		self.delay(name='song_restart', event_type=None, delay=10, handler=self.song_restart)
+		self.delay(name='song_restart', event_type=None, delay=6, handler=self.song_restart)
 
 	def boo_restart(self):
+		time = random.randint(2,7)
 		self.game.sound.play('bi - boo')
-		self.delay(name='boo_restart', event_type=None, delay=7, handler=self.boo_restart)
+		self.delay(name='boo_restart', event_type=None, delay=time, handler=self.boo_restart)
+	def shutup_restart(self):
+		time = random.randint(2,7)
+		self.game.sound.play('bi - shutup')
+		self.delay(name='shutup_restart', event_type=None, delay=time, handler=self.shutup_restart)
 
 	def update_status(self):
 		if self.shots > self.shots_required_for_completion:
@@ -645,6 +709,7 @@ class Impersonator(ChainFeature):
 		self.cancel_delayed('moving_target')
 		self.cancel_delayed('song_restart')
 		self.cancel_delayed('boo_restart')
+		self.cancel_delayed('shutup_restart')
 		self.cancel_delayed('end_sound')
 		self.game.sound.stop('bi - song')
 		self.game.sound.stop('bi - boo')
@@ -671,36 +736,36 @@ class Impersonator(ChainFeature):
 		if self.timer%6 == 0:
 			self.shots += 1
 			self.game.score(10000)
+			self.check_for_completion()
 		self.game.coils.resetDropTarget.pulse(40)
-		self.check_for_completion()
 
 	def sw_dropTargetU_active(self,sw):
 		if self.timer%6 == 0 or self.timer%6 == 1 or self.timer%6 == 5:
 			self.shots += 1
 			self.game.score(10000)
+			self.check_for_completion()
 		self.game.coils.resetDropTarget.pulse(40)
-		self.check_for_completion()
 
 	def sw_dropTargetD_active(self,sw):
 		if self.timer%6 == 2 or self.timer%6 == 4 or self.timer%6 == 1 or self.timer%6 == 5:
 			self.shots += 1
 			self.game.score(10000)
+			self.check_for_completion()
 		self.game.coils.resetDropTarget.pulse(40)
-		self.check_for_completion()
 
 	def sw_dropTargetG_active(self,sw):
 		if self.timer%6 == 2 or self.timer%6 == 3 or self.timer%6 == 4:
 			self.shots += 1
 			self.game.score(10000)
+			self.check_for_completion()
 		self.game.coils.resetDropTarget.pulse(40)
-		self.check_for_completion()
 
 	def sw_dropTargetE_active(self,sw):
 		if self.timer%6 == 3:
 			self.shots += 1
 			self.game.score(10000)
+			self.check_for_completion()
 		self.game.coils.resetDropTarget.pulse(40)
-		self.check_for_completion()
 
 	def moving_target(self):
 		#self.timer += 1
@@ -746,6 +811,30 @@ class Safecracker(ChainFeature):
 		else:
 			self.shots_required_for_completion = 4
 
+		full_voice_path = voice_path + 'safecracker/'
+		filename = 'hurry up.wav'
+		self.game.sound.register_sound('bad guys', full_voice_path+filename)
+		filename = 'running out of time.wav'
+		self.game.sound.register_sound('bad guys', full_voice_path+filename)
+		time = random.randint(10,20)
+		self.delay(name='bad guys', event_type=None, delay=time, handler=self.bad_guys)
+
+		filename = 'jd - youre done.wav'
+		self.game.sound.register_sound('complete', full_voice_path+filename)
+		filename = 'surrounded.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		filename = 'great shot.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		filename = 'jd - excellent.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		filename = 'jd - do it again.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+
+	def bad_guys(self):
+		time = random.randint(5,10)
+		self.delay(name='bad guys', event_type=None, delay=time, handler=self.bad_guys)
+		self.game.sound.play('bad guys')
+
 	def mode_started(self):
 		self.shots = 0
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active():
@@ -764,6 +853,7 @@ class Safecracker(ChainFeature):
 
 	def mode_stopped(self):
 		self.cancel_delayed('trip_check')
+		self.cancel_delayed('bad guys')
 		self.game.lamps.awardSafecracker.disable()
 		if self.game.switches.dropTargetJ.is_active() or self.game.switches.dropTargetU.is_active() or self.game.switches.dropTargetD.is_active() or self.game.switches.dropTargetG.is_active() or self.game.switches.dropTargetE.is_active():
 			self.game.coils.resetDropTarget.pulse(40)
@@ -782,10 +872,13 @@ class Safecracker(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == self.shots_required_for_completion:
+			self.game.sound.play('complete')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Safecracker calling callback" % (time.time())
 			self.callback()
+		else:
+			self.game.sound.play('shot')
 
 	def trip_check(self):
 		if self.game.switches.dropTargetD.is_inactive():
@@ -814,10 +907,23 @@ class ManhuntMillions(ChainFeature):
 		else:
 			self.shots_required_for_completion = 4
 
+		full_voice_path = voice_path + 'manhunt/'
+		filename = 'bank robbers trying to escape judgement.wav'
+		self.game.sound.register_sound('intro', full_voice_path+filename)
+		filename = 'aahh.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		filename = 'jd - i got one.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		filename = 'jd - that will stop him.wav'
+		self.game.sound.register_sound('shot', full_voice_path+filename)
+		filename = 'jd - fugutives captured.wav'
+		self.game.sound.register_sound('done', full_voice_path+filename)
+
 	def mode_started(self):
 		self.shots = 0
 		self.update_status()
 		self.update_lamps()
+		self.game.sound.play('intro')
 
 	def update_lamps(self):
 		self.game.coils.flasherPursuitL.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
@@ -846,10 +952,13 @@ class ManhuntMillions(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == self.shots_required_for_completion:
+			self.game.sound.play('done')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Manhunt calling callback" % (time.time())
 			self.callback()
+		else:
+			self.game.sound.play('shot')
 
 	def get_instruction_layers(self):
 		font = self.game.fonts['jazz18']
@@ -867,26 +976,48 @@ class Stakeout(ChainFeature):
 		super(Stakeout, self).__init__(game, priority, 'Stakeout')
 		difficulty = self.game.user_settings['Gameplay']['Chain feature difficulty']
 		if difficulty == 'easy':
-			self.shots_required_for_completion = 2
-		elif difficulty == 'medium':
 			self.shots_required_for_completion = 3
-		else:
+		elif difficulty == 'medium':
 			self.shots_required_for_completion = 4
+		else:
+			self.shots_required_for_completion = 5
+
+		full_voice_path = voice_path + 'stakeout/'
+
+		filename = 'jd - over there 1.wav'
+		self.game.sound.register_sound('over there', full_voice_path+filename)
+		filename = 'jd - over there 2.wav'
+		self.game.sound.register_sound('over there', full_voice_path+filename)
+		filename = 'jd - we have you surrounded.wav'
+		self.game.sound.register_sound('surrounded', full_voice_path+filename)
+		filename = 'jd - move in now.wav'
+		self.game.sound.register_sound('move in', full_voice_path+filename)
+		filename = 'jd - thats it take em down.wav'
+		self.game.sound.register_sound('move in', full_voice_path+filename)
+		filename = 'jd - are we sure we have the right place.wav'
+		self.game.sound.register_sound('boring', full_voice_path+filename)
+		filename = 'jd - this is boring.wav'
+		self.game.sound.register_sound('boring', full_voice_path+filename)
+		filename = 'most boring stakeout ever.wav'
+		self.game.sound.register_sound('boring', full_voice_path+filename)
+		filename = 'wake me when something happens.wav'
+		self.game.sound.register_sound('boring', full_voice_path+filename)
 
 	def mode_started(self):
 		self.shots = 0
 		self.update_status()
 		self.update_lamps()
+		self.delay(name='boring', event_type=None, delay=15, handler=self.boring_expired)
+
+	def boring_expired(self):
+		self.game.sound.play('boring')
+		self.delay(name='boring', event_type=None, delay=5, handler=self.boring_expired)
 
 	def update_lamps(self):
 		self.game.coils.flasherPursuitR.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
 
 	def update_status(self):
-		if self.shots > self.shots_required_for_completion:
-			extra_shots = self.shots - self.shots_required_for_completion
-			status = 'Shots made: ' + str(extra_shots) + ' extra'
-		else:
-			status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
+		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
 		self.status_layer.set_text(status)
 		
 
@@ -899,10 +1030,20 @@ class Stakeout(ChainFeature):
 		self.game.score(10000)
 
 	def check_for_completion(self):
+		self.cancel_delayed('boring')
 		self.update_status()
+		self.game.sound.stop('boring')
 		if self.shots == self.shots_required_for_completion:
 			self.completed = True
 			self.game.score(50000)
+			self.callback()
+		elif self.shots == 1:
+			self.game.sound.play('over there')
+		elif self.shots == 2:
+			self.game.sound.play('surrounded')
+		elif self.shots == 3:
+			self.game.sound.play('move in')
+	
 
 	def get_instruction_layers(self):
 		font = self.game.fonts['jazz18']

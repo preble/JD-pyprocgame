@@ -563,8 +563,9 @@ class BaseGameMode(game.Mode):
 
 	def sw_startButton_active(self, sw):
 		if self.game.ball == 1:
-			p = self.game.add_player()
-			self.game.set_status(p.name + " added!")
+			if len(self.game.players) < 4:
+				p = self.game.add_player()
+				self.game.set_status(p.name + " added!")
 		else:
 			self.game.set_status("Hold for 2s to reset.")
 
