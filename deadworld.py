@@ -10,11 +10,12 @@ class Deadworld(game.Mode):
 		self.num_balls_locked = 0
 		self.num_player_balls_locked = 0
 		self.num_balls_to_eject = 0
-		self.ball_eject_in_progress = 0
+		self.ball_eject_in_progress = False
 		self.crane_delay_active = False
 		self.setting_up_eject = False
 	
 	def mode_started(self):
+		#self.debug()
 		pass
 
 	def sw_globePosition2_active(self, sw):
@@ -56,8 +57,9 @@ class Deadworld(game.Mode):
 		self.game.trough.num_balls_locked += 1
 
 	def eject_balls(self,num):
-		if not self.num_balls_to_eject:
+		if not self.ball_eject_in_progress:
 			self.perform_ball_eject()
+
 		self.num_balls_to_eject += num
 
 		# Tell the trough the balls aren't locked anymore so 
@@ -66,11 +68,12 @@ class Deadworld(game.Mode):
 		# Error check.
 		if self.game.trough.num_balls_locked < 0:
 			self.game.trough.num_balls_locked = 0
-		self.ball_eject_in_progress = 1
+		self.ball_eject_in_progress = True
 		
 	def perform_ball_search(self):
-		self.perform_ball_eject()
-		self.ball_eject_in_progress = 1
+		if not self.ball_eject_in_progress:
+			self.perform_ball_eject()
+			self.ball_eject_in_progress = True
 
 	def perform_ball_eject(self):
 		# Make sure globe is turning
@@ -127,6 +130,10 @@ class Deadworld(game.Mode):
 		self.game.coils.crane.disable()
 		self.delay(name='crane_release_check', event_type=None, delay=1, handler=self.crane_release_check)
 
+	def debug(self):
+		self.delay(name='debug', event_type=None, delay=1, handler=self.debug)
+		self.game.set_status(str(self.num_balls_to_eject) + "," + str(self.num_balls_locked))
+
 	def crane_release_check(self):
 		if self.num_balls_to_eject > 0:
 			# Only restart if not in fast mode.  Fast mode will just
@@ -142,7 +149,7 @@ class Deadworld(game.Mode):
 			else:
 				self.game.coils.globeMotor.disable()
 
-			self.ball_eject_in_progress = 0
+			self.ball_eject_in_progress = False
 
 	def get_num_balls_locked(self):
 		return self.num_balls_locked - self.num_balls_to_eject

@@ -27,6 +27,7 @@ settings_template_path = "./games/jd/config/settings_template.yaml"
 fonts_path = "../shared/dmd/"
 shared_sound_path = "../shared/sound/"
 voice_path = "./games/jd/sound/Voice/attract/"
+voice_high_score_path = "./games/jd/sound/Voice/"
 sound_path = "./games/jd/sound/FX/"
 music_path = "./games/jd/sound/"
 font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
@@ -66,7 +67,6 @@ class Attract(game.Mode):
 	def mode_started(self):
 		print self.game.logging_enabled
 		self.play_super_game = False
-		self.ball_search_started = False
 		self.emptying_deadworld = False
 		if self.game.deadworld.num_balls_locked > 0:
 			self.game.deadworld.eject_balls(self.game.deadworld.num_balls_locked)
@@ -87,7 +87,6 @@ class Attract(game.Mode):
 				self.game.coils[name].pulse()
 
 		self.change_lampshow()
-		self.ball_search_started = False
 
 		filename = "./games/jd/dmd/cityscape.dmd"
 		if os.path.isfile(filename):
@@ -186,26 +185,28 @@ class Attract(game.Mode):
 	def post_game_display(self):
 		script = list()
 
-		for frame in highscore.generate_highscore_frames(self.game.highscore_categories):
-			new_layer = dmd.FrameLayer(frame=frame)
-			new_layer.transition = dmd.PushTransition(direction='north')
-			script.append({'seconds':2.0, 'layer':new_layer})
-
 		script.append({'seconds':3.0, 'layer':self.jd_layer})
 		script.append({'seconds':4.0, 'layer':self.cityscape_layer})
 		script.append({'seconds':3.0, 'layer':self.proc_splash_layer})
 		script.append({'seconds':3.0, 'layer':self.pyprocgame_layer})
-		script.append({'seconds':3.0, 'layer':self.scores_layer})
 		script.append({'seconds':20.0, 'layer':self.credits_layer})
 		script.append({'seconds':3.0, 'layer':self.judges_layer})
 		script.append({'seconds':4.0, 'layer':self.cityscape_layer})
 		script.append({'seconds':3.0, 'layer':None})
 
+                script.append({'seconds':3.0, 'layer':self.scores_layer})
+		for frame in highscore.generate_highscore_frames(self.game.highscore_categories):
+			new_layer = dmd.FrameLayer(frame=frame)
+			new_layer.transition = dmd.PushTransition(direction='north')
+			script.append({'seconds':2.0, 'layer':new_layer})
+
+
 		self.layer = dmd.ScriptedLayer(width=128, height=32, script=script)
 
 	def game_over_display(self):
 		script = [{'seconds':6.0, 'layer':self.longwalk_layer},
-			{'seconds':3.0, 'layer':None}]
+			  {'seconds':3.0, 'layer':None},
+			  {'seconds':3.0, 'layer':self.scores_layer}]
 
 		for frame in highscore.generate_highscore_frames(self.game.highscore_categories):
 			new_layer = dmd.FrameLayer(frame=frame)
@@ -213,8 +214,7 @@ class Attract(game.Mode):
 			script.append({'seconds':2.0, 'layer':new_layer})
 
 		self.layer = dmd.ScriptedLayer(width=128, height=32, script=script)
-
-		self.delay(name='dmd', event_type=None, delay=9, handler=self.post_game_display)
+		self.layer.on_complete = self.post_game_display
 
 	def mode_stopped(self):
 		pass
@@ -313,11 +313,8 @@ class Attract(game.Mode):
 			self.game.add_player()
 			# Start the ball.  This includes ejecting a ball from the trough.
 			self.game.start_ball()
-			self.ball_search_started = False
 		else: 
-			if not self.ball_search_started and not self.emptying_deadworld:
-				self.delay(name='search_delay', event_type=None, delay=8.0, handler=self.search_delay)
-				self.ball_search_started = True
+			if not self.emptying_deadworld:
 				self.game.set_status("Ball Search!")
 				self.game.ball_search.perform_search(5)
 				self.game.deadworld.perform_ball_search()
@@ -338,18 +335,12 @@ class Attract(game.Mode):
 			self.game.add_player()
 			# Start the ball.  This includes ejecting a ball from the trough.
 			self.game.start_ball()
-			self.ball_search_started = False
 		else: 
-			if not self.ball_search_started and not self.emptying_deadworld:
-				self.delay(name='search_delay', event_type=None, delay=8.0, handler=self.search_delay)
-				self.ball_search_started = True
+			if not self.emptying_deadworld:
 				self.game.set_status("Ball Search!")
 				self.game.ball_search.perform_search(5)
 				self.game.deadworld.perform_ball_search()
 		return True
-
-	def search_delay(self):
-		self.ball_search_started = False
 
 	def check_deadworld_empty(self):
 		if self.game.deadworld.num_balls_locked > 0:
@@ -655,6 +646,7 @@ class JDPlayer(game.Player):
 
 	inner_loops = 0
 	outer_loops = 0
+	crimescenes = 0
 
 	def __init__(self, name):
 		super(JDPlayer, self).__init__(name)
@@ -667,6 +659,7 @@ class Game(game.BasicGame):
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
 		self.logging_enabled = False
+		self.shooting_again = False
 	
 	def create_player(self, name):
 		return JDPlayer(name)
@@ -734,6 +727,8 @@ class Game(game.BasicGame):
 		#self.sound.register_sound('bonus', shared_sound_path+'coin.wav') # Used as bonus is counting up.
 		#self.sound.register_sound('bonus', shared_sound_path+'exp_smoother.wav') # Used as bonus is counting up.
 		self.sound.register_sound('bonus', sound_path+'DropTarget.wav') # Used as bonus is counting up.
+		#self.sound.register_sound('high score', voice_high_score_path+'promoted.wav')
+		self.sound.register_sound('high score', voice_high_score_path+'congratulations.wav')
 		
 		# Setup fonts
 		self.fonts = {}
@@ -759,12 +754,21 @@ class Game(game.BasicGame):
 		
 		cat = highscore.HighScoreCategory()
 		# because we don't have a game_data template:
-		cat.scores = [highscore.HighScore(score=50,inits='GSS'),\
-				  highscore.HighScore(score=40,inits='ASP'),\
-				  highscore.HighScore(score=30,inits='JRP'),\
-				  highscore.HighScore(score=20,inits='JAG'),\
-				  highscore.HighScore(score=10,inits='JTW')]
+		cat.scores = [highscore.HighScore(score=500000,inits='GSS'),\
+				  highscore.HighScore(score=400000,inits='ASP'),\
+				  highscore.HighScore(score=300000,inits='JRP'),\
+				  highscore.HighScore(score=200000,inits='JAG'),\
+				  highscore.HighScore(score=100000,inits='JTW')]
 		cat.game_data_key = 'ClassicHighScoreData'
+		self.highscore_categories.append(cat)
+		
+		cat = highscore.HighScoreCategory()
+		cat.game_data_key = 'CrimescenesHighScoreData'
+		cat.scores = [highscore.HighScore(score=2,inits='GSS')]
+		cat.titles = ['Crimescene Champ']
+		cat.score_for_player = lambda player: player.crimescenes
+		cat.score_suffix_singular = ' level'
+		cat.score_suffix_plural = ' levels'
 		self.highscore_categories.append(cat)
 		
 		cat = highscore.HighScoreCategory()
@@ -776,7 +780,7 @@ class Game(game.BasicGame):
 		cat.score_suffix_singular = ' loop'
 		cat.score_suffix_plural = ' loops'
 		self.highscore_categories.append(cat)
-		
+
 		cat = highscore.HighScoreCategory()
 		cat.game_data_key = 'OuterLoopsHighScoreData'
 		# because we don't have a game_data template:
@@ -821,11 +825,17 @@ class Game(game.BasicGame):
 	def drain_callback(self):
 		pass
 
+	# Override to create a flag singaling extra ball.
+	def shoot_again(self):
+		super(Game, self).shoot_again()
+		self.shooting_again = True
+
 	def ball_starting(self):
 		super(Game, self).ball_starting()
 		self.modes.add(self.base_game_mode)
 
 	def end_ball(self):
+		self.shooting_again = False
 		super(Game, self).end_ball()
 
 		self.game_data['Audits']['Avg Ball Time'] = self.calc_time_average_string(self.game_data['Audits']['Balls Played'], self.game_data['Audits']['Avg Ball Time'], self.ball_time)
@@ -869,7 +879,24 @@ class Game(game.BasicGame):
 		seq_manager = highscore.EntrySequenceManager(game=self, priority=2)
 		seq_manager.finished_handler = self.highscore_entry_finished
 		seq_manager.logic = highscore.CategoryLogic(game=self, categories=self.highscore_categories)
+		seq_manager.ready_handler = self.highscore_entry_ready_to_prompt
 		self.modes.add(seq_manager)
+
+	def highscore_entry_ready_to_prompt(self, mode, prompt):
+		self.sound.play('high score')
+		banner_mode = game.Mode(game=self, priority=8)
+		markup = dmd.MarkupFrameGenerator()
+		markup.font_plain = dmd.font_named('04B-03-7px.dmd')
+		markup.font_bold = dmd.font_named('04B-03-7px.dmd')
+		text = '\n[GREAT JOB]\n#%s#\n' % (prompt.left.upper()) # we know that the left is the player name
+		frame = markup.frame_for_markup(markup=text, y_offset=0)
+		banner_mode.layer = dmd.ScriptedLayer(width=128, height=32, script=[{'seconds':4.0, 'layer':dmd.FrameLayer(frame=frame)}])
+		banner_mode.layer.on_complete = lambda: self.highscore_banner_complete(banner_mode=banner_mode, highscore_entry_mode=mode)
+		self.modes.add(banner_mode)
+
+	def highscore_banner_complete(self, banner_mode, highscore_entry_mode):
+		self.modes.remove(banner_mode)
+		highscore_entry_mode.prompt()
 
 	def highscore_entry_finished(self, mode):
 		self.modes.remove(mode)

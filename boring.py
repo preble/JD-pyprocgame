@@ -94,4 +94,19 @@ class Boring(game.Mode):
 
 	def sw_trough6_active(self, sw):
 		self.reset()
+
+	def sw_dropTargetJ_active(self, sw):
+		self.reset()
+
+	def sw_dropTargetU_active(self, sw):
+		self.reset()
+
+	def sw_dropTargetD_active(self, sw):
+		self.reset()
+
+	def sw_dropTargetG_active(self, sw):
+		self.reset()
+
+	def sw_dropTargetE_active(self, sw):
+		self.reset()
 	

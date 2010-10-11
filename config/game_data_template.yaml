@@ -21,3 +21,5 @@ InnerLoopsHighScoreData:
 - {date: 'Sun Oct  3 17:38:46 2010', inits: GSS, score: 2}
 OuterLoopsHighScoreData:
 - {date: 'Sun Oct  3 17:38:46 2010', inits: ASP, score: 2}
+CrimescenesHighScoreData:
+- {date: 'Sun Oct  3 17:38:46 2010', inits: JRP, score: 2}

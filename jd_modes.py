@@ -197,6 +197,15 @@ class JD_Modes(modes.Scoring_Mode):
 
 		self.present_hurryup_selection = False
 
+		# Turn on GIs.  This is a temporary workaround for slow loading
+		# of the modes that results in the P-ROC watchdog tripping and
+		# the lights turning off.
+		self.game.lamps.gi01.pulse(0)
+		self.game.lamps.gi02.pulse(0)
+		self.game.lamps.gi03.pulse(0)
+		self.game.lamps.gi04.pulse(0)
+		self.game.lamps.gi05.pulse(0)
+
 	def mode_stopped(self):
 
 		# Remove modes from the mode Q
@@ -309,6 +318,7 @@ class JD_Modes(modes.Scoring_Mode):
 
 	# Award missile award indicated by award param.
 	def award_missile_award(self, award):
+		self.game.sound.play_music('background', loops=-1)
 		if award.find('Points', 0) != -1:
 			award_words = award.rsplit(' ')
 			self.game.score(int(award_words[0]))
@@ -527,10 +537,11 @@ class JD_Modes(modes.Scoring_Mode):
 			self.start_info()
 
 	def sw_subwayEnter2_active(self, sw):
-		filename = "./games/jd/dmd/subway.dmd"
-		if os.path.isfile(filename):
-			anim = dmd.Animation().load(filename)
-			self.play_animation(anim, 'low', repeat=False, hold=False, frame_time=1)
+		self.game.score(500)
+		#filename = "./games/jd/dmd/subway.dmd"
+		#if os.path.isfile(filename):
+		#	anim = dmd.Animation().load(filename)
+		#	self.play_animation(anim, 'low', repeat=False, hold=False, frame_time=1)
 
 	def sw_topRightOpto_active(self, sw):
 		#See if ball came around inner left loop
@@ -574,15 +585,19 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def sw_dropTargetJ_active(self, sw):
 		self.game.sound.play('drop_target')
+		self.game.score(200)
 	def sw_dropTargetU_active(self, sw):
 		self.game.sound.play('drop_target')
+		self.game.score(200)
 	def sw_dropTargetD_active(self, sw):
 		#self.game.sound.play('drop_target')
 		pass
 	def sw_dropTargetG_active(self, sw):
 		self.game.sound.play('drop_target')
+		self.game.score(200)
 	def sw_dropTargetE_active(self, sw):
 		self.game.sound.play('drop_target')
+		self.game.score(200)
 
 	def sw_captiveBall1_active(self, sw):
 		self.game.sound.play('meltdown')
@@ -718,11 +733,12 @@ class JD_Modes(modes.Scoring_Mode):
 				self.game.lamps.rightStartFeature.disable()
 			elif self.state == 'pre_ultimate_challenge':
 				self.game.lamps.rightStartFeature.disable()
-				self.play_ult_intro.setup('fire', self.activate_mode)
+				self.play_ult_intro.setup(self.ultimate_challenge.active_mode, self.activate_mode)
 				self.game.modes.add(self.play_ult_intro)
 				self.game.modes.remove(self.multiball)
 				self.game.modes.remove(self.crimescenes)
 				self.game.modes.remove(self.skill_shot)
+				self.game.modes.remove(self.boring)
 				self.intro_playing = True
 			else:
 				self.popperR_eject()
@@ -762,7 +778,6 @@ class JD_Modes(modes.Scoring_Mode):
 
 		if self.ball_starting:
 			self.game.ball_save.callback = self.ball_save_callback
-			self.game.modes.add(self.boring)
 
 		if os.path.isfile(filename) and self.ball_starting:
 			anim = dmd.Animation().load(filename)
@@ -776,6 +791,7 @@ class JD_Modes(modes.Scoring_Mode):
 			ball_save_time = self.game.user_settings['Gameplay']['New ball ballsave time']
 			self.game.ball_save.callback = self.ball_save_callback
 			self.game.ball_save.start(num_balls_to_save=1, time=ball_save_time, now=True, allow_multiple_saves=False)
+			self.game.modes.add(self.boring)
 			# Tell game to save ball start time now, since ball is now in play.
 			self.game.save_ball_start_time()
 		self.ball_starting = False
@@ -803,7 +819,7 @@ class JD_Modes(modes.Scoring_Mode):
         ####################################################
 
 	def welcome(self):
-		if self.game.ball == 1:
+		if self.game.ball == 1 or self.game.shooting_again:
 			self.game.modes.add(self.game_intro)
 
 	def high_score_mention(self):
@@ -833,6 +849,7 @@ class JD_Modes(modes.Scoring_Mode):
 	def award_extra_ball(self):
 		self.game.extra_ball()
 		self.extra_balls_lit -= 1
+		self.show_on_display("Extra Ball!", None,'high')
 		#Remove show_on_display call when animations are working.
 		#self.show_on_display("Extra Ball!", None, 'high')
 		filename = "../shared/dmd/EBAnim.dmd"
@@ -1093,7 +1110,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.multiball.reset_jackpot_collected()
 
 	def any_mb_active(self):
-		return self.multiball.is_active() or self.crimescenes.is_mb_active()
+		return self.multiball.is_active() or self.crimescenes.is_mb_active() or self.ultimate_challenge.is_active()
 
 	def video_mode_complete(self, success):
 		if self.state == 'mode':
@@ -1148,49 +1165,70 @@ class GameIntro(game.Mode):
 		super(GameIntro, self).__init__(game, priority)
 		self.game.sound.register_sound('welcome', voice_path+"welcome.wav")
 		self.game.sound.register_sound('welcome', voice_path+"jd - reporting for duty.wav")
+		self.game.sound.register_sound('welcome', voice_path+"judge death - i have come to bring law to the city my law.wav")
+		self.game.sound.register_sound('welcome', voice_path+"judge death - i have come to stop this world again.wav")
+		self.game.sound.register_sound('welcome', voice_path+"judge death - i have come to stop this world again.wav")
+
+		for i in range(1,5):
+			keyname = 'shoot again ' + str(i)
+			filename = 'shoot again player ' + str(i) + '.wav'
+			self.game.sound.register_sound(keyname, voice_path+filename)
 
 	def mode_started(self):
 		self.delay(name='start', event_type=None, delay=1.0, handler=self.start )
 
 	def start(self):
+		if self.game.shooting_again:
+			self.shoot_again()
+		else:
+			self.play_intro()
+
+	def shoot_again(self):
+		self.game.sound.play('shoot again ' + str(self.game.current_player_index+1))
+		self.again_layer = dmd.TextLayer(128/2, 9, self.game.fonts['jazz18'], "center").set_text('Shoot Again',3)
+		self.layer = dmd.GroupedLayer(128, 32, [self.again_layer])
+
+	def play_intro(self):
 		self.game.sound.play('welcome')
 		gen = dmd.MarkupFrameGenerator()
-                instructions = gen.frame_for_markup("""
+		if self.game.attract_mode.play_super_game:
+			self.delay(name='finish', event_type=None, delay=8.0, handler=self.finish )
+                	instructions = gen.frame_for_markup("""
+
+#INSTRUCTIONS#
+
+[Hit Right Fire to abort]
+
+You have started the SuperGame.  Ultimate Challenge is lit.  Shoot the sniper tower to start the finale.
+""")
+
+		else:
+			self.delay(name='finish', event_type=None, delay=25.0, handler=self.finish )
+                	instructions = gen.frame_for_markup("""
 
 
 #INSTRUCTIONS#
 
-[Hit Right-Fire to abort]
+Hit Right Fire to abort
 
-[To light Ultimate Challenge:]
-[Attempt all chain features]
-[Complete 16 crimescene levels]
-[Collect a multiball jackpot]
+To light Ultimate Challenge:
+Attempt all chain features
+Complete 16 crimescene levels
+Collect a multiball jackpot
 
-[Start chain features]
-[by shooting the]
-[Build Up Chain Feature]
-[shot when lit]
+Start chain features by shooting the Build Up Chain Feature shot when lit
 
-[Chain feature instructions]
-[are displayed when]
-[starting each feature]
+Chain feature instructions are displayed when starting each feature
 
-[Complete crimescene levels]
-[by shooting lit crimescene]
-[shots]
+Complete crimescene levels by shooting lit crimescene shots
 
-[Light locks by completing]
-[JUDGE target bank]
+Light locks by completing JUDGE target bank
 
-[During multiball, shoot]
-[left ramp to light jackpot]
-[then shoot subway to collect]
+During multiball, shoot left ramp to light jackpot then shoot subway to collect
 
 """)
 
 		self.layer = dmd.PanningLayer(width=128, height=32, frame=instructions, origin=(0,0), translate=(0,1), bounce=False)
-		self.delay(name='finish', event_type=None, delay=25.0, handler=self.finish )
 
 	def finish(self):
 		self.game.modes.remove(self)

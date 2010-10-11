@@ -345,6 +345,7 @@ class Crimescenes(modes.Scoring_Mode):
 			self.start_bonus()
 		else:
 			self.total_levels += self.num_levels_to_advance
+			self.game.current_player().crimescenes = self.total_levels
 			for number in range(0,self.num_levels_to_advance):
 				if self.level + number == self.extra_ball_levels:
 					self.light_extra_ball_function()
