@@ -283,7 +283,7 @@ class Crimescenes(modes.Scoring_Mode):
 				if self.all_targets_off():
 					self.level_complete()
 				else:
-					self.game.sound.play('crime')
+					self.game.sound.play_voice('crime')
 				self.update_lamps()
 		elif self.mode == 'block_war':
 			if self.get_block_war_multiplier != None:
@@ -365,7 +365,7 @@ class Crimescenes(modes.Scoring_Mode):
 			else:
 				self.display_level_complete(self.level,10000)
 				self.level += self.num_levels_to_advance
-				self.game.sound.play('block complete ' + str(self.level))
+				self.game.sound.play_voice('block complete ' + str(self.level))
 				self.init_level(self.level)
 				#Play sound, lamp show, etc
 
@@ -468,7 +468,7 @@ class BlockWar(game.Mode):
 	
 	def mode_started(self):
 		self.banner_layer.set_text("Block War!", 3)
-		self.game.sound.play('block war start')
+		self.game.sound.play_voice('block war start')
 
 	def switch_hit(self, shot_index, multiplier):
 		score = 5000 * multiplier

@@ -49,9 +49,7 @@ class ShootingGallery(game.Mode):
 		self.intro()
 
 	def intro(self):
-		print "hi"
 		self.game.enable_flippers(enable=False)
-		print "hi2"
 		self.status_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center", opaque=False).set_text("Video Mode")
 #		self.status_layer.composite_op = 'blacksrc'
 		self.intro_layer_0 = dmd.GroupedLayer(128, 32, [self.status_layer])

@@ -5,6 +5,7 @@ from procgame import *
 from random import *
 
 music_path = "./games/jd/sound/"
+voice_path = "./games/jd/sound/Voice/ultimate_challenge/"
 
 class UltimateChallenge(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
@@ -18,7 +19,7 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.mode_mortis = Mortis(game, self.priority+1)
 		self.mode_death = Death(game, self.priority+1)
 		self.mode_celebration = Celebration(game, self.priority+1)
-		self.active_mode = 'fire'
+		self.active_mode = 'celebration'
 		self.mode_list = {}
 		self.mode_list['fire'] = self.mode_fire
 		self.mode_list['fear'] = self.mode_fear
@@ -39,6 +40,7 @@ class UltimateChallenge(modes.Scoring_Mode):
 		self.game.sound.register_music('mode', music_path+"40 Second guitar solo.aif")
 		self.game.sound.register_music('mode', music_path+"55 second loopable -- Sonya.aif")
 		self.game.sound.register_music('mode', music_path+"105 second loopable -- Sisyphus.aif")
+		self.game.lampctrl.register_show('shot_hit', "./games/jd/lamps/flashers_only.lampshow")
 
 	def mode_started(self):
 		self.game.coils.resetDropTarget.pulse(40)
@@ -118,10 +120,17 @@ class UltimateChallenge(modes.Scoring_Mode):
 				self.play_ult_intro.setup('celebration', self.begin)
 				self.active_mode = 'celebration'
 				self.game.modes.add(self.play_ult_intro)
+			# Can get here if in celebration and last balls drain at the
+			# same time.
+			elif self.active_mode == 'celebration':
+				self.game.modes.remove(self.mode_celebration)
+				self.game.base_game_mode.ball_drained_callback()
+				
 			self.game.enable_flippers(True)
 			self.game.trough.drain_callback = self.game.base_game_mode.ball_drained_callback
 		elif self.game.trough.num_balls_in_play == 1:
 			if self.active_mode == 'celebration':
+				self.game.modes.remove(self.mode_celebration)
 				self.game.trough.drain_callback = self.game.base_game_mode.ball_drained_callback
 				self.callback()
 
@@ -245,7 +254,7 @@ Banish him by shooting the lit crimescene shots before time expires.  Shots slow
 			self.delay_time = 8
                 	self.instructions = self.gen.frame_for_markup("""
 
-#Congrats#
+#CONGRATS#
 
 The Dark Judges have all been banished.
 
@@ -253,6 +262,15 @@ Enjoy a 6-ball celebration multiball.  All shots score.
 
 Normal play resumes when only 1 ball remains.
 """)
+
+	def sw_flipperLwL_active(self, sw):
+		if self.game.switches.flipperLwR.is_active():
+			self.finish()
+
+	def sw_flipperLwR_active(self, sw):
+		if self.game.switches.flipperLwL.is_active():
+			self.finish()
+
 
 	def update_gi(self, on, num):
 		for i in range(1,5):
@@ -269,6 +287,10 @@ class Fire(modes.Scoring_Mode):
 		super(Fire, self).__init__(game, priority)
 		self.complete = False
 		self.mystery_lit = True
+		filename = 'judge fire - for you the party is over.wav'
+		self.game.sound.register_sound('fire - taunt', voice_path+filename)
+		filename = 'judge fire - let the flames of justice cleanse you.wav'
+		self.game.sound.register_sound('fire - taunt', voice_path+filename)
 
 	def mode_started(self):
 		self.mystery_lit = True
@@ -279,13 +301,19 @@ class Fire(modes.Scoring_Mode):
 		self.complete = False
 		if self.game.deadworld.num_balls_locked == 1:
 			balls_to_launch = 2
+			self.game.deadworld.eject_balls(1)
 		elif self.game.deadworld.num_balls_locked == 2:
 			balls_to_launch = 1
+			self.game.deadworld.eject_balls(2)
 		else:
 			balls_to_launch = 3
-		if balls_to_launch != 3:
-			self.game.deadworld.eject_balls(self.game.deadworld.num_balls_locked)
+
 		self.game.trough.launch_balls(balls_to_launch, self.launch_callback)
+		self.delay(name='taunt_timer', event_type=None, delay=5, handler=self.taunt)
+
+	def taunt(self):
+		self.game.sound.play_voice('fire - taunt')
+		self.delay(name='taunt_timer', event_type=None, delay=10, handler=self.taunt)
 
 	def launch_callback(self):
 		#ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
@@ -293,6 +321,7 @@ class Fire(modes.Scoring_Mode):
 		pass
 
 	def mode_stopped(self):
+		self.cancel_delayed('taunt')
 		self.game.coils.flasherFire.disable()
 
 	def check_for_completion(self):
@@ -301,6 +330,7 @@ class Fire(modes.Scoring_Mode):
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Pursuit calling callback" % (time.time())
+			self.cancel_delayed('taunt')
 			self.callback()
 
 	def update_lamps(self):
@@ -320,6 +350,8 @@ class Fire(modes.Scoring_Mode):
 			self.drive_mode_lamp('mystery', 'on')
 		else:
 			self.drive_mode_lamp('mystery', 'off')
+
+		return True
 
 			
 	def drive_mode_lamp(self, lampname, style='on'):
@@ -407,7 +439,8 @@ class Fire(modes.Scoring_Mode):
 		return True
 
 	def target_hit(self, num):
-		pass
+		self.game.lampctrl.play_show('shot_hit', False, self.game.update_lamps)
+		self.game.score(10000)
 
 	def all_targets_hit(self):
 		for i in range(0,5):
@@ -441,6 +474,14 @@ class Fear(modes.Scoring_Mode):
 		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['num_14x10'], "center")
 		self.status_layer = dmd.TextLayer(128/2, 26, self.game.fonts['tiny7'], "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
+		filename = 'judge fear - all must die.wav'
+		self.game.sound.register_sound('fear - taunt', voice_path+filename)
+		filename = 'judge fear - gaze into the face of fear.wav'
+		self.game.sound.register_sound('fear - taunt', voice_path+filename)
+		filename = 'judge fear - justice must be done.wav'
+		self.game.sound.register_sound('fear - taunt', voice_path+filename)
+		filename = 'judge fear - there is no escape from justice.wav'
+		self.game.sound.register_sound('fear - taunt', voice_path+filename)
 
 	def mode_started(self):
 		self.state = 'ramps'
@@ -451,10 +492,12 @@ class Fear(modes.Scoring_Mode):
 		self.mystery_lit = True
 		self.update_lamps()
 		self.complete = False
-		self.game.trough.launch_balls(1, self.launch_callback)
+		if self.game.switches.popperR.is_inactive():
+			self.game.trough.launch_balls(1, self.launch_callback)
 		self.game.coils.flasherFear.schedule(schedule=0x80808080, cycle_seconds=0, now=True)
 		self.already_collected = False
 		self.delay(name='countdown', event_type=None, delay=1, handler=self.decrement_timer)
+		self.delay(name='taunt_timer', event_type=None, delay=5, handler=self.taunt)
 
 	def launch_callback(self):
 		ball_save_time = 10
@@ -462,7 +505,12 @@ class Fear(modes.Scoring_Mode):
 		pass
 
 	def mode_stopped(self):
+		self.cancel_delayed('taunt')
 		self.game.coils.flasherFire.disable()
+
+	def taunt(self):
+		self.game.sound.play_voice('fear - taunt')
+		self.delay(name='taunt_timer', event_type=None, delay=10, handler=self.taunt)
 
 	def update_lamps(self):
 		if self.mystery_lit:
@@ -496,6 +544,7 @@ class Fear(modes.Scoring_Mode):
 			self.game.lamps.awardBadImpersonator.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
 			self.game.lamps.multiballJackpot.schedule(schedule=0x0f0f0f0f, cycle_seconds=0, now=True)
 			
+		return True
 
 			
 	def drive_mode_lamp(self, lampname, style='on'):
@@ -549,13 +598,16 @@ class Fear(modes.Scoring_Mode):
 		self.update_lamps()
 
 	def switch_ramps(self):
+		self.game.lampctrl.play_show('shot_hit', False, self.game.update_lamps)
+		self.game.score(10000)
 		if self.active_ramp == 'left':
 			self.active_ramp = 'right'
 		else:
 			self.active_ramp = 'left'
 
 	def sw_dropTargetD_inactive_for_400ms(self, sw):
-		self.game.coils.tripDropTarget.pulse(60)
+		if self.state == 'subway':
+			self.game.coils.tripDropTarget.pulse(60)
 
 	def sw_dropTargetJ_active_for_250ms(self,sw):
 		self.drop_targets()
@@ -581,14 +633,19 @@ class Fear(modes.Scoring_Mode):
 		return True
 
 	def sw_subwayEnter1_closed(self, sw):
-		self.finish()
-		self.cancel_delayed(['grace', 'countdown'])
-		self.already_collected = True
+		if self.state == 'subway':
+			self.game.lampctrl.play_show('shot_hit', False, self.game.update_lamps)
+			self.game.score(10000)
+			self.finish()
+			self.cancel_delayed(['grace', 'countdown'])
+			self.already_collected = True
 		return True
 	
 	# Ball might jump over first switch.  Use 2nd switch as a catchall.
 	def sw_subwayEnter2_closed(self, sw):
-		if not self.already_collected:
+		if self.state == 'subway' and not self.already_collected:
+			self.game.lampctrl.play_show('shot_hit', False, self.game.update_lamps)
+			self.game.score(10000)
 			self.banner_layer.set_text('Well Done!')
 			self.finish()
 			self.cancel_delayed(['grace', 'countdown'])
@@ -596,14 +653,17 @@ class Fear(modes.Scoring_Mode):
 	
 
 	def finish(self, success = True):
-		self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", True).set_text('Fear Defeated!')
+		self.cancel_delayed('taunt')
 		self.state = 'finished'
 		self.game.enable_flippers(False)
 		self.update_lamps()
 		self.game.lamps.ultChallenge.disable()
 		if success:
+			self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", True).set_text('Fear Defeated!')
 			self.complete = True
 			self.complete_callback()
+		else:
+			self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", True).set_text('You lose!')
 		
 		# Call callback back to ult-challenge.
 		# in ult-challenge, change trough callback so that mode can 
@@ -630,15 +690,31 @@ class Mortis(modes.Scoring_Mode):
 	def __init__(self, game, priority):
 		super(Mortis, self).__init__(game, priority)
 		self.complete = False
+		filename = 'judge mortis - decay in peace.wav'
+		self.game.sound.register_sound('mortis - taunt', voice_path+filename)
+		filename = 'judge mortis - rejoice.wav'
+		self.game.sound.register_sound('mortis - taunt', voice_path+filename)
+		filename = 'judge mortis - this city is guilty.wav'
+		self.game.sound.register_sound('mortis - taunt', voice_path+filename)
+		filename = 'judge mortis - you cannot hurt us now.wav'
+		self.game.sound.register_sound('mortis - taunt', voice_path+filename)
 
 	def mode_started(self):
 		self.state = 'ramps'
 		self.shots_required = [2, 2, 2, 2, 2]
 		self.update_lamps()
 		self.complete = False
-		self.game.trough.launch_balls(2, self.launch_callback)
+		if self.game.switches.popperR.is_active():
+			self.game.trough.launch_balls(1, self.launch_callback)
+		else:
+			self.game.trough.launch_balls(2, self.launch_callback)
 		self.game.coils.flasherMortis.schedule(schedule=0x80808080, cycle_seconds=0, now=True)
 		self.already_collected = False
+		self.delay(name='taunt_timer', event_type=None, delay=5, handler=self.taunt)
+
+	def taunt(self):
+		self.game.sound.play_voice('mortis - taunt')
+		self.delay(name='taunt_timer', event_type=None, delay=10, handler=self.taunt)
 
 	def launch_callback(self):
 		ball_save_time = 20
@@ -646,6 +722,7 @@ class Mortis(modes.Scoring_Mode):
 		pass
 
 	def mode_stopped(self):
+		self.cancel_delayed('taunt')
 		self.game.coils.flasherMortis.disable()
 
 	def update_lamps(self):
@@ -663,6 +740,8 @@ class Mortis(modes.Scoring_Mode):
 		self.drive_shot_lamp(3, 'perp5Y')
 		self.drive_shot_lamp(3, 'perp5G')
 		self.drive_shot_lamp(4, 'stopMeltdown')
+
+		return True
 
 	def drive_shot_lamp(self, index, lampname):
 		if self.shots_required[index] > 1:
@@ -715,6 +794,8 @@ class Mortis(modes.Scoring_Mode):
 
 	def switch_hit(self, index):
 		if self.shots_required[index] > 0:
+			self.game.lampctrl.play_show('shot_hit', False, self.game.update_lamps)
+			self.game.score(10000)
 			self.shots_required[index] -= 1
 			self.update_lamps()
 			self.check_for_completion()
@@ -745,6 +826,7 @@ class Mortis(modes.Scoring_Mode):
 		self.finish()
 
 	def finish(self, success = True):
+		self.cancel_delayed('taunt')
 		self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", True).set_text('Mortis Defeated!')
 		self.state = 'finished'
 		self.game.enable_flippers(False)
@@ -785,6 +867,20 @@ class Death(modes.Scoring_Mode):
 		self.score_layer = dmd.TextLayer(128/2, 10, self.game.fonts['num_14x10'], "center")
 		self.status_layer = dmd.TextLayer(128/2, 26, self.game.fonts['tiny7'], "center")
 		self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
+		filename = 'judge death - i have come to bring law to the city my law.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
+		filename = 'judge death - i have come to bring you law the law of death.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
+		filename = 'judge death - i have come to stop this world again.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
+		filename = 'judge death - my name is death i have come to judge you.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
+		filename = 'judge death - the crime is life.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
+		filename = 'judge death - the sentence is death.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
+		filename = 'judge death - you cannot kill what does not live.wav'
+		self.game.sound.register_sound('death - taunt', voice_path+filename)
 
 	def mode_started(self):
 		self.current_shot_index = 0
@@ -794,11 +890,17 @@ class Death(modes.Scoring_Mode):
 		self.shot_order = [4,2,0,3,1]
 		self.update_lamps()
 		self.complete = False
-		self.game.trough.launch_balls(1, self.launch_callback)
+		if self.game.switches.popperR.is_inactive():
+			self.game.trough.launch_balls(1, self.launch_callback)
 		self.game.coils.flasherDeath.schedule(schedule=0x80808080, cycle_seconds=0, now=True)
 		self.delay(name='countdown', event_type=None, delay=1, handler=self.decrement_timer)
 		self.already_collected = False
 		self.game.coils.resetDropTarget.pulse(40)
+		self.delay(name='taunt_timer', event_type=None, delay=5, handler=self.taunt)
+
+	def taunt(self):
+		self.game.sound.play_voice('death - taunt')
+		self.delay(name='taunt_timer', event_type=None, delay=10, handler=self.taunt)
 
 	def launch_callback(self):
 		ball_save_time = 20
@@ -806,6 +908,7 @@ class Death(modes.Scoring_Mode):
 		pass
 
 	def mode_stopped(self):
+		self.cancel_delayed('taunt')
 		self.game.coils.flasherDeath.disable()
 
 	def update_lamps(self):
@@ -829,6 +932,7 @@ class Death(modes.Scoring_Mode):
 		self.drive_shot_lamp(4, 'perp5R')
 		self.drive_shot_lamp(4, 'perp5Y')
 		self.drive_shot_lamp(4, 'perp5G')
+		return True
 
 	def drive_shot_lamp(self, index, lampname):
 		if self.active_shots[index] >= 1:
@@ -885,6 +989,8 @@ class Death(modes.Scoring_Mode):
 
 	def switch_hit(self, index):
 		if self.active_shots[index]:
+			self.game.lampctrl.play_show('shot_hit', False, self.game.update_lamps)
+			self.game.score(10000)
 			self.active_shots[index] = 0
 			self.timer += 10
 			self.check_for_completion()
@@ -923,6 +1029,7 @@ class Death(modes.Scoring_Mode):
 		self.finish()
 
 	def finish(self, success = True):
+		self.cancel_delayed('taunt')
 		self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", True).set_text('Death Defeated!')
 		self.cancel_delayed('countdown')
 		self.game.enable_flippers(False)
@@ -977,10 +1084,10 @@ class Celebration(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Celebration, self).__init__(game, priority)
-		self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", False)
+		#self.layer = dmd.TextLayer(128/2, 13, self.game.fonts['tiny7'], "center", False)
 
 	def mode_started(self):
-		self.layer.set_text('Celebration Multiball!', 3)
+		#self.layer.set_text('Celebration Multiball!', 3)
 
 		# Call callback now to set up drain callback, which will decide
 		# when multiball should end... probably when 1 ball is left.
@@ -988,23 +1095,28 @@ class Celebration(modes.Scoring_Mode):
 
 		if self.game.deadworld.num_balls_locked == 1:
 			balls_to_launch = 5
+			self.game.deadworld.eject_balls(1)
 		elif self.game.deadworld.num_balls_locked == 2:
 			balls_to_launch = 4
+			self.game.deadworld.eject_balls(2)
 		else:
 			balls_to_launch = 6
-		if balls_to_launch != 6:
-			self.game.deadworld.eject_balls(self.game.deadworld.num_balls_locked)
+
 		self.game.trough.launch_balls(balls_to_launch, self.launch_callback)
 		self.update_lamps()
 
 	def launch_callback(self):
-		#ball_save_time = 30
-		ball_save_time = 3 # for mode debug
+		ball_save_time = 20
 		self.game.ball_save.start(num_balls_to_save=6, time=ball_save_time, now=False, allow_multiple_saves=True)
 		pass
 
 	def mode_stopped(self):
 		self.game.coils.flasherDeath.disable()
+		for lamp in self.game.lamps:
+			if lamp.name.find('gi0', 0) != -1:
+				lamp.pulse(0)
+			else:
+				lamp.disable()
 
 	def update_lamps(self):
 		for lamp in self.game.lamps:
@@ -1023,9 +1135,12 @@ class Celebration(modes.Scoring_Mode):
 		for lamp in self.game.lamps:
 			if lamp.name.find('gi0', 0) == -1 and \
                            lamp.name != 'startButton' and lamp.name != 'buyIn' and \
-                           lamp.name != 'superGame':
+                           lamp.name != 'drainShield' and lamp.name != 'superGame' and \
+                           lamp.name != 'judgeAgain': 
 				lamp.schedule(schedule=lamp_schedules[i%32], cycle_seconds=0, now=False)
 				i += 1
+
+		return True
 
 	def drive_mode_lamp(self, lampname, style='on'):
 		if style == 'slow':
@@ -1072,19 +1187,19 @@ class Celebration(modes.Scoring_Mode):
 		return True
 
 	def sw_dropTargetJ_active_for_250ms(self,sw):
-		self.drop_targets()
+		return self.drop_targets()
 
 	def sw_dropTargetU_active_for_250ms(self,sw):
-		self.drop_targets()
+		return self.drop_targets()
 
 	def sw_dropTargetD_active_for_250ms(self,sw):
-		self.drop_targets()
+		return self.drop_targets()
 
 	def sw_dropTargetG_active_for_250ms(self,sw):
-		self.drop_targets()
+		return self.drop_targets()
 
 	def sw_dropTargetE_active_for_250ms(self,sw):
-		self.drop_targets()
+		return self.drop_targets()
 
 	def drop_targets(self):
 		self.game.score(1000)

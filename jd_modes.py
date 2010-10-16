@@ -162,7 +162,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.modes_not_attempted = ['pursuit', 'blackout', 'sniper', 'battleTank', 'impersonator', 'meltdown', 'safecracker', 'manhunt', 'stakeout']
 		self.modes_just_attempted = []
 		self.active_mode_pointer = 0
-		self.update_lamps()
+		self.game.update_lamps()
 
 	def mode_started(self):
 
@@ -312,7 +312,7 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def ball_save_callback(self):
 		if not self.any_mb_active():
-			self.game.sound.play('ball saved')
+			self.game.sound.play_voice('ball saved')
 			self.show_on_display("Ball Saved!", None, 'mid')
 			self.skill_shot.skill_shot_expired()
 
@@ -364,7 +364,7 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def begin_processing(self):
 		self.mystery_lit = True
-		self.update_lamps()
+		self.game.update_lamps()
 		if self.is_ultimate_challenge_ready():
 			self.setup_ultimate_challenge()
 		elif self.state == 'idle':
@@ -478,7 +478,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.modes_not_attempted_ptr = 0
 		else:
 			self.modes_not_attempted_ptr = self.active_mode_pointer % len(self.modes_not_attempted)
-		self.update_lamps()
+		self.game.update_lamps()
 
 	def drive_mode_lamp(self, lamp_name, style='on'):
 		if style == 'slow':
@@ -744,7 +744,7 @@ class JD_Modes(modes.Scoring_Mode):
 				self.popperR_eject()
 		else:
 			self.popperR_eject()
-		self.update_lamps()
+		self.game.update_lamps()
 
 	def sw_inlaneL_active(self, sw):
 		self.game.sound.play('inlane')
@@ -761,7 +761,7 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.any_mb_active() or self.game.trough.ball_save_active:
 			self.game.sound.play('outlane')
 		else:
-			self.game.sound.play('curse')
+			self.game.sound.play_voice('curse')
 
 	def sw_outlaneR_active(self, sw):
 		self.game.score(1000)
@@ -769,7 +769,7 @@ class JD_Modes(modes.Scoring_Mode):
 		if self.any_mb_active() or self.game.trough.ball_save_active:
 			self.game.sound.play('outlane')
 		else:
-			self.game.sound.play('curse')
+			self.game.sound.play_voice('curse')
 
 	# Enable auto-plunge as soon as the new ball is launched (by the player).
 	def sw_shooterR_inactive_for_300ms(self,sw):
@@ -835,12 +835,12 @@ class JD_Modes(modes.Scoring_Mode):
 	def inner_loop_combo_handler(self):
 		self.inner_loop_combos = 0
 		self.inner_loop_active = False
-		self.update_lamps()
+		self.game.update_lamps()
 
 	def outer_loop_combo_handler(self):
 		self.outer_loop_combos = 0
 		self.outer_loop_active = False
-		self.update_lamps()
+		self.game.update_lamps()
 
 	def inc_bonus_x(self):
 		self.bonus_x += 1
@@ -856,7 +856,7 @@ class JD_Modes(modes.Scoring_Mode):
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.play_animation(anim, 'high', repeat=False, hold=False)
-		self.update_lamps()
+		self.game.update_lamps()
 
 	def replay_callback(self):
 		award =  self.game.user_settings['Replay']['Replay Award']
@@ -924,7 +924,7 @@ class JD_Modes(modes.Scoring_Mode):
 			if self.num_extra_mode_balls > 0:
 				self.game.trough.launch_balls(self.num_extra_mode_balls, None)
 				self.num_extra_mode_balls = 0
-			self.update_lamps()
+			self.game.update_lamps()
 
 			# Disable missile award but save it for later if lit.
 			if self.missile_award_lit:
@@ -1184,12 +1184,12 @@ class GameIntro(game.Mode):
 			self.play_intro()
 
 	def shoot_again(self):
-		self.game.sound.play('shoot again ' + str(self.game.current_player_index+1))
+		self.game.sound.play_voice('shoot again ' + str(self.game.current_player_index+1))
 		self.again_layer = dmd.TextLayer(128/2, 9, self.game.fonts['jazz18'], "center").set_text('Shoot Again',3)
 		self.layer = dmd.GroupedLayer(128, 32, [self.again_layer])
 
 	def play_intro(self):
-		self.game.sound.play('welcome')
+		self.game.sound.play_voice('welcome')
 		gen = dmd.MarkupFrameGenerator()
 		if self.game.attract_mode.play_super_game:
 			self.delay(name='finish', event_type=None, delay=8.0, handler=self.finish )

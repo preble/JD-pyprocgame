@@ -56,7 +56,7 @@ class ModeCompletedHurryup(game.Mode):
 	
 	def sw_subwayEnter1_closed(self, sw):
 		self.collected()
-		self.game.sound.play('collected')
+		self.game.sound.play_voice('collected')
 		self.cancel_delayed(['grace', 'countdown', 'trip_check'])
 		self.already_collected = True
 		self.banner_layer.set_text('Well Done!')
@@ -251,11 +251,11 @@ class Pursuit(ChainFeature):
 		self.shots = 0
 		self.update_status()
 		self.update_lamps()
-		time = self.game.sound.play('pursuit intro')
+		time = self.game.sound.play_voice('pursuit intro')
 		self.delay(name='response', event_type=None, delay=time+0.5, handler=self.response)
 
 	def response(self):
-		self.game.sound.play('in pursuit')
+		self.game.sound.play_voice('in pursuit')
 
 	def update_lamps(self):
 		self.game.coils.flasherPursuitL.schedule(schedule=0x00030003, cycle_seconds=0, now=True)
@@ -291,16 +291,16 @@ class Pursuit(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == self.shots_required_for_completion:
-			self.game.sound.play('complete')
+			self.game.sound.play_voice('complete')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Pursuit calling callback" % (time.time())
 			self.callback()
 		else:
-			self.game.sound.play('good shot')
+			self.game.sound.play_voice('good shot')
 
 	def failed(self):
-		self.game.sound.play('failed')
+		self.game.sound.play_voice('failed')
 			
 
 	def get_instruction_layers(self):
@@ -408,7 +408,7 @@ class Sniper(ChainFeature):
 	def gunshot(self):
 		time = random.randint(2,7)
 		self.delay(name='gunshot', event_type=None, delay=time, handler=self.gunshot)
-		self.game.sound.play('sniper - shot')
+		self.game.sound.play_voice('sniper - shot')
 
 
 	def mode_started(self):
@@ -439,13 +439,13 @@ class Sniper(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == 2:
-			self.game.sound.play('sniper - hit')
+			self.game.sound.play_voice('sniper - hit')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Sniper calling callback" % (time.time())
 			self.callback()
 		else:
-			self.game.sound.play('sniper - miss')
+			self.game.sound.play_voice('sniper - miss')
 
 	def get_instruction_layers(self):
 		font = self.game.fonts['jazz18']
@@ -479,7 +479,7 @@ class BattleTank(ChainFeature):
 		self.shots = {'left':False,'center':False,'right':False}
 		self.update_status()
 		self.update_lamps()
-		self.game.sound.play('tank intro')
+		self.game.sound.play_voice('tank intro')
 
 	def update_status(self):
 		status = 'Shots made: ' + str(self.num_shots) + '/' + str(len(self.shots))
@@ -528,7 +528,7 @@ class BattleTank(ChainFeature):
 		self.update_status()
 		for i in range(1,4):
 			self.game.sound.stop('tank hit ' + str(i))
-		self.game.sound.play('tank hit ' + str(self.num_shots))
+		self.game.sound.play_voice('tank hit ' + str(self.num_shots))
 		if self.shots['right'] and self.shots['left'] and self.shots['center']:
 			self.completed = True
 			self.game.score(50000)
@@ -572,7 +572,7 @@ class Meltdown(ChainFeature):
 		self.shots = 0
 		self.update_status()
 		self.update_lamps()
-		self.game.sound.play('meltdown intro')
+		self.game.sound.play_voice('meltdown intro')
 
 	def update_status(self):
 		status = 'Shots made: ' + str(self.shots) + '/' + str(self.shots_required_for_completion)
@@ -608,9 +608,9 @@ class Meltdown(ChainFeature):
 			self.game.sound.stop('meltdown ' + str(i))	
 
 		if self.shots <= 5:
-			self.game.sound.play('meltdown ' + str(self.shots))
+			self.game.sound.play_voice('meltdown ' + str(self.shots))
 		else:
-			self.game.sound.play('meltdown 5')
+			self.game.sound.play_voice('meltdown 5')
 		if self.shots >= self.shots_required_for_completion:
 			self.completed = True
 			self.game.score(50000)
@@ -833,7 +833,7 @@ class Safecracker(ChainFeature):
 	def bad_guys(self):
 		time = random.randint(5,10)
 		self.delay(name='bad guys', event_type=None, delay=time, handler=self.bad_guys)
-		self.game.sound.play('bad guys')
+		self.game.sound.play_voice('bad guys')
 
 	def mode_started(self):
 		self.shots = 0
@@ -872,13 +872,13 @@ class Safecracker(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == self.shots_required_for_completion:
-			self.game.sound.play('complete')
+			self.game.sound.play_voice('complete')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Safecracker calling callback" % (time.time())
 			self.callback()
 		else:
-			self.game.sound.play('shot')
+			self.game.sound.play_voice('shot')
 
 	def trip_check(self):
 		if self.game.switches.dropTargetD.is_inactive():
@@ -923,7 +923,7 @@ class ManhuntMillions(ChainFeature):
 		self.shots = 0
 		self.update_status()
 		self.update_lamps()
-		self.game.sound.play('mm - intro')
+		self.game.sound.play_voice('mm - intro')
 
 	def update_lamps(self):
 		self.game.coils.flasherPursuitL.schedule(schedule=0x000F000F, cycle_seconds=0, now=True)
@@ -952,13 +952,13 @@ class ManhuntMillions(ChainFeature):
 	def check_for_completion(self):
 		self.update_status()
 		if self.shots == self.shots_required_for_completion:
-			self.game.sound.play('mm - done')
+			self.game.sound.play_voice('mm - done')
 			self.completed = True
 			self.game.score(50000)
 			print "% 10.3f Manhunt calling callback" % (time.time())
 			self.callback()
 		else:
-			self.game.sound.play('mm - shot')
+			self.game.sound.play_voice('mm - shot')
 
 	def get_instruction_layers(self):
 		font = self.game.fonts['jazz18']
@@ -1010,7 +1010,7 @@ class Stakeout(ChainFeature):
 		self.delay(name='boring', event_type=None, delay=15, handler=self.boring_expired)
 
 	def boring_expired(self):
-		self.game.sound.play('so - boring')
+		self.game.sound.play_voice('so - boring')
 		self.delay(name='boring', event_type=None, delay=5, handler=self.boring_expired)
 
 	def update_lamps(self):
@@ -1039,11 +1039,11 @@ class Stakeout(ChainFeature):
 			self.game.score(50000)
 			self.callback()
 		elif self.shots == 1:
-			self.game.sound.play('so - over there')
+			self.game.sound.play_voice('so - over there')
 		elif self.shots == 2:
-			self.game.sound.play('so - surrounded')
+			self.game.sound.play_voice('so - surrounded')
 		elif self.shots == 3:
-			self.game.sound.play('so - move in')
+			self.game.sound.play_voice('so - move in')
 	
 
 	def get_instruction_layers(self):

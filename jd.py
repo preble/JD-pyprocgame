@@ -65,7 +65,6 @@ class Attract(game.Mode):
 		pass
 
 	def mode_started(self):
-		print self.game.logging_enabled
 		self.play_super_game = False
 		self.emptying_deadworld = False
 		if self.game.deadworld.num_balls_locked > 0:
@@ -228,10 +227,10 @@ class Attract(game.Mode):
 		self.delay(name='lampshow', event_type=None, delay=10, handler=self.change_lampshow)
 
 	def sw_fireL_active(self, sw):
-		self.game.sound.play('attract')
+		self.game.sound.play_voice('attract')
 
 	def sw_fireR_active(self, sw):
-		self.game.sound.play('attract')
+		self.game.sound.play_voice('attract')
 
 	def sw_flipperLwL_active(self, sw):
 		self.layer.force_next(False)
@@ -463,7 +462,8 @@ class BaseGameMode(game.Mode):
 
 		# Put the ball into play and start tracking it.
 		# self.game.coils.trough.pulse(40)
-		self.game.trough.launch_balls(1)
+		# Always start the ball with no launch callback.
+		self.game.trough.launch_balls(1, self.empty_ball_launch_callback)
 
 		# Enable ball search in case a ball gets stuck during gameplay.
 		self.game.ball_search.enable()
@@ -475,6 +475,9 @@ class BaseGameMode(game.Mode):
 		# In case a higher priority mode doesn't install it's own ball_drained
 		# handler.
 		self.game.trough.drain_callback = self.ball_drained_callback
+
+	def empty_ball_launch_callback(self):
+		pass
 
 	def mode_stopped(self):
 		
@@ -883,7 +886,7 @@ class Game(game.BasicGame):
 		self.modes.add(seq_manager)
 
 	def highscore_entry_ready_to_prompt(self, mode, prompt):
-		self.sound.play('high score')
+		self.sound.play_voice('high score')
 		banner_mode = game.Mode(game=self, priority=8)
 		markup = dmd.MarkupFrameGenerator()
 		markup.font_plain = dmd.font_named('04B-03-7px.dmd')

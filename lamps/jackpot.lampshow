@@ -58,8 +58,7 @@ multiballJackpot      | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
 awardBadImpersonator  | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
 awardStakeout         | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
 blackoutJackpot       | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
-drainShield           | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
-judgeAgain            | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
+#judgeAgain            | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
 advanceCrimeLevel     | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
 tankRight             | .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  
 #superGame             |
