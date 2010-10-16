@@ -166,6 +166,12 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def mode_started(self):
 
+		# Make sure GIs are on.
+		self.game.lamps.gi01.pulse(0)
+		self.game.lamps.gi02.pulse(0)
+		self.game.lamps.gi03.pulse(0)
+		self.game.lamps.gi04.pulse(0)
+
 		# Set up a mode list dictionary using mode names as keys for easy access.
 		self.mode_list['pursuit'] = self.mode_pursuit
 		self.mode_list['blackout'] = self.mode_blackout
