@@ -217,13 +217,13 @@ class Multiball(modes.Scoring_Mode):
 		# Balls launched are already in play.
 		local_num_balls_to_save = self.game.trough.num_balls_in_play
 		self.game.ball_save.callback = None
-		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
+		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=True, allow_multiple_saves=True)
 
 	def start_ballsave(self):
 		ball_save_time = self.game.user_settings['Gameplay']['Multiball ballsave time']
 		local_num_balls_to_save = self.game.trough.num_balls_in_play + 2
 		self.game.ball_save.callback = None
-		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=False, allow_multiple_saves=True)
+		self.game.ball_save.start(num_balls_to_save=local_num_balls_to_save, time=ball_save_time, now=True, allow_multiple_saves=True)
 
 	def sw_leftRampToLock_active(self, sw):
 		if not self.lock_enabled:
