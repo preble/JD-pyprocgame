@@ -63,6 +63,14 @@ class Crimescenes(modes.Scoring_Mode):
 			filename = 'crime ' + str(i) + '.wav'
 			self.game.sound.register_sound(keyname, voice_path+filename)
 
+		self.game.sound.register_sound('jackpot is lit', voice_path + 'jackpot is lit.wav')
+		self.game.sound.register_sound('jackpot', voice_path + 'jackpot - excited.wav')
+		self.game.sound.register_sound('jackpot', voice_path + 'jaackpott.wav')
+		self.game.sound.register_sound('good shot', voice_path+'great shot.wav')
+		self.game.sound.register_sound('good shot', voice_path+'incredible shot.wav')
+		self.game.sound.register_sound('good shot', voice_path+'wow thats awesome.wav')
+		self.game.sound.register_sound('good shot', voice_path+'jd - excellent.wav')
+
 	def reset(self):
 		self.bonus_num = 1
 		self.extra_ball_levels = 4
@@ -292,10 +300,11 @@ class Crimescenes(modes.Scoring_Mode):
 				block_war_multiplier = 1
 			if self.bw_shots_required[num] > 0:
 				self.bw_shots_required[num] -= 1
-				self.block_war.switch_hit(num, block_war_multiplier)
+				self.block_war.switch_hit(num, self.bw_shots_required[num], block_war_multiplier)
 			if self.all_bw_shots_hit():
 				self.finish_level_complete()
 			else:
+				self.game.sound.play_voice('good shot')
 				self.update_lamps()
 		elif self.mode == 'bonus':
 			if num+1 == self.bonus_num:
@@ -329,6 +338,7 @@ class Crimescenes(modes.Scoring_Mode):
 		self.bonus_num = 1
 		self.bonus_dir = 'up'
 		self.delay(name='bonus_target', event_type=None, delay=3, handler=self.bonus_target)
+		self.game.sound.play_voice('jackpot is lit')
 		self.update_lamps()
 	def finish_level_complete(self):
 		self.game.score(10000)
@@ -395,8 +405,7 @@ class Crimescenes(modes.Scoring_Mode):
 
 		if self.bonus_dir == 'down' and self.bonus_num == 1:
 			self.mode = 'block_war'
-			self.level += 1
-			self.init_level(self.level)
+			self.setup_bw_shots_required(self.bw_shots)
 		else:
 			if self.bonus_dir == 'up':
 				self.bonus_num += 1
@@ -470,12 +479,13 @@ class BlockWar(game.Mode):
 		self.banner_layer.set_text("Block War!", 3)
 		self.game.sound.play_voice('block war start')
 
-	def switch_hit(self, shot_index, multiplier):
+	def switch_hit(self, shot_index, num_remaining, multiplier):
 		score = 5000 * multiplier
-		self.score_reason_layer.set_text("Jackpot", 2)
 		self.score_value_layer.set_text(str(score), 2)
 		self.game.score(score)
 		self.game.sound.play('block_war_target')
+		if num_remaining == 0:
+			self.score_reason_layer.set_text("Block " + str(shot_index+1) + " secured!", 2)
 		#if shot_index == 0:
 		#	self.banner_layer.set_text("Pow!", 2)
 		#if shot_index == 1:
@@ -488,8 +498,8 @@ class BlockWar(game.Mode):
 		#	self.banner_layer.set_text("Poof!", 2)
 
 	def bonus_hit(self):
-		self.banner_layer.set_text("Yahoo!!!", 2)
-		self.game.sound.play('block_war_target')
+		self.banner_layer.set_text("Jackpot!", 2)
+		self.game.sound.play_voice('jackpot')
 		self.game.score(500000)
 
 	def mode_stopped(self):
