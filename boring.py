@@ -77,6 +77,9 @@ class Boring(game.Mode):
 	def sw_shooterR_active(self, sw):
 		self.pause()
 
+	def sw_shooterR_active(self, sw):
+		self.pause()
+
 	def sw_shooterR_inactive_for_1s(self, sw):
 		self.reset()
 
@@ -87,6 +90,12 @@ class Boring(game.Mode):
 		self.reset()
 
 	def sw_outlaneL_active(self, sw):
+		self.reset()
+
+	def sw_craneRelease_active(self,sw):
+		self.reset()
+
+	def sw_leftRampToLock_active(self, sw):
 		self.reset()
 
 	def sw_trough1_active(self, sw):
