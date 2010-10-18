@@ -88,11 +88,10 @@ class Crimescenes(modes.Scoring_Mode):
 		self.reset()
 
 	def mode_stopped(self):
-		if self.mode == 'bonus':
+		if self.mode == 'bonus' or self.mode == 'block_war':
 			self.cancel_delayed('bonus_target')
 			self.game.modes.remove(self.block_war)
-		if self.mode == 'block_war':
-			self.game.modes.remove(self.block_war)
+
 		for i in range(1,6):
 			for j in range(0,4):
 				lampname = 'perp' + str(i) + self.lamp_colors[j]
@@ -322,6 +321,7 @@ class Crimescenes(modes.Scoring_Mode):
 			self.bw_shots_required[i] = num
 
 	def end_mb(self):
+		self.cancel_delayed('bonus_target')
 		self.game.modes.remove(self.block_war)
 		self.mode = 'levels'
 		self.level += 1
