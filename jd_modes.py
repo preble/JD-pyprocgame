@@ -12,9 +12,10 @@ from missile_award import *
 from shooting_gallery import *
 import os.path
 
-voice_path = "./games/jd/sound/Voice/"
-music_path = "./games/jd/sound/"
-sfx_path = "./games/jd/sound/FX/"
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+voice_path = curr_file_path + "/sound/Voice/"
+music_path = curr_file_path + "/sound/"
+sfx_path = curr_file_path + "/sound/FX/"
 
 class JD_Modes(modes.Scoring_Mode):
 	"""docstring for JD_Modes"""
@@ -64,7 +65,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.low_priority_animation = ModesAnimation(self.game, priority)
 		self.mid_priority_animation = ModesAnimation(self.game, priority + 4)
 		self.high_priority_animation = ModesAnimation(self.game, priority + 210)
-		self.video_mode = ShootingGallery(self.game, priority+11, "games/jd/dmd/jdpeople.dmd", "games/jd/dmd/cows.dmd", "games/jd/dmd/scopeandshot.dmd", self.cow_video_mode_lit)
+		self.video_mode = ShootingGallery(self.game, priority+11, curr_file_path + "/dmd/jdpeople.dmd", curr_file_path + "/dmd/cows.dmd", curr_file_path + "/dmd/scopeandshot.dmd", self.cow_video_mode_lit)
 		self.video_mode.on_complete = self.video_mode_complete	
 
 		#self.game.sound.register_music('background', music_path+"mainSongLoop.mp3")
@@ -544,7 +545,7 @@ class JD_Modes(modes.Scoring_Mode):
 
 	def sw_subwayEnter2_active(self, sw):
 		self.game.score(500)
-		#filename = "./games/jd/dmd/subway.dmd"
+		#filename = curr_file_path + "/dmd/subway.dmd"
 		#if os.path.isfile(filename):
 		#	anim = dmd.Animation().load(filename)
 		#	self.play_animation(anim, 'low', repeat=False, hold=False, frame_time=1)
@@ -562,7 +563,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.cancel_delayed('inner_loop')
 			self.delay(name='inner_loop', event_type=None, delay=3.0, handler=self.inner_loop_combo_handler )
 			self.show_on_display('inner loop: ' + str(self.inner_loop_combos), score, 'mid')
-			filename = "./games/jd/dmd/bike_across_screen.dmd"
+			filename = curr_file_path + "/dmd/bike_across_screen.dmd"
 			if os.path.isfile(filename):
 				anim = dmd.Animation().load(filename)
 				self.play_animation(anim, 'mid', repeat=False, hold=False, frame_time=3)
@@ -583,7 +584,7 @@ class JD_Modes(modes.Scoring_Mode):
 			self.delay(name='outer_loop', event_type=None, delay=3.0, handler=self.outer_loop_combo_handler )
 			self.show_on_display('outer loop: ' + str(self.outer_loop_combos), score, 'mid')
 			self.outer_loop_active = True
-			filename = "./games/jd/dmd/bike_across_screen.dmd"
+			filename = curr_file_path + "/dmd/bike_across_screen.dmd"
 			if os.path.isfile(filename):
 				anim = dmd.Animation().load(filename)
 				self.play_animation(anim, 'high', repeat=False, hold=False, frame_time=3)
@@ -780,7 +781,7 @@ class JD_Modes(modes.Scoring_Mode):
 	# Enable auto-plunge as soon as the new ball is launched (by the player).
 	def sw_shooterR_inactive_for_300ms(self,sw):
 		self.game.sound.play('ball_launch')
-		filename = "./games/jd/dmd/bikeacrosscity.dmd"
+		filename = curr_file_path + "/dmd/bikeacrosscity.dmd"
 
 		if self.ball_starting:
 			self.game.ball_save.callback = self.ball_save_callback
@@ -858,7 +859,7 @@ class JD_Modes(modes.Scoring_Mode):
 		self.show_on_display("Extra Ball!", None,'high')
 		#Remove show_on_display call when animations are working.
 		#self.show_on_display("Extra Ball!", None, 'high')
-		filename = "../shared/dmd/EBAnim.dmd"
+		filename = curr_file_path + "/../../../shared/dmd/EBAnim.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.play_animation(anim, 'high', repeat=False, hold=False)
@@ -1159,7 +1160,7 @@ class ModesAnimation(game.Mode):
 	def play(self, anim, repeat=False, hold=False, frame_time=1):
 		self.layer = dmd.AnimatedLayer(frames=anim.frames, repeat=repeat, hold=hold, frame_time=frame_time)
 
-		#filename = "./games/jd/dmd/train1.dmd"
+		#filename = curr_file_path + "/dmd/train1.dmd"
 		#train_anim = dmd.Animation().load(filename)
 		#obs_frame = train_anim.frames[0]
 		#self.layer.transition = dmd.ObscuredWipeTransition(obscuring_frame=obs_frame, composite_op='blacksrc', direction='east')

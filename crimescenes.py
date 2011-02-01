@@ -4,8 +4,9 @@ from random import *
 import locale
 import os.path
 
-sound_path = "./games/jd/sound/FX/"
-voice_path = "./games/jd/sound/Voice/crimescenes/"
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+sound_path = curr_file_path + "/sound/FX/"
+voice_path = curr_file_path + "/sound/Voice/crimescenes/"
 
 class Crimescenes(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
@@ -44,7 +45,7 @@ class Crimescenes(modes.Scoring_Mode):
                                                  [0,1,2,3,4], [0,1,2,3,4], 
                                                  [0,1,2,3,4], [0,1,2,3,4] ]
 			self.level_nums = [ 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5 ]
-		self.game.lampctrl.register_show('advance_level', "./games/jd/lamps/crimescene_advance_level.lampshow")
+		self.game.lampctrl.register_show('advance_level', curr_file_path + "/lamps/crimescene_advance_level.lampshow")
 		self.block_war = BlockWar(game, priority+5)
 		self.get_block_war_multiplier = None
 		self.total_levels = 0
@@ -460,7 +461,7 @@ class BlockWar(game.Mode):
 		self.banner_layer = dmd.TextLayer(128/2, 7, self.game.fonts['jazz18'], "center")
 		self.score_reason_layer = dmd.TextLayer(128/2, 7, self.game.fonts['07x5'], "center")
 		self.score_value_layer = dmd.TextLayer(128/2, 17, self.game.fonts['07x5'], "center")
-		filename = "./games/jd/dmd/blockwars.dmd"
+		filename = curr_file_path + "/dmd/blockwars.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=3)

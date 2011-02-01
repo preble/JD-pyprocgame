@@ -5,8 +5,9 @@ from procgame import *
 import os.path
 import random
 
-sound_path = "./games/jd/sound/FX/"
-voice_path = "./games/jd/sound/Voice/"
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+sound_path = curr_file_path + "/sound/FX/"
+voice_path = curr_file_path + "/sound/Voice/"
 
 class ModeCompletedHurryup(game.Mode):
 	"""docstring for AttractMode"""
@@ -327,7 +328,7 @@ class Blackout(ChainFeature):
 	def mode_started(self):
 		self.shots = 0
 		self.update_status()
-		filename = "./games/jd/dmd/blackout.dmd"
+		filename = curr_file_path + "/dmd/blackout.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.game.base_game_mode.jd_modes.play_animation(anim, 'high', repeat=False, hold=False, frame_time=3)
@@ -380,15 +381,19 @@ class Sniper(ChainFeature):
 	"""docstring for AttractMode"""
 	def __init__(self, game, priority):
 		super(Sniper, self).__init__(game, priority, 'Sniper')
-		filename = "./games/jd/dmd/scope.dmd"
-		if os.path.isfile(filename):
-			anim = dmd.Animation().load(filename)
-			self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=8)
+		filename = curr_file_path + "/dmd/scope.dmd"
+
 		self.countdown_layer = dmd.TextLayer(127, 1, self.game.fonts['tiny7'], "right")
 		self.name_layer = dmd.TextLayer(1, 1, self.game.fonts['tiny7'], "left").set_text("Sniper")
 		self.score_layer = dmd.TextLayer(127, 10, self.game.fonts['num_14x10'], "right")
 		self.status_layer = dmd.TextLayer(127, 26, self.game.fonts['tiny7'], "right")
-		self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer,self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
+
+		if os.path.isfile(filename):
+			anim = dmd.Animation().load(filename)
+			self.anim_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=8)
+			self.layer = dmd.GroupedLayer(128, 32, [self.anim_layer,self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
+		else:
+			self.layer = dmd.GroupedLayer(128, 32, [self.countdown_layer, self.name_layer, self.score_layer, self.status_layer])
 
 		full_voice_path = voice_path + 'sniper/'
 		filename = 'jd - missed him.wav'
@@ -430,7 +435,7 @@ class Sniper(ChainFeature):
 	def sw_popperR_active_for_300ms(self, sw):
 		self.shots += 1
 		self.game.score(10000)
-		filename = "./games/jd/dmd/dredd_shoot_at_sniper.dmd"
+		filename = curr_file_path + "/dmd/dredd_shoot_at_sniper.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.game.base_game_mode.jd_modes.play_animation(anim, 'high', repeat=False, hold=False, frame_time=5)

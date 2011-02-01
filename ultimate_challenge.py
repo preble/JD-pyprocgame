@@ -1,11 +1,13 @@
 import procgame
 import locale
 import time
+import os
 from procgame import *
 from random import *
 
-music_path = "./games/jd/sound/"
-voice_path = "./games/jd/sound/Voice/ultimate_challenge/"
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+music_path = curr_file_path + "/sound/"
+voice_path = curr_file_path + "/sound/Voice/ultimate_challenge/"
 
 class UltimateChallenge(modes.Scoring_Mode):
 	"""docstring for AttractMode"""

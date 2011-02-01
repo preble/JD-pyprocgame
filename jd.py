@@ -18,29 +18,30 @@ import copy
 import yaml
 
 locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
+#curr_file_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+#print os.getcwd()
+machine_config_path = curr_file_path + "/../../../shared/config/JD.yaml"
+settings_path = curr_file_path + "/config/settings.yaml"
+game_data_path = curr_file_path + "/config/game_data.yaml"
+game_data_template_path = curr_file_path + "/config/game_data_template.yaml"
+settings_template_path = curr_file_path + "/config/settings_template.yaml"
+fonts_path = curr_file_path + "/../../../shared/dmd/"
+shared_sound_path = curr_file_path + "/../../../shared/sound/"
+voice_path = curr_file_path + "/sound/Voice/attract/"
+voice_high_score_path = curr_file_path + "/sound/Voice/"
+sound_path = curr_file_path + "/sound/FX/"
+music_path = curr_file_path + "/sound/"
+font_tiny7 = dmd.font_named('04B-03-7px.dmd')
+font_jazz18 = dmd.font_named("Jazz18-18px.dmd")
+font_14x10 = dmd.font_named("Font14x10.dmd")
+font_18x12 = dmd.font_named("Font18x12.dmd")
+font_07x4 = dmd.font_named("Font07x4.dmd")
+font_07x5 = dmd.font_named("Font07x5.dmd")
+font_09Bx7 = dmd.font_named("Font09Bx7.dmd")
 
-machine_config_path = "../shared/config/JD.yaml"
-settings_path = "./games/jd/config/settings.yaml"
-game_data_path = "./games/jd/config/game_data.yaml"
-game_data_template_path = "./games/jd/config/game_data_template.yaml"
-settings_template_path = "./games/jd/config/settings_template.yaml"
-fonts_path = "../shared/dmd/"
-shared_sound_path = "../shared/sound/"
-voice_path = "./games/jd/sound/Voice/attract/"
-voice_high_score_path = "./games/jd/sound/Voice/"
-sound_path = "./games/jd/sound/FX/"
-music_path = "./games/jd/sound/"
-font_tiny7 = dmd.Font(fonts_path+"04B-03-7px.dmd")
-font_jazz18 = dmd.Font(fonts_path+"Jazz18-18px.dmd")
-font_14x10 = dmd.Font(fonts_path+"Font14x10.dmd")
-font_18x12 = dmd.Font(fonts_path+"Font18x12.dmd")
-font_07x4 = dmd.Font(fonts_path+"Font07x4.dmd")
-font_07x5 = dmd.Font(fonts_path+"Font07x5.dmd")
-font_09Bx7 = dmd.Font(fonts_path+"Font09Bx7.dmd")
-
-#lampshow_files = ["./games/jd/lamps/attract_show_test.lampshow"]
-lampshow_files = ["./games/jd/lamps/attract_show_horiz.lampshow", \
-                  "./games/jd/lamps/attract_show_vert.lampshow" \
+lampshow_files = [curr_file_path + "/lamps/attract_show_horiz.lampshow", \
+                  curr_file_path + "/lamps/attract_show_vert.lampshow" \
                  ]
 
 class Attract(game.Mode):
@@ -87,7 +88,7 @@ class Attract(game.Mode):
 
 		self.change_lampshow()
 
-		filename = "./games/jd/dmd/cityscape.dmd"
+		filename = curr_file_path + "/dmd/cityscape.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.cityscape_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=1)
@@ -139,21 +140,21 @@ class Attract(game.Mode):
 
 		self.credits_layer = dmd.PanningLayer(width=128, height=32, frame=credits_frame, origin=(0,0), translate=(0,1), bounce=False)
 
-		filename = "./games/jd/dmd/guntech.dmd"
+		filename = curr_file_path + "/dmd/guntech.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.guntech_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=False, frame_time=4)
 		else:
 			self.guntech_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("GunTech")
 
-		filename = "./games/jd/dmd/darkjudges_no_bg.dmd"
+		filename = curr_file_path + "/dmd/darkjudges_no_bg.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.judges_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=True, frame_time=4)
 		else:
 			self.judges_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("Judges")
 
-		filename = "./games/jd/dmd/longwalk.dmd"
+		filename = curr_file_path + "/dmd/longwalk.dmd"
 		if os.path.isfile(filename):
 			anim = dmd.Animation().load(filename)
 			self.longwalk_layer = dmd.AnimatedLayer(frames=anim.frames, repeat=False, frame_time=7)
@@ -276,6 +277,8 @@ class Attract(game.Mode):
 		del self.game.service_mode
 		self.game.service_mode = procgame.service.ServiceMode(self.game,100,font_tiny7,[self.game.deadworld_test])
 		self.game.modes.add(self.game.service_mode)
+		#self.game.proc.driver_group_disable(5)
+		#pinproc.driver_state_pulse(32, 30)
 		return True
 
 	def sw_exit_active(self, sw):
@@ -668,7 +671,7 @@ class Game(game.BasicGame):
 		return JDPlayer(name)
 	
 	def save_settings(self):
-		self.write_settings(settings_path)
+		self.save_settings(settings_path)
 
 	def save_game_data(self):
 		super(Game, self).save_game_data(game_data_path)

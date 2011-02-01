@@ -8,7 +8,8 @@ import time
 import yaml
 import random
 
-voice_path = "./games/jd/sound/Voice/shooting_gallery/"
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+voice_path = curr_file_path + "/sound/Voice/shooting_gallery/"
 
 class ShootingGallery(game.Mode):
 	def __init__(self, game, priority, gallery_filename, cows_filename, scope_filename, cow_mode):

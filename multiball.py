@@ -1,7 +1,9 @@
+import os
 import procgame
 from procgame import *
 
-voice_path = "./games/jd/sound/Voice/multiball/"
+curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
+voice_path = curr_file_path + "/sound/Voice/multiball/"
 
 class Multiball(modes.Scoring_Mode):
 	"""docstring for AttractMode"""
@@ -24,7 +26,7 @@ class Multiball(modes.Scoring_Mode):
 		self.lock_level = 1
 		self.drops = procgame.modes.BasicDropTargetBank(self.game, priority=priority+1, prefix='dropTarget', letters='JUDGE')
 		self.jackpot_collected = False
-		self.game.lampctrl.register_show('jackpot', "./games/jd/lamps/jackpot.lampshow")
+		self.game.lampctrl.register_show('jackpot', curr_file_path + "/lamps/jackpot.lampshow")
 		self.game.sound.register_sound('jackpot is lit', voice_path + 'jackpot is lit.wav')
 		self.game.sound.register_sound('jackpot', voice_path + 'jackpot - excited.wav')
 		self.game.sound.register_sound('jackpot', voice_path + 'jaackpott.wav')
