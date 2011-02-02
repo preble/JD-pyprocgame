@@ -21,13 +21,10 @@ locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 #curr_file_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
 #print os.getcwd()
-machine_config_path = curr_file_path + "/../../../shared/config/JD.yaml"
 settings_path = curr_file_path + "/config/settings.yaml"
 game_data_path = curr_file_path + "/config/game_data.yaml"
 game_data_template_path = curr_file_path + "/config/game_data_template.yaml"
 settings_template_path = curr_file_path + "/config/settings_template.yaml"
-fonts_path = curr_file_path + "/../../../shared/dmd/"
-shared_sound_path = curr_file_path + "/../../../shared/sound/"
 voice_path = curr_file_path + "/sound/Voice/attract/"
 voice_high_score_path = curr_file_path + "/sound/Voice/"
 sound_path = curr_file_path + "/sound/FX/"
@@ -39,6 +36,7 @@ font_18x12 = dmd.font_named("Font18x12.dmd")
 font_07x4 = dmd.font_named("Font07x4.dmd")
 font_07x5 = dmd.font_named("Font07x5.dmd")
 font_09Bx7 = dmd.font_named("Font09Bx7.dmd")
+splash = procgame.config.value_for_key_path('font_path') + "Splash.dmd"
 
 lampshow_files = [curr_file_path + "/lamps/attract_show_horiz.lampshow", \
                   curr_file_path + "/lamps/attract_show_vert.lampshow" \
@@ -99,7 +97,7 @@ class Attract(game.Mode):
 		self.jd_layer.transition = dmd.PushTransition(direction='south')
 
 
-		self.proc_splash_layer = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(fonts_path+'Splash.dmd').frames[0])
+		self.proc_splash_layer = dmd.FrameLayer(opaque=True, frame=dmd.Animation().load(splash).frames[0])
 		self.proc_splash_layer.transition = dmd.PushTransition(direction='south')
 		self.pyprocgame_layer = dmd.TextLayer(128/2, 7, font_jazz18, "center", opaque=True).set_text("pyprocgame")
 		self.pyprocgame_layer.transition = dmd.PushTransition(direction='west')
@@ -660,12 +658,13 @@ class JDPlayer(game.Player):
 
 class Game(game.BasicGame):
 	"""docstring for Game"""
-	def __init__(self, machine_type):
-		super(Game, self).__init__(machine_type)
+	def __init__(self):
+		super(Game, self).__init__(pinproc.MachineTypeWPC)
 		self.sound = procgame.sound.SoundController(self)
 		self.lampctrl = procgame.lamps.LampController(self)
 		self.logging_enabled = False
 		self.shooting_again = False
+		self.setup()
 	
 	def create_player(self, name):
 		return JDPlayer(name)
@@ -678,7 +677,7 @@ class Game(game.BasicGame):
 		
 	def setup(self):
 		"""docstring for setup"""
-		self.load_config(machine_config_path)
+		self.load_config('JD.yaml')
 		self.load_settings(settings_template_path, settings_path)
 		self.sound.music_volume_offset = self.user_settings['Machine']['Music volume offset']
 		self.sound.set_volume(self.user_settings['Machine']['Initial volume'])
@@ -965,13 +964,9 @@ class Game(game.BasicGame):
 		self.flipper_workaround_mode.enable_flippers(enable)
 		
 def main():
-	config = yaml.load(open(machine_config_path, 'r'))
-	machine_type = config['PRGame']['machineType']
-	config = 0
 	game = None
 	try:
-	 	game = Game(machine_type)
-		game.setup()
+	 	game = Game()
 		game.run_loop()
 	finally:
 		del game
