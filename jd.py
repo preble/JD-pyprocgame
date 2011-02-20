@@ -17,6 +17,9 @@ import math
 import copy
 import yaml
 
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
 locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 #curr_file_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 curr_file_path = os.path.dirname(os.path.abspath( __file__ ))
@@ -36,7 +39,7 @@ font_18x12 = dmd.font_named("Font18x12.dmd")
 font_07x4 = dmd.font_named("Font07x4.dmd")
 font_07x5 = dmd.font_named("Font07x5.dmd")
 font_09Bx7 = dmd.font_named("Font09Bx7.dmd")
-splash = procgame.config.value_for_key_path('font_path') + "Splash.dmd"
+splash = curr_file_path + "/dmd/Splash.dmd"
 
 lampshow_files = [curr_file_path + "/lamps/attract_show_horiz.lampshow", \
                   curr_file_path + "/lamps/attract_show_vert.lampshow" \
@@ -682,13 +685,13 @@ class Game(game.BasicGame):
 		self.sound.music_volume_offset = self.user_settings['Machine']['Music volume offset']
 		self.sound.set_volume(self.user_settings['Machine']['Initial volume'])
 		self.load_game_data(game_data_template_path, game_data_path)
-		print "Stats:"
-		print self.game_data
-		print "Settings:"
-		print self.settings
-		print("Initial switch states:")
+		logging.info("Stats:")
+		logging.info(self.game_data)
+		logging.info("Settings:")
+		logging.info(self.settings)
+		logging.info("Initial switch states:")
 		for sw in self.switches:
-			print("  %s:\t%s" % (sw.name, sw.state_str()))
+			logging.info("  %s:\t%s" % (sw.name, sw.state_str()))
 
 		self.balls_per_game = self.user_settings['Gameplay']['Balls per game']
 
