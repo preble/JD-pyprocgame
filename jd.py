@@ -18,7 +18,7 @@ import copy
 import yaml
 
 import logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 locale.setlocale(locale.LC_ALL, "") # Used to put commas in the score.
 #curr_file_path = os.path.dirname(os.path.abspath(sys.argv[0]))
